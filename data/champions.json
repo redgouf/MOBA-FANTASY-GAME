@@ -1,0 +1,1553 @@
+{
+  "champions": [
+    {
+      "id": "dharok",
+      "name": "Dharok",
+      "title": "the Barrows Brute",
+      "build": "Full Dharok's + granite maul",
+      "role": "Top · juggernaut",
+      "style": "melee",
+      "skills": {
+        "attack": 85,
+        "strength": 99,
+        "defence": 75,
+        "ranged": 70,
+        "magic": 70,
+        "prayer": 70
+      },
+      "overheads": false,
+      "recommended_items": [
+        "rune_platebody",
+        "dharoks_platebody",
+        "granite_maul",
+        "amulet_of_torture",
+        "dragon_boots",
+        "bandos_chestplate",
+        "berserker_ring"
+      ],
+      "base": {
+        "max_health": 680,
+        "damage": 66,
+        "defence": {
+          "melee": 30,
+          "ranged": 26,
+          "magic": 20
+        },
+        "attack_range": 2.2,
+        "attack_ticks": 7,
+        "move_speed": 6.4,
+        "radius": 0.6
+      },
+      "growth": {
+        "max_health": 110,
+        "damage": 4.5,
+        "defence": {
+          "melee": 3,
+          "ranged": 3,
+          "magic": 2
+        },
+        "attack_speed": 0.015
+      },
+      "passive": {
+        "name": "Wretched Strength",
+        "type": "missing_health_damage",
+        "pct_per_pct": 1.0,
+        "text": "+1% damage for every 1% of missing health (Dharok's set effect)."
+      },
+      "abilities": {
+        "q": {
+          "name": "Greataxe Cleave",
+          "cast": "point",
+          "range": 4.5,
+          "cooldown": 7,
+          "text": "A wide crushing swing in a cone. Bonus damage equal to half his passive.",
+          "effects": [
+            {
+              "type": "damage",
+              "area": {
+                "shape": "cone",
+                "radius": 4.5,
+                "angle": 100,
+                "center": "self"
+              },
+              "base": 60,
+              "base_per_level": 12,
+              "ratio": {
+                "damage": 1.0
+              },
+              "style": "melee",
+              "missing_health_bonus": 0.5
+            }
+          ]
+        },
+        "w": {
+          "name": "Rock Cake",
+          "cast": "self",
+          "cooldown": 12,
+          "bot_use": "high_health",
+          "text": "Eat it to lose 15% of current health (can't drop below 1) and gain 20% move speed for 3s.",
+          "effects": [
+            {
+              "type": "self_cost",
+              "pct_current_health": 0.15
+            },
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "haste",
+              "amount": 0.2,
+              "duration": 3
+            }
+          ]
+        },
+        "e": {
+          "name": "Saradomin Brew",
+          "cast": "self",
+          "cooldown": 18,
+          "bot_use": "low_health",
+          "text": "Heal 25% of missing health over 2s and gain armour, but deal 15% less damage meanwhile.",
+          "effects": [
+            {
+              "type": "heal",
+              "pct_missing": 0.25,
+              "over_time": 2
+            },
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "armor_mult",
+              "amount": 0.25,
+              "duration": 2
+            },
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "damage_mult",
+              "amount": -0.15,
+              "duration": 2
+            }
+          ]
+        },
+        "r": {
+          "name": "Granite Maul Combo",
+          "cast": "target_unit",
+          "range": 2.6,
+          "cooldown": 0.6,
+          "spec_cost": 50,
+          "text": "An instant extra hit with no wind-up. Castable twice in a row with a full bar.",
+          "effects": [
+            {
+              "type": "damage",
+              "base": 90,
+              "base_per_level": 10,
+              "ratio": {
+                "damage": 1.1
+              },
+              "style": "melee"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "pure",
+      "name": "The Pure",
+      "title": "1 Defence PKer",
+      "build": "1 Def: DDS + whip / dragon scimitar",
+      "role": "Jungle · assassin",
+      "style": "melee",
+      "skills": {
+        "attack": 75,
+        "strength": 99,
+        "defence": 1,
+        "ranged": 99,
+        "magic": 94,
+        "prayer": 52
+      },
+      "overheads": false,
+      "recommended_items": [
+        "climbing_boots",
+        "dragon_dagger",
+        "rune_scimitar",
+        "dragon_scimitar",
+        "abyssal_whip",
+        "amulet_of_torture",
+        "dragon_claws",
+        "berserker_ring"
+      ],
+      "base": {
+        "max_health": 520,
+        "damage": 58,
+        "defence": {
+          "melee": 14,
+          "ranged": 12,
+          "magic": 10
+        },
+        "attack_range": 1.9,
+        "attack_ticks": 4,
+        "move_speed": 7.0,
+        "radius": 0.55
+      },
+      "growth": {
+        "max_health": 85,
+        "damage": 4,
+        "defence": {
+          "melee": 1.5,
+          "ranged": 1.5,
+          "magic": 1
+        },
+        "attack_speed": 0.02
+      },
+      "passive": {
+        "name": "1 Defence",
+        "type": "glass_cannon",
+        "damage_dealt": 0.15,
+        "damage_taken": 0.15,
+        "spec_regen_bonus": 0.5,
+        "text": "Takes and deals 15% more damage; special attack energy regenerates 50% faster."
+      },
+      "abilities": {
+        "q": {
+          "name": "Energy Drain",
+          "cast": "target_unit",
+          "range": 2.4,
+          "cooldown": 6,
+          "text": "An empowered whip hit that slows 30% for 2s and gives the Pure that move speed.",
+          "effects": [
+            {
+              "type": "damage",
+              "base": 40,
+              "base_per_level": 8,
+              "ratio": {
+                "damage": 0.8
+              },
+              "style": "melee",
+              "target_statuses": [
+                {
+                  "kind": "slow",
+                  "amount": 0.3,
+                  "duration": 2
+                }
+              ]
+            },
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "haste",
+              "amount": 0.3,
+              "duration": 2
+            }
+          ]
+        },
+        "w": {
+          "name": "Sever",
+          "cast": "target_unit",
+          "range": 2.4,
+          "cooldown": 14,
+          "text": "A dragon scimitar slash that disables all of the target's prayers for 5s.",
+          "effects": [
+            {
+              "type": "damage",
+              "base": 30,
+              "base_per_level": 6,
+              "ratio": {
+                "damage": 0.7
+              },
+              "style": "melee",
+              "target_statuses": [
+                {
+                  "kind": "disable_prayer",
+                  "duration": 5
+                }
+              ]
+            }
+          ]
+        },
+        "e": {
+          "name": "Step Under",
+          "cast": "target_unit",
+          "range": 6,
+          "cooldown": 16,
+          "text": "Dash beneath the target; for 0.75s nothing can melee the Pure.",
+          "effects": [
+            {
+              "type": "dash",
+              "to": "target",
+              "stop_distance": 0.2,
+              "speed": 30
+            },
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "melee_immune",
+              "duration": 0.75
+            }
+          ]
+        },
+        "r": {
+          "name": "Puncture",
+          "cast": "target_unit",
+          "range": 2.4,
+          "cooldown": 0.5,
+          "spec_cost": 25,
+          "text": "Two rapid dragon dagger stabs. A full bar is four specs.",
+          "effects": [
+            {
+              "type": "damage",
+              "hits": 2,
+              "hit_interval": 0.15,
+              "base": 35,
+              "base_per_level": 5,
+              "ratio": {
+                "damage": 0.6
+              },
+              "style": "melee"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ancient_mage",
+      "name": "Ancient Mage",
+      "title": "Full Ahrim's + Ancients",
+      "build": "Full Ahrim's + Ancient Magicks",
+      "role": "Mid · control mage",
+      "style": "magic",
+      "skills": {
+        "attack": 60,
+        "strength": 60,
+        "defence": 75,
+        "ranged": 70,
+        "magic": 94,
+        "prayer": 77
+      },
+      "overheads": false,
+      "recommended_items": [
+        "mystic_robe_top",
+        "occult_necklace",
+        "ahrims_robetop",
+        "volatile_nightmare_staff",
+        "eternal_boots",
+        "kodai_wand",
+        "seers_ring"
+      ],
+      "base": {
+        "max_health": 500,
+        "damage": 20,
+        "magic_power": 60,
+        "defence": {
+          "melee": 14,
+          "ranged": 16,
+          "magic": 26
+        },
+        "attack_range": 7,
+        "attack_ticks": 5,
+        "move_speed": 6.2,
+        "radius": 0.55
+      },
+      "growth": {
+        "max_health": 80,
+        "magic_power": 5,
+        "defence": {
+          "melee": 1.5,
+          "ranged": 1.5,
+          "magic": 2.5
+        }
+      },
+      "passive": {
+        "name": "Blighted Power",
+        "type": "nth_hit_bonus",
+        "n": 4,
+        "bonus": 0.3,
+        "text": "Every 4th spell or attack deals 30% bonus damage (Ahrim's set effect)."
+      },
+      "abilities": {
+        "q": {
+          "name": "Ice Barrage",
+          "cast": "point",
+          "range": 8,
+          "cooldown": 9,
+          "text": "A 3x3 area that roots for 1.5s. Rooted targets get 3s of freeze immunity afterwards.",
+          "effects": [
+            {
+              "type": "damage",
+              "area": {
+                "shape": "circle",
+                "radius": 2.5,
+                "center": "point"
+              },
+              "base": 50,
+              "base_per_level": 10,
+              "ratio": {
+                "magic_power": 0.6
+              },
+              "style": "magic",
+              "target_statuses": [
+                {
+                  "kind": "root",
+                  "duration": 1.5
+                }
+              ]
+            }
+          ]
+        },
+        "w": {
+          "name": "Blood Barrage",
+          "cast": "point",
+          "range": 8,
+          "cooldown": 10,
+          "text": "Area damage that heals the mage for 25% of damage dealt.",
+          "effects": [
+            {
+              "type": "damage",
+              "area": {
+                "shape": "circle",
+                "radius": 2.5,
+                "center": "point"
+              },
+              "base": 45,
+              "base_per_level": 8,
+              "ratio": {
+                "magic_power": 0.5
+              },
+              "style": "magic",
+              "lifesteal": 0.25
+            }
+          ]
+        },
+        "e": {
+          "name": "Shadow Barrage",
+          "cast": "point",
+          "range": 8,
+          "cooldown": 12,
+          "text": "Area damage that lowers enemy damage by 15% for 3s.",
+          "effects": [
+            {
+              "type": "damage",
+              "area": {
+                "shape": "circle",
+                "radius": 2.5,
+                "center": "point"
+              },
+              "base": 40,
+              "base_per_level": 7,
+              "ratio": {
+                "magic_power": 0.45
+              },
+              "style": "magic",
+              "target_statuses": [
+                {
+                  "kind": "damage_mult",
+                  "amount": -0.15,
+                  "duration": 3
+                }
+              ]
+            }
+          ]
+        },
+        "r": {
+          "name": "Immolate",
+          "cast": "target_unit",
+          "range": 12,
+          "cooldown": 1,
+          "spec_cost": 55,
+          "text": "Volatile nightmare staff: a long-range bolt, +50% against targets below 30% health.",
+          "effects": [
+            {
+              "type": "damage",
+              "base": 160,
+              "base_per_level": 20,
+              "ratio": {
+                "magic_power": 1.2
+              },
+              "style": "magic",
+              "bonus_below_health": {
+                "threshold": 0.3,
+                "mult": 1.5
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "hybrid",
+      "name": "Hybrid",
+      "title": "Range + Mage PKer",
+      "build": "Armadyl crossbow + ancient staff switcher",
+      "role": "Bot or Mid · skirmisher",
+      "style": "ranged",
+      "skills": {
+        "attack": 75,
+        "strength": 85,
+        "defence": 75,
+        "ranged": 99,
+        "magic": 99,
+        "prayer": 77
+      },
+      "overheads": false,
+      "recommended_items": [
+        "green_dhide_body",
+        "rune_crossbow",
+        "armadyl_crossbow",
+        "necklace_of_anguish",
+        "occult_necklace",
+        "pegasian_boots",
+        "archers_ring"
+      ],
+      "forms": [
+        {
+          "name": "ranged",
+          "style": "ranged",
+          "attack_range": 7
+        },
+        {
+          "name": "magic",
+          "style": "magic",
+          "attack_range": 7
+        }
+      ],
+      "base": {
+        "max_health": 540,
+        "damage": 52,
+        "magic_power": 50,
+        "defence": {
+          "melee": 18,
+          "ranged": 22,
+          "magic": 22
+        },
+        "attack_range": 7,
+        "attack_ticks": 5,
+        "move_speed": 6.4,
+        "radius": 0.55
+      },
+      "growth": {
+        "max_health": 85,
+        "damage": 3.5,
+        "magic_power": 4,
+        "defence": {
+          "melee": 1.5,
+          "ranged": 2,
+          "magic": 2
+        }
+      },
+      "passive": {
+        "name": "Gear Switch",
+        "type": "form_switch",
+        "switch_bonus": 0.2,
+        "off_prayer_bonus": 0.1,
+        "text": "Alternates Range and Mage forms. First attack after a switch deals +20%; hits on a style the target isn't protecting deal +10%."
+      },
+      "abilities": {
+        "q": {
+          "cooldown": 10,
+          "text": "Range form: Ruby bolt (e) deals 20% of the target's current health and costs 10% of yours. Mage form: Ice Blitz roots one target for 1.5s.",
+          "forms": {
+            "ranged": {
+              "name": "Ruby Bolts",
+              "cast": "target_unit",
+              "range": 8,
+              "effects": [
+                {
+                  "type": "damage",
+                  "base": 20,
+                  "pct_current_health": 0.2,
+                  "cap": 300,
+                  "style": "ranged"
+                },
+                {
+                  "type": "self_cost",
+                  "pct_current_health": 0.1
+                }
+              ]
+            },
+            "magic": {
+              "name": "Ice Blitz",
+              "cast": "target_unit",
+              "range": 8,
+              "effects": [
+                {
+                  "type": "damage",
+                  "base": 40,
+                  "base_per_level": 6,
+                  "ratio": {
+                    "magic_power": 0.5
+                  },
+                  "style": "magic",
+                  "target_statuses": [
+                    {
+                      "kind": "root",
+                      "duration": 1.5
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "w": {
+          "name": "Tele Block",
+          "cast": "target_unit",
+          "range": 9,
+          "cooldown": 20,
+          "text": "The target can't teleport, recall or dash for 4s.",
+          "effects": [
+            {
+              "type": "status",
+              "on": "target",
+              "kind": "tele_block",
+              "duration": 4
+            }
+          ]
+        },
+        "e": {
+          "name": "Switch",
+          "cast": "self",
+          "cooldown": 4,
+          "text": "Swap forms instantly and gain a short burst of speed.",
+          "effects": [
+            {
+              "type": "toggle_form"
+            },
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "haste",
+              "amount": 0.15,
+              "duration": 0.75
+            }
+          ]
+        },
+        "r": {
+          "name": "Freeze & Spec",
+          "cast": "target_unit",
+          "range": 8,
+          "cooldown": 1,
+          "spec_cost": 50,
+          "text": "An Ice Barrage root, then an Armadyl crossbow spec with double accuracy (a guaranteed critical).",
+          "effects": [
+            {
+              "type": "status",
+              "on": "target",
+              "kind": "root",
+              "duration": 1.5
+            },
+            {
+              "type": "damage",
+              "delay": 0.2,
+              "base": 110,
+              "base_per_level": 15,
+              "ratio": {
+                "damage": 1.0
+              },
+              "style": "ranged",
+              "crit_mult": 1.5
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "max_ranger",
+      "name": "Max Ranger",
+      "title": "Twisted bow main",
+      "build": "Twisted bow + Masori",
+      "role": "Bot · marksman",
+      "style": "ranged",
+      "skills": {
+        "attack": 75,
+        "strength": 75,
+        "defence": 80,
+        "ranged": 99,
+        "magic": 80,
+        "prayer": 77
+      },
+      "overheads": false,
+      "recommended_items": [
+        "green_dhide_body",
+        "necklace_of_anguish",
+        "masori_body",
+        "twisted_bow",
+        "pegasian_boots",
+        "archers_ring",
+        "lightbearer"
+      ],
+      "base": {
+        "max_health": 520,
+        "damage": 60,
+        "defence": {
+          "melee": 14,
+          "ranged": 20,
+          "magic": 18
+        },
+        "attack_range": 8,
+        "attack_ticks": 5,
+        "move_speed": 6.3,
+        "radius": 0.55
+      },
+      "growth": {
+        "max_health": 82,
+        "damage": 4.2,
+        "defence": {
+          "melee": 1.5,
+          "ranged": 2,
+          "magic": 1.5
+        },
+        "attack_speed": 0.02
+      },
+      "passive": {
+        "name": "Twisted Bow",
+        "type": "target_magic_scaling",
+        "per_magic_power": 0.004,
+        "cap": 0.6,
+        "epic_bonus": 0.2,
+        "text": "Damage scales with the target's magic power, and +20% against epic monsters."
+      },
+      "abilities": {
+        "q": {
+          "name": "Rapid",
+          "cast": "self",
+          "cooldown": 10,
+          "text": "Switch to the Rapid attack style: +30% attack speed for 4s.",
+          "effects": [
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "attack_speed",
+              "amount": 0.3,
+              "duration": 4
+            }
+          ]
+        },
+        "w": {
+          "name": "Black Chinchompa",
+          "cast": "point",
+          "range": 9,
+          "cooldown": 8,
+          "text": "A thrown explosive; more damage closer to the centre.",
+          "effects": [
+            {
+              "type": "damage",
+              "area": {
+                "shape": "circle",
+                "radius": 3,
+                "center": "point"
+              },
+              "falloff": true,
+              "base": 60,
+              "base_per_level": 10,
+              "ratio": {
+                "damage": 0.7
+              },
+              "style": "ranged"
+            }
+          ]
+        },
+        "e": {
+          "name": "Longrange",
+          "cast": "self",
+          "cooldown": 14,
+          "text": "Switch to Longrange: +2 tiles of range and +15% defence for 4s, but 20% slower.",
+          "effects": [
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "range_bonus",
+              "amount": 2,
+              "duration": 4
+            },
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "armor_mult",
+              "amount": 0.15,
+              "duration": 4
+            },
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "slow",
+              "amount": 0.2,
+              "duration": 4
+            }
+          ]
+        },
+        "r": {
+          "name": "Twisted Volley",
+          "cast": "point",
+          "range": 200,
+          "cooldown": 2,
+          "spec_cost": 100,
+          "text": "A piercing arrow that crosses the map; damage scales with each hit champion's magic power. (The twisted bow has no spec in OSRS; this one is invented.)",
+          "effects": [
+            {
+              "type": "damage",
+              "area": {
+                "shape": "line",
+                "length": 200,
+                "width": 2.5
+              },
+              "base": 180,
+              "base_per_level": 25,
+              "ratio": {
+                "damage": 1.4
+              },
+              "style": "ranged"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "blowpiper",
+      "name": "Blowpiper",
+      "title": "Toxic blowpipe ranger",
+      "build": "Toxic blowpipe + venom",
+      "role": "Bot · hyper-carry",
+      "style": "ranged",
+      "skills": {
+        "attack": 70,
+        "strength": 70,
+        "defence": 60,
+        "ranged": 90,
+        "magic": 75,
+        "prayer": 52
+      },
+      "overheads": false,
+      "recommended_items": [
+        "green_dhide_body",
+        "toxic_blowpipe",
+        "necklace_of_anguish",
+        "boots_of_lightness",
+        "archers_ring",
+        "magic_shortbow_i"
+      ],
+      "base": {
+        "max_health": 510,
+        "damage": 34,
+        "defence": {
+          "melee": 14,
+          "ranged": 18,
+          "magic": 18
+        },
+        "attack_range": 6.5,
+        "attack_ticks": 2,
+        "move_speed": 6.4,
+        "radius": 0.55
+      },
+      "growth": {
+        "max_health": 80,
+        "damage": 2.6,
+        "defence": {
+          "melee": 1.5,
+          "ranged": 2,
+          "magic": 1.5
+        }
+      },
+      "passive": {
+        "name": "Venom",
+        "type": "venom",
+        "start": 4,
+        "step": 2,
+        "max": 20,
+        "duration": 6,
+        "text": "Hits apply venom: damage every second that grows 4, 6, 8 … up to 20, as in OSRS."
+      },
+      "abilities": {
+        "q": {
+          "name": "Dragon Darts",
+          "cast": "self",
+          "cooldown": 12,
+          "text": "Load dragon darts for 5s: +25% damage.",
+          "effects": [
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "damage_mult",
+              "amount": 0.25,
+              "duration": 5
+            }
+          ]
+        },
+        "w": {
+          "name": "Zulrah's Scales",
+          "cast": "point",
+          "range": 8,
+          "cooldown": 12,
+          "text": "Lob a pool of venom that slows and envenoms.",
+          "effects": [
+            {
+              "type": "damage",
+              "area": {
+                "shape": "circle",
+                "radius": 2.5,
+                "center": "point"
+              },
+              "base": 30,
+              "base_per_level": 6,
+              "ratio": {
+                "damage": 0.4
+              },
+              "style": "ranged",
+              "target_statuses": [
+                {
+                  "kind": "slow",
+                  "amount": 0.25,
+                  "duration": 2
+                },
+                {
+                  "id": "venom",
+                  "kind": "venom",
+                  "amount": 4,
+                  "duration": 6,
+                  "data": {
+                    "step": 2,
+                    "max": 20
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "e": {
+          "name": "Stamina",
+          "cast": "self",
+          "cooldown": 14,
+          "text": "A burst of move speed and attack speed for 2s.",
+          "effects": [
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "haste",
+              "amount": 0.35,
+              "duration": 2
+            },
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "attack_speed",
+              "amount": 0.4,
+              "duration": 2
+            }
+          ]
+        },
+        "r": {
+          "name": "Toxic Siphon",
+          "cast": "target_unit",
+          "range": 7,
+          "cooldown": 1,
+          "spec_cost": 50,
+          "text": "A heavy hit that heals for 50% of the damage dealt, as in OSRS.",
+          "effects": [
+            {
+              "type": "damage",
+              "base": 120,
+              "base_per_level": 15,
+              "ratio": {
+                "damage": 1.5
+              },
+              "style": "ranged",
+              "lifesteal": 0.5
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "slayer",
+      "name": "Slayer",
+      "title": "the Jungler",
+      "build": "Slayer helm + abyssal tentacle + dwarf multicannon",
+      "role": "Jungle · bruiser",
+      "style": "melee",
+      "skills": {
+        "attack": 90,
+        "strength": 99,
+        "defence": 85,
+        "ranged": 85,
+        "magic": 85,
+        "prayer": 85
+      },
+      "overheads": true,
+      "recommended_items": [
+        "rune_platebody",
+        "rune_scimitar",
+        "dragon_scimitar",
+        "abyssal_whip",
+        "abyssal_tentacle",
+        "dragon_warhammer",
+        "bandos_chestplate",
+        "primordial_boots",
+        "amulet_of_torture"
+      ],
+      "base": {
+        "max_health": 620,
+        "damage": 60,
+        "defence": {
+          "melee": 26,
+          "ranged": 22,
+          "magic": 18
+        },
+        "attack_range": 2.3,
+        "attack_ticks": 4,
+        "move_speed": 6.5,
+        "radius": 0.6
+      },
+      "growth": {
+        "max_health": 100,
+        "damage": 4,
+        "defence": {
+          "melee": 2.5,
+          "ranged": 2,
+          "magic": 1.5
+        }
+      },
+      "passive": {
+        "name": "Slayer Task",
+        "type": "monster_bonus",
+        "bonus": 0.167,
+        "text": "+16.7% damage against monsters (the Slayer helm bonus). Main account: has protection prayers."
+      },
+      "abilities": {
+        "q": {
+          "name": "Tentacle Lash",
+          "cast": "target_unit",
+          "range": 2.6,
+          "cooldown": 6,
+          "text": "A whip hit with a 25% chance to root for 1s.",
+          "effects": [
+            {
+              "type": "damage",
+              "base": 45,
+              "base_per_level": 8,
+              "ratio": {
+                "damage": 0.9
+              },
+              "style": "melee",
+              "target_statuses": [
+                {
+                  "kind": "root",
+                  "duration": 1,
+                  "chance": 0.25
+                }
+              ]
+            }
+          ]
+        },
+        "w": {
+          "name": "Dwarf Multicannon",
+          "cast": "self",
+          "cooldown": 30,
+          "text": "Set up a cannon that auto-fires at enemies and monsters for 8s.",
+          "effects": [
+            {
+              "type": "summon",
+              "unit": "dwarf_multicannon",
+              "duration": 8
+            }
+          ]
+        },
+        "e": {
+          "name": "Agility Shortcut",
+          "cast": "point",
+          "range": 7,
+          "cooldown": 18,
+          "text": "Vault over a wall in a chosen direction.",
+          "effects": [
+            {
+              "type": "dash",
+              "to": "point",
+              "distance": 7,
+              "speed": 22,
+              "ignore_walls": true
+            }
+          ]
+        },
+        "r": {
+          "name": "Warhammer Smash",
+          "cast": "target_unit",
+          "range": 2.6,
+          "cooldown": 1,
+          "spec_cost": 50,
+          "text": "Dragon warhammer: a crushing hit that lowers the target's defence by 30% for 6s.",
+          "effects": [
+            {
+              "type": "damage",
+              "base": 110,
+              "base_per_level": 14,
+              "ratio": {
+                "damage": 1.2
+              },
+              "style": "melee",
+              "target_statuses": [
+                {
+                  "kind": "armor_mult",
+                  "amount": -0.3,
+                  "duration": 6
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "zerker",
+      "name": "Zerker",
+      "title": "Berserker build",
+      "build": "Berserker helm + Tzhaar weapons + berserker necklace",
+      "role": "Top or Jungle · diver",
+      "style": "melee",
+      "skills": {
+        "attack": 75,
+        "strength": 99,
+        "defence": 45,
+        "ranged": 85,
+        "magic": 85,
+        "prayer": 52
+      },
+      "overheads": false,
+      "recommended_items": [
+        "berserker_helm",
+        "berserker_necklace",
+        "granite_maul",
+        "dragon_claws",
+        "climbing_boots",
+        "berserker_ring",
+        "elder_maul"
+      ],
+      "base": {
+        "max_health": 600,
+        "damage": 62,
+        "defence": {
+          "melee": 22,
+          "ranged": 20,
+          "magic": 16
+        },
+        "attack_range": 2.2,
+        "attack_ticks": 5,
+        "move_speed": 6.6,
+        "radius": 0.6
+      },
+      "growth": {
+        "max_health": 95,
+        "damage": 4.4,
+        "defence": {
+          "melee": 2,
+          "ranged": 2,
+          "magic": 1.5
+        }
+      },
+      "passive": {
+        "name": "Berserker Necklace",
+        "type": "stacking_damage",
+        "per_stack": 0.03,
+        "max_stacks": 5,
+        "window": 3,
+        "text": "Each attack within 3s stacks +3% damage, up to 5 stacks."
+      },
+      "abilities": {
+        "q": {
+          "name": "Obsidian Maul Crush",
+          "cast": "point",
+          "range": 4,
+          "cooldown": 9,
+          "text": "A slow, wide Tzhaar-ket-om swing that stuns for 0.75s.",
+          "effects": [
+            {
+              "type": "damage",
+              "area": {
+                "shape": "cone",
+                "radius": 4,
+                "angle": 80,
+                "center": "self"
+              },
+              "base": 55,
+              "base_per_level": 10,
+              "ratio": {
+                "damage": 1.0
+              },
+              "style": "melee",
+              "target_statuses": [
+                {
+                  "kind": "stun",
+                  "duration": 0.75
+                }
+              ]
+            }
+          ]
+        },
+        "w": {
+          "name": "Super Combat Potion",
+          "cast": "self",
+          "cooldown": 20,
+          "text": "+15% damage and attack speed for 5s.",
+          "effects": [
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "damage_mult",
+              "amount": 0.15,
+              "duration": 5
+            },
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "attack_speed",
+              "amount": 0.15,
+              "duration": 5
+            }
+          ]
+        },
+        "e": {
+          "name": "Wilderness Lever",
+          "cast": "point",
+          "range": 8,
+          "cooldown": 15,
+          "text": "Pull a lever and teleport a short distance after 0.5s.",
+          "effects": [
+            {
+              "type": "dash",
+              "to": "point",
+              "distance": 8,
+              "teleport": true,
+              "delay": 0.5
+            }
+          ]
+        },
+        "r": {
+          "name": "Dragon Claws",
+          "cast": "target_unit",
+          "range": 2.6,
+          "cooldown": 1,
+          "spec_cost": 50,
+          "text": "Four rapid hits; if early hits miss, later hits deal more, as in OSRS.",
+          "effects": [
+            {
+              "type": "damage",
+              "hits": 4,
+              "hit_interval": 0.12,
+              "cascade": true,
+              "base": 30,
+              "base_per_level": 5,
+              "ratio": {
+                "damage": 0.5
+              },
+              "style": "melee"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "justiciar",
+      "name": "Justiciar Tank",
+      "title": "the Main Account",
+      "build": "Justiciar + Elysian + Dinh's bulwark",
+      "role": "Support or Top · tank",
+      "style": "melee",
+      "skills": {
+        "attack": 80,
+        "strength": 85,
+        "defence": 99,
+        "ranged": 85,
+        "magic": 85,
+        "prayer": 99
+      },
+      "overheads": true,
+      "recommended_items": [
+        "rune_platebody",
+        "justiciar_chestguard",
+        "elysian_spirit_shield",
+        "bandos_godsword",
+        "dragon_boots",
+        "ring_of_suffering"
+      ],
+      "base": {
+        "max_health": 720,
+        "damage": 50,
+        "defence": {
+          "melee": 40,
+          "ranged": 40,
+          "magic": 34
+        },
+        "attack_range": 2.4,
+        "attack_ticks": 6,
+        "move_speed": 6.2,
+        "radius": 0.7
+      },
+      "growth": {
+        "max_health": 120,
+        "damage": 3,
+        "defence": {
+          "melee": 4,
+          "ranged": 4,
+          "magic": 3.5
+        }
+      },
+      "passive": {
+        "name": "Justiciar Set",
+        "type": "flat_reduction",
+        "factor": 0.25,
+        "text": "Every hit taken is reduced by a flat amount that grows with armour. As a main account, he also has protection prayers."
+      },
+      "abilities": {
+        "q": {
+          "name": "Shove",
+          "cast": "target_unit",
+          "range": 3,
+          "cooldown": 12,
+          "text": "Dragon spear: knock the target back and stun for 0.75s.",
+          "effects": [
+            {
+              "type": "damage",
+              "base": 30,
+              "base_per_level": 6,
+              "ratio": {
+                "damage": 0.5
+              },
+              "style": "melee"
+            },
+            {
+              "type": "knockback",
+              "distance": 4
+            },
+            {
+              "type": "status",
+              "on": "target",
+              "kind": "stun",
+              "duration": 0.75
+            }
+          ]
+        },
+        "w": {
+          "name": "Elysian Ward",
+          "cast": "target_unit",
+          "target_ally": true,
+          "allow_self": true,
+          "range": 7,
+          "cooldown": 16,
+          "text": "Shield an ally for 4s; each hit on them has a 70% chance to be reduced by 25%.",
+          "effects": [
+            {
+              "type": "status",
+              "on": "target",
+              "kind": "elysian",
+              "amount": 0.25,
+              "duration": 4,
+              "data": {
+                "chance": 0.7
+              }
+            }
+          ]
+        },
+        "e": {
+          "name": "Bulwark Block",
+          "cast": "self",
+          "cooldown": 18,
+          "text": "Plant Dinh's bulwark: taunt nearby enemies for 1.5s and take 20% less damage.",
+          "effects": [
+            {
+              "type": "taunt",
+              "area": {
+                "shape": "circle",
+                "radius": 5,
+                "center": "self"
+              },
+              "duration": 1.5
+            },
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "damage_taken_mult",
+              "amount": -0.2,
+              "duration": 1.5
+            },
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "planted",
+              "duration": 1.5
+            }
+          ]
+        },
+        "r": {
+          "name": "Warstrike",
+          "cast": "target_unit",
+          "range": 7,
+          "cooldown": 1,
+          "spec_cost": 50,
+          "text": "Bandos godsword: charge and slam; damage dealt is also stripped from the target's armour for 6s.",
+          "effects": [
+            {
+              "type": "dash",
+              "to": "target",
+              "speed": 26
+            },
+            {
+              "type": "damage",
+              "delay": 0.25,
+              "base": 100,
+              "base_per_level": 14,
+              "ratio": {
+                "damage": 1.0
+              },
+              "style": "melee",
+              "shred_ratio": 0.1,
+              "shred_duration": 6
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "lunar",
+      "name": "Lunar",
+      "title": "the Support",
+      "build": "Lunar spellbook",
+      "role": "Support · enchanter",
+      "style": "magic",
+      "skills": {
+        "attack": 60,
+        "strength": 60,
+        "defence": 40,
+        "ranged": 70,
+        "magic": 95,
+        "prayer": 70
+      },
+      "overheads": false,
+      "recommended_items": [
+        "mystic_robe_top",
+        "seers_ring",
+        "occult_necklace",
+        "boots_of_lightness",
+        "trident_of_the_swamp",
+        "lightbearer"
+      ],
+      "base": {
+        "max_health": 500,
+        "damage": 24,
+        "magic_power": 40,
+        "defence": {
+          "melee": 16,
+          "ranged": 18,
+          "magic": 24
+        },
+        "attack_range": 6.5,
+        "attack_ticks": 5,
+        "move_speed": 6.4,
+        "radius": 0.55
+      },
+      "growth": {
+        "max_health": 80,
+        "magic_power": 3,
+        "defence": {
+          "melee": 1.5,
+          "ranged": 1.5,
+          "magic": 2
+        }
+      },
+      "passive": {
+        "name": "Rune Pouch",
+        "type": "rune_pouch",
+        "text": "Lunar spells cost runes, her mana; Astral runes regenerate over time. (Not yet implemented.)"
+      },
+      "abilities": {
+        "q": {
+          "name": "Heal Other",
+          "cast": "target_unit",
+          "target_ally": true,
+          "range": 7,
+          "cooldown": 6,
+          "text": "Spend 20% of her health to heal an ally for more, as in OSRS.",
+          "effects": [
+            {
+              "type": "self_cost",
+              "pct_current_health": 0.2
+            },
+            {
+              "type": "heal",
+              "on": "target",
+              "base": 60,
+              "base_per_level": 12,
+              "ratio": {
+                "magic_power": 0.5
+              },
+              "from_self_cost_mult": 1.5
+            }
+          ]
+        },
+        "w": {
+          "name": "Vengeance Other",
+          "cast": "target_unit",
+          "target_ally": true,
+          "allow_self": true,
+          "range": 7,
+          "cooldown": 18,
+          "text": "The ally reflects 75% of the next hit they take within 5s.",
+          "effects": [
+            {
+              "type": "status",
+              "on": "target",
+              "kind": "vengeance",
+              "amount": 0.75,
+              "duration": 5
+            }
+          ]
+        },
+        "e": {
+          "name": "Energy Transfer",
+          "cast": "target_unit",
+          "target_ally": true,
+          "range": 7,
+          "cooldown": 30,
+          "text": "Give an ally 25% spec energy at a cost of her health.",
+          "effects": [
+            {
+              "type": "self_cost",
+              "pct_current_health": 0.1
+            },
+            {
+              "type": "spec_transfer",
+              "amount": 25
+            }
+          ]
+        },
+        "r": {
+          "name": "Disruption Field",
+          "cast": "self",
+          "cooldown": 2,
+          "spec_cost": 100,
+          "text": "Allies in range heal and negate the next hit they take within 3s.",
+          "effects": [
+            {
+              "type": "heal",
+              "area": {
+                "shape": "circle",
+                "radius": 7,
+                "center": "self"
+              },
+              "base": 120,
+              "base_per_level": 15,
+              "ratio": {
+                "magic_power": 0.6
+              }
+            },
+            {
+              "type": "status",
+              "on": "area_allies",
+              "area": {
+                "shape": "circle",
+                "radius": 7,
+                "center": "self"
+              },
+              "kind": "negate_hit",
+              "duration": 3
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

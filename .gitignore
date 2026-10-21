@@ -1,0 +1,22 @@
+# Godot 4
+.godot/
+/android/
+*.translation
+
+# Exports
+/build/
+/exports/
+*.pck
+*.zip
+
+# Mono / C# (if ever enabled)
+.mono/
+data_*/
+mono_crash.*.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.tmp

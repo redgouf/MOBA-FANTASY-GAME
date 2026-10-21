@@ -1,0 +1,105 @@
+{
+  "minions": {
+    "goblin": {
+      "name": "Goblin", "style": "melee", "max_health": 320, "damage": 14,
+      "defence": { "melee": 10, "ranged": 10, "magic": 0 },
+      "attack_range": 1.6, "attack_ticks": 5, "move_speed": 5.0, "radius": 0.45, "gold": 21, "xp": 60
+    },
+    "dark_wizard": {
+      "name": "Dark wizard", "style": "magic", "max_health": 240, "magic_power": 24,
+      "defence": { "melee": 0, "ranged": 5, "magic": 15 },
+      "attack_range": 6.5, "attack_ticks": 6, "move_speed": 5.0, "radius": 0.45, "gold": 15, "xp": 30
+    },
+    "cannon_cart": {
+      "name": "Dwarf cannon cart", "style": "ranged", "max_health": 800, "damage": 42,
+      "defence": { "melee": 30, "ranged": 30, "magic": 30 },
+      "attack_range": 7.5, "attack_ticks": 8, "move_speed": 5.0, "radius": 0.8, "gold": 60, "xp": 90
+    }
+  },
+  "structures": {
+    "tower": {
+      "name_saradomin": "White Knight watchtower", "name_zamorak": "Dark Wizard tower",
+      "style": "ranged", "max_health": 3500, "damage": 160,
+      "defence": { "melee": 60, "ranged": 60, "magic": 60 },
+      "attack_range": 10, "attack_ticks": 4, "radius": 1.4, "gold": 250
+    },
+    "altar": {
+      "name_saradomin": "Saradomin altar", "name_zamorak": "Chaos altar",
+      "max_health": 2600, "attack_range": 0,
+      "defence": { "melee": 40, "ranged": 40, "magic": 40 }, "radius": 1.8, "gold": 50
+    },
+    "flag": {
+      "name_saradomin": "Saradomin standard", "name_zamorak": "Zamorak standard",
+      "max_health": 4500, "attack_range": 0,
+      "defence": { "melee": 40, "ranged": 40, "magic": 40 }, "radius": 2.2, "gold": 0
+    }
+  },
+  "monsters": {
+    "abyssal_demon": {
+      "name": "Abyssal demon", "style": "melee", "max_health": 1800, "damage": 40,
+      "defence": { "melee": 30, "ranged": 30, "magic": 20 },
+      "attack_range": 1.8, "attack_ticks": 4, "move_speed": 5.5, "radius": 0.9, "gold": 100, "xp": 150,
+      "buff": { "kind": "spec_regen_mult", "amount": 1.0, "duration": 90, "label": "Abyssal surge" }
+    },
+    "fire_giant": {
+      "name": "Fire giant", "style": "melee", "max_health": 1900, "damage": 44,
+      "defence": { "melee": 30, "ranged": 25, "magic": 25 },
+      "attack_range": 2.0, "attack_ticks": 5, "move_speed": 5.0, "radius": 1.1, "gold": 100, "xp": 150,
+      "buff": { "kind": "burn_on_hit", "amount": 12, "duration": 90, "label": "Giant's ember" }
+    },
+    "moss_giant": {
+      "name": "Moss giant", "style": "melee", "max_health": 1100, "damage": 30,
+      "defence": { "melee": 20, "ranged": 15, "magic": 10 },
+      "attack_range": 2.0, "attack_ticks": 5, "move_speed": 5.0, "radius": 1.0, "gold": 70, "xp": 100
+    },
+    "white_wolf": {
+      "name": "White wolf", "style": "melee", "max_health": 800, "damage": 26,
+      "defence": { "melee": 10, "ranged": 10, "magic": 10 },
+      "attack_range": 1.5, "attack_ticks": 4, "move_speed": 6.0, "radius": 0.6, "gold": 60, "xp": 80
+    },
+    "chicken": {
+      "name": "Lumbridge chicken", "style": "melee", "max_health": 120, "damage": 6,
+      "defence": { "melee": 0, "ranged": 0, "magic": 0 },
+      "attack_range": 1.2, "attack_ticks": 4, "move_speed": 5.0, "radius": 0.35, "gold": 15, "xp": 15
+    },
+    "ogre": {
+      "name": "Ogre", "style": "melee", "max_health": 1300, "damage": 34,
+      "defence": { "melee": 25, "ranged": 20, "magic": 10 },
+      "attack_range": 2.0, "attack_ticks": 6, "move_speed": 4.8, "radius": 1.0, "gold": 80, "xp": 110
+    },
+    "rock_crab": {
+      "name": "Rock crab", "style": "melee", "max_health": 600, "damage": 10,
+      "defence": { "melee": 40, "ranged": 40, "magic": 10 },
+      "attack_range": 1.5, "attack_ticks": 5, "move_speed": 4.0, "radius": 0.7, "gold": 40, "xp": 60,
+      "buff": { "kind": "haste", "amount": 0.2, "duration": 30, "label": "Crab scuttle" }
+    },
+    "giant_mole": {
+      "name": "Giant Mole", "style": "melee", "max_health": 4500, "damage": 70,
+      "defence": { "melee": 40, "ranged": 40, "magic": 40 },
+      "attack_range": 2.2, "attack_ticks": 5, "move_speed": 5.0, "radius": 1.6, "gold": 200, "xp": 300,
+      "epic": true, "leash": 10
+    },
+    "tztok_jad": {
+      "name": "TzTok-Jad", "style": "magic", "cycle_styles": ["melee", "ranged", "magic"],
+      "max_health": 9000, "damage": 180, "magic_power": 180,
+      "defence": { "melee": 70, "ranged": 70, "magic": 70 },
+      "attack_range": 8, "attack_ticks": 8, "move_speed": 4.5, "radius": 2.2, "gold": 300, "xp": 600,
+      "epic": true, "leash": 10,
+      "team_buff": { "kind": "damage_mult", "amount": 0.12, "duration": 180, "label": "Fire cape" }
+    },
+    "chromatic_dragon": {
+      "name": "Chromatic dragon", "style": "magic", "max_health": 5000, "magic_power": 90,
+      "defence": { "melee": 50, "ranged": 50, "magic": 60 },
+      "attack_range": 6, "attack_ticks": 6, "move_speed": 4.5, "radius": 2.0, "gold": 150, "xp": 300,
+      "epic": true, "leash": 10,
+      "team_buff": { "kind": "damage_mult", "amount": 0.04, "duration": -1, "label": "Dragon soul stack" }
+    }
+  },
+  "summons": {
+    "dwarf_multicannon": {
+      "name": "Dwarf multicannon", "style": "ranged", "max_health": 400, "damage": 35,
+      "defence": { "melee": 20, "ranged": 20, "magic": 20 },
+      "attack_range": 7, "attack_ticks": 3, "radius": 0.7, "gold": 30
+    }
+  }
+}

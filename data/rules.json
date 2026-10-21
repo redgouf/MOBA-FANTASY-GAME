@@ -1,0 +1,58 @@
+{
+  "tick_seconds": 0.25,
+  "triangle_bonus": 0.15,
+  "protect_prayer_reduction": 0.40,
+  "resist_constant": 100,
+
+  "prayer_points_max": 99,
+  "protect_prayer_drain_per_sec": 1.0,
+  "offensive_prayer": { "cost": 10, "duration": 6, "cooldown": 60 },
+  "offensive_prayers": {
+    "melee": [
+      { "name": "Piety", "level": 70, "bonus": 0.12 },
+      { "name": "Chivalry", "level": 60, "bonus": 0.09 },
+      { "name": "Ultimate Strength", "level": 31, "bonus": 0.06 },
+      { "name": "Superhuman Strength", "level": 13, "bonus": 0.04 }
+    ],
+    "ranged": [
+      { "name": "Rigour", "level": 74, "bonus": 0.12 },
+      { "name": "Eagle Eye", "level": 44, "bonus": 0.08 },
+      { "name": "Hawk Eye", "level": 26, "bonus": 0.05 }
+    ],
+    "magic": [
+      { "name": "Augury", "level": 77, "bonus": 0.12 },
+      { "name": "Mystic Might", "level": 45, "bonus": 0.08 },
+      { "name": "Mystic Lore", "level": 27, "bonus": 0.05 }
+    ]
+  },
+
+  "spec_regen_per_sec": 1.0,
+
+  "starting_gold": 500,
+  "passive_gold_per_sec": 2.0,
+  "passive_gold_start": 60,
+  "champion_kill_gold": 300,
+  "assist_gold": 150,
+  "item_slots": 6,
+  "consumable_slots": 4,
+  "shop_radius": 14,
+
+  "max_level": 18,
+  "xp_base": 280,
+  "xp_step": 100,
+  "xp_share_radius": 14,
+
+  "respawn_base_sec": 6,
+  "respawn_per_level": 2,
+  "recall_channel_sec": 4,
+  "fountain_radius": 12,
+  "fountain_heal_pct_per_sec": 0.10,
+
+  "first_wave_sec": 15,
+  "wave_interval_sec": 30,
+  "siege_every": 3,
+
+  "monster_respawn_sec": 120,
+  "epic_respawn_sec": 300,
+  "jad_spawn_sec": 840
+}
