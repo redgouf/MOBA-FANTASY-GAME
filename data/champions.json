@@ -1558,6 +1558,268 @@
           ]
         }
       }
+    },
+    {
+      "id": "skiller",
+      "name": "Skiller",
+      "title": "the Level-3",
+      "build": "Level-3 skiller: 1 combat, 99 skilling",
+      "role": "Mid or Support · zone control",
+      "style": "ranged",
+      "skills": {
+        "attack": 1,
+        "hitpoints": 10,
+        "strength": 1,
+        "defence": 1,
+        "ranged": 1,
+        "prayer": 1,
+        "magic": 1,
+        "mining": 99,
+        "agility": 99,
+        "smithing": 99,
+        "herblore": 99,
+        "fishing": 99,
+        "thieving": 99,
+        "cooking": 99,
+        "crafting": 99,
+        "firemaking": 99,
+        "fletching": 99,
+        "woodcutting": 99,
+        "runecraft": 99,
+        "slayer": 1,
+        "farming": 99,
+        "construction": 99,
+        "hunter": 99,
+        "sailing": 1
+      },
+      "overheads": false,
+      "recommended_items": [
+        "bronze_axe",
+        "graceful_outfit",
+        "rune_axe",
+        "dragon_pickaxe",
+        "dragon_axe",
+        "dragon_harpoon",
+        "pyromancer_garb",
+        "infernal_axe",
+        "imcando_hammer"
+      ],
+      "base": {
+        "max_health": 540,
+        "damage": 30,
+        "skill_power": 40,
+        "defence": {
+          "melee": 14,
+          "ranged": 18,
+          "magic": 22
+        },
+        "attack_range": 6.5,
+        "attack_ticks": 5,
+        "move_speed": 6.4,
+        "radius": 0.5
+      },
+      "growth": {
+        "max_health": 85,
+        "damage": 2,
+        "skill_power": 6,
+        "defence": {
+          "melee": 1.5,
+          "ranged": 1.5,
+          "magic": 2
+        }
+      },
+      "passive": {
+        "name": "Level up!",
+        "type": "skilling_level_up",
+        "every": 4,
+        "attack_skill_ratio": 0.3,
+        "text": "Never fights with weapons. Basic attacks toss freshly mined ore (+30% skill power). Every 4th ability sets off OSRS level-up fireworks that damage nearby enemies and heal 5% max health.",
+        "effects": [
+          {
+            "type": "prop",
+            "shape": "fireworks",
+            "at": "self"
+          },
+          {
+            "type": "damage",
+            "area": {
+              "shape": "circle",
+              "radius": 4,
+              "center": "self"
+            },
+            "base": 30,
+            "base_per_level": 8,
+            "ratio": {
+              "skill_power": 0.3
+            },
+            "style": "magic"
+          },
+          {
+            "type": "heal",
+            "on": "self",
+            "pct_max": 0.05
+          }
+        ]
+      },
+      "abilities": {
+        "q": {
+          "name": "Timber!",
+          "skill": "woodcutting",
+          "cast": "point",
+          "range": 8,
+          "cooldown": 8,
+          "text": "Plants a yew and chops it down toward the cursor. The falling tree hits everything in a line and slows them 30% for 1.5s.",
+          "effects": [
+            {
+              "type": "prop",
+              "shape": "tree",
+              "at": "self"
+            },
+            {
+              "type": "damage",
+              "delay": 0.6,
+              "area": {
+                "shape": "line",
+                "length": 8,
+                "width": 2.6
+              },
+              "base": 70,
+              "base_per_rank": 40,
+              "ratio": {
+                "skill_power": 0.7
+              },
+              "style": "melee",
+              "target_statuses": [
+                {
+                  "kind": "slow",
+                  "amount": 0.3,
+                  "duration": 1.5
+                }
+              ]
+            }
+          ]
+        },
+        "w": {
+          "name": "Bonfire",
+          "skill": "firemaking",
+          "cast": "point",
+          "range": 7,
+          "cooldown": 14,
+          "text": "Lights logs at a spot for 4s. Enemies inside burn every half second; allies inside eat cooked food and heal (Cooking).",
+          "effects": [
+            {
+              "type": "prop",
+              "shape": "fire",
+              "at": "point",
+              "duration": 4
+            },
+            {
+              "type": "damage",
+              "repeat": 8,
+              "repeat_interval": 0.5,
+              "area": {
+                "shape": "circle",
+                "radius": 2.5,
+                "center": "point"
+              },
+              "base": 10,
+              "base_per_rank": 6,
+              "ratio": {
+                "skill_power": 0.1
+              },
+              "style": "magic"
+            },
+            {
+              "type": "heal",
+              "repeat": 8,
+              "repeat_interval": 0.5,
+              "area": {
+                "shape": "circle",
+                "radius": 2.5,
+                "center": "point"
+              },
+              "base": 5,
+              "base_per_rank": 3,
+              "ratio": {
+                "skill_power": 0.05
+              }
+            }
+          ]
+        },
+        "e": {
+          "name": "Harpoon",
+          "skill": "fishing",
+          "cast": "target_unit",
+          "range": 8,
+          "cooldown": 14,
+          "text": "Harpoons an enemy and reels them in up to 4 m, then holds them for 0.5s.",
+          "effects": [
+            {
+              "type": "prop",
+              "shape": "harpoon",
+              "at": "target"
+            },
+            {
+              "type": "damage",
+              "base": 50,
+              "base_per_rank": 30,
+              "ratio": {
+                "skill_power": 0.5
+              },
+              "style": "ranged"
+            },
+            {
+              "type": "pull",
+              "distance": 4
+            },
+            {
+              "type": "status",
+              "on": "target",
+              "kind": "root",
+              "duration": 0.5,
+              "delay": 0.2
+            }
+          ]
+        },
+        "r": {
+          "name": "Anvil Drop",
+          "skill": "smithing",
+          "cast": "point",
+          "range": 9,
+          "cooldown": 2,
+          "spec_cost": 50,
+          "text": "An anvil falls from the sky. After 0.8s it crushes everything under it and stuns them for 1s.",
+          "effects": [
+            {
+              "type": "prop",
+              "shape": "anvil",
+              "at": "point",
+              "duration": 0.8
+            },
+            {
+              "type": "damage",
+              "delay": 0.8,
+              "area": {
+                "shape": "circle",
+                "radius": 3,
+                "center": "point"
+              },
+              "base": 150,
+              "base_per_rank": 120,
+              "ratio": {
+                "skill_power": 1.0
+              },
+              "style": "melee",
+              "target_statuses": [
+                {
+                  "kind": "stun",
+                  "duration": 1.0
+                }
+              ]
+            }
+          ]
+        }
+      }
     }
   ]
 }

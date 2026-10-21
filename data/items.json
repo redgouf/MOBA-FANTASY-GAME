@@ -1,193 +1,1409 @@
 {
   "_notes": "Requirements use real OSRS skill levels. Entries marked verify:true still need checking against the OSRS Wiki. Set bonuses and 'text' effects without code are planned, not yet implemented.",
   "items": [
-    { "id": "rune_scimitar", "name": "Rune scimitar", "tier": "component", "cost": 900,
-      "requirements": { "attack": 40 }, "stats": { "damage": 18 } },
-    { "id": "dragon_scimitar", "name": "Dragon scimitar", "tier": "component", "cost": 1500, "builds_from": ["rune_scimitar"],
-      "requirements": { "attack": 60 }, "stats": { "damage": 28, "attack_speed": 0.1 } },
-    { "id": "rune_crossbow", "name": "Rune crossbow", "tier": "component", "cost": 900,
-      "requirements": { "ranged": 61 }, "stats": { "damage": 16, "attack_speed": 0.05 } },
-    { "id": "ancient_staff", "name": "Ancient staff", "tier": "component", "cost": 900,
-      "requirements": { "attack": 50, "magic": 50 }, "stats": { "magic_power": 30 } },
-    { "id": "rune_platebody", "name": "Rune platebody", "tier": "component", "cost": 900,
-      "requirements": { "defence": 40 }, "stats": { "health": 180, "defence": { "melee": 15, "ranged": 10 } } },
-    { "id": "green_dhide_body", "name": "Green d'hide body", "tier": "component", "cost": 800,
-      "requirements": { "ranged": 40, "defence": 40 }, "stats": { "health": 100, "defence": { "ranged": 20, "magic": 10 } } },
-    { "id": "mystic_robe_top", "name": "Mystic robe top", "tier": "component", "cost": 800,
-      "requirements": { "magic": 40, "defence": 20 }, "stats": { "health": 100, "magic_power": 10, "defence": { "magic": 20 } } },
-    { "id": "amulet_of_glory", "name": "Amulet of glory", "tier": "component", "cost": 700,
-      "stats": { "damage": 6, "magic_power": 10, "health": 60 } },
-    { "id": "amulet_of_fury", "name": "Amulet of fury", "tier": "component", "cost": 1500, "builds_from": ["amulet_of_glory"],
-      "stats": { "damage": 12, "magic_power": 15, "health": 120, "defence_all": 6 } },
-    { "id": "ring_of_recoil", "name": "Ring of recoil", "tier": "component", "cost": 500,
-      "stats": { "defence_all": 8 }, "text": "Reflects 10% of damage taken (planned)." },
-    { "id": "climbing_boots", "name": "Climbing boots", "tier": "component", "cost": 400,
-      "stats": { "damage": 4, "move_speed": 0.3 } },
-    { "id": "boots_of_lightness", "name": "Boots of lightness", "tier": "component", "cost": 350,
-      "stats": { "move_speed": 0.6 } },
-
-    { "id": "dragon_dagger", "name": "Dragon dagger", "tier": "spec", "cost": 700,
-      "requirements": { "attack": 60 }, "stats": { "damage": 12, "attack_speed": 0.12 },
-      "spec_active": { "name": "Puncture", "cast": "target_unit", "range": 2.4, "spec_cost": 25, "cooldown": 4,
-        "effects": [ { "type": "damage", "hits": 2, "hit_interval": 0.15, "base": 25, "ratio": { "damage": 0.5 }, "style": "melee" } ] } },
-    { "id": "granite_maul", "name": "Granite maul", "tier": "spec", "cost": 1200,
-      "requirements": { "attack": 50, "strength": 50 }, "stats": { "damage": 22 },
-      "spec_active": { "name": "Quick Smash", "cast": "target_unit", "range": 2.6, "spec_cost": 50, "cooldown": 8,
-        "effects": [ { "type": "damage", "base": 40, "ratio": { "damage": 0.8 }, "style": "melee" } ] } },
-    { "id": "dragon_warhammer", "name": "Dragon warhammer", "tier": "spec", "cost": 2000,
-      "requirements": { "strength": 60 }, "stats": { "damage": 30 },
-      "spec_active": { "name": "Smash", "cast": "target_unit", "range": 2.6, "spec_cost": 50, "cooldown": 15,
-        "effects": [ { "type": "damage", "base": 50, "ratio": { "damage": 0.9 }, "style": "melee",
-          "target_statuses": [ { "id": "dwh_smash", "kind": "armor_mult", "amount": -0.3, "duration": 6 } ] } ] } },
-    { "id": "dragon_claws", "name": "Dragon claws", "tier": "spec", "cost": 2600,
-      "requirements": { "attack": 60 }, "stats": { "damage": 30, "attack_speed": 0.1 },
-      "spec_active": { "name": "Slice and Dice", "cast": "target_unit", "range": 2.6, "spec_cost": 50, "cooldown": 12,
-        "effects": [ { "type": "damage", "hits": 4, "hit_interval": 0.12, "cascade": true, "base": 30, "ratio": { "damage": 0.45 }, "style": "melee" } ] } },
-    { "id": "magic_shortbow_i", "name": "Magic shortbow (i)", "tier": "spec", "cost": 1800,
-      "requirements": { "ranged": 50 }, "stats": { "damage": 30, "attack_speed": 0.25 },
-      "spec_active": { "name": "Snapshot", "cast": "target_unit", "range": 8, "spec_cost": 55, "cooldown": 8,
-        "effects": [ { "type": "damage", "hits": 2, "hit_interval": 0.15, "base": 30, "ratio": { "damage": 0.6 }, "style": "ranged" } ] } },
-
-    { "id": "abyssal_whip", "name": "Abyssal whip", "tier": "legendary", "cost": 2900, "builds_from": ["dragon_scimitar"],
-      "requirements": { "attack": 70 }, "stats": { "damage": 40, "attack_speed": 0.2 } },
-    { "id": "abyssal_tentacle", "name": "Abyssal tentacle", "tier": "legendary", "cost": 3300, "builds_from": ["abyssal_whip"],
-      "requirements": { "attack": 75 }, "stats": { "damage": 48, "attack_speed": 0.2 } },
-    { "id": "armadyl_godsword", "name": "Armadyl godsword", "tier": "legendary", "cost": 3400,
-      "requirements": { "attack": 75 }, "stats": { "damage": 70, "armor_pen": 0.1 },
-      "spec_active": { "name": "The Judgement", "cast": "target_unit", "range": 2.8, "spec_cost": 50, "cooldown": 15,
-        "effects": [ { "type": "damage", "base": 80, "ratio": { "damage": 1.4 }, "style": "melee" } ] } },
-    { "id": "bandos_godsword", "name": "Bandos godsword", "tier": "legendary", "cost": 3200,
-      "requirements": { "attack": 75 }, "stats": { "damage": 60, "health": 100 },
-      "spec_active": { "name": "Warstrike", "cast": "target_unit", "range": 2.8, "spec_cost": 50, "cooldown": 15,
-        "effects": [ { "type": "damage", "base": 60, "ratio": { "damage": 1.1 }, "style": "melee", "shred_ratio": 0.1, "shred_duration": 6 } ] } },
-    { "id": "saradomin_godsword", "name": "Saradomin godsword", "tier": "legendary", "cost": 3100,
-      "requirements": { "attack": 75 }, "stats": { "damage": 55, "health": 200 },
-      "spec_active": { "name": "Healing Blade", "cast": "target_unit", "range": 2.8, "spec_cost": 50, "cooldown": 15,
-        "effects": [ { "type": "damage", "base": 60, "ratio": { "damage": 1.1 }, "style": "melee", "lifesteal": 0.5 } ] } },
-    { "id": "zamorak_godsword", "name": "Zamorak godsword", "tier": "legendary", "cost": 3000,
-      "requirements": { "attack": 75 }, "stats": { "damage": 55 },
-      "spec_active": { "name": "Ice Cleave", "cast": "target_unit", "range": 2.8, "spec_cost": 50, "cooldown": 15,
-        "effects": [ { "type": "damage", "base": 50, "ratio": { "damage": 1.0 }, "style": "melee",
-          "target_statuses": [ { "kind": "root", "duration": 2 } ] } ] } },
-    { "id": "voidwaker", "name": "Voidwaker", "tier": "legendary", "cost": 3200,
-      "requirements": { "attack": 75 }, "stats": { "damage": 50 },
-      "spec_active": { "name": "Disrupt", "cast": "target_unit", "range": 2.8, "spec_cost": 50, "cooldown": 15,
-        "effects": [ { "type": "damage", "base": 90, "ratio": { "damage": 0.9 }, "style": "magic" } ] } },
-    { "id": "scythe_of_vitur", "name": "Scythe of vitur", "tier": "legendary", "cost": 3600,
-      "requirements": { "attack": 80, "strength": 90 }, "stats": { "damage": 60, "health": 150 },
-      "text": "Hits three times in an arc: 100%, 50%, 25% (planned)." },
-    { "id": "osmumtens_fang", "name": "Osmumten's fang", "tier": "legendary", "cost": 3200,
-      "requirements": { "attack": 82 }, "stats": { "damage": 50, "armor_pen": 0.15 } },
-    { "id": "ghrazi_rapier", "name": "Ghrazi rapier", "tier": "legendary", "cost": 3100,
-      "requirements": { "attack": 80 }, "stats": { "damage": 52, "attack_speed": 0.15 } },
-    { "id": "elder_maul", "name": "Elder maul", "tier": "legendary", "cost": 3500,
-      "requirements": { "attack": 75, "strength": 75 }, "stats": { "damage": 85, "attack_speed": -0.1 } },
-
-    { "id": "armadyl_crossbow", "name": "Armadyl crossbow", "tier": "legendary", "cost": 3000, "builds_from": ["rune_crossbow"],
-      "requirements": { "ranged": 70 }, "stats": { "damage": 45, "attack_speed": 0.1 },
-      "spec_active": { "name": "Armadyl Eye", "cast": "target_unit", "range": 8, "spec_cost": 40, "cooldown": 10,
-        "effects": [ { "type": "damage", "base": 60, "ratio": { "damage": 1.0 }, "style": "ranged", "crit_mult": 1.5 } ] } },
-    { "id": "zaryte_crossbow", "name": "Zaryte crossbow", "tier": "legendary", "cost": 3400, "builds_from": ["armadyl_crossbow"],
-      "requirements": { "ranged": 80 }, "stats": { "damage": 58, "attack_speed": 0.1 } },
-    { "id": "twisted_bow", "name": "Twisted bow", "tier": "legendary", "cost": 3600,
-      "requirements": { "ranged": 75 }, "stats": { "damage": 65 } },
-    { "id": "bow_of_faerdhinen", "name": "Bow of faerdhinen", "tier": "legendary", "cost": 3100,
-      "requirements": { "ranged": 80 }, "stats": { "damage": 55 }, "text": "Stronger per Crystal armour piece (planned)." },
-    { "id": "dragon_hunter_crossbow", "name": "Dragon hunter crossbow", "tier": "legendary", "cost": 2800,
-      "requirements": { "ranged": 65 }, "stats": { "damage": 45 }, "text": "+30% against dragons (planned)." },
-    { "id": "venator_bow", "name": "Venator bow", "tier": "legendary", "cost": 3000,
-      "requirements": { "ranged": 80 }, "verify": true, "stats": { "damage": 48 }, "text": "Arrows bounce to two nearby enemies (planned)." },
-    { "id": "toxic_blowpipe", "name": "Toxic blowpipe", "tier": "legendary", "cost": 2900,
-      "requirements": { "ranged": 75 }, "stats": { "damage": 35, "attack_speed": 0.35 } },
-
-    { "id": "trident_of_the_swamp", "name": "Trident of the swamp", "tier": "legendary", "cost": 2600,
-      "requirements": { "magic": 75 }, "stats": { "magic_power": 50 } },
-    { "id": "kodai_wand", "name": "Kodai wand", "tier": "legendary", "cost": 3000,
-      "requirements": { "magic": 75 }, "stats": { "magic_power": 70 } },
-    { "id": "sanguinesti_staff", "name": "Sanguinesti staff", "tier": "legendary", "cost": 3200,
-      "requirements": { "magic": 82 }, "stats": { "magic_power": 65, "health": 120 } },
-    { "id": "tumekens_shadow", "name": "Tumeken's shadow", "tier": "legendary", "cost": 3800,
-      "requirements": { "magic": 85 }, "stats": { "magic_power": 120 } },
-    { "id": "toxic_staff_of_the_dead", "name": "Toxic staff of the dead", "tier": "legendary", "cost": 2900,
-      "requirements": { "attack": 75, "magic": 75 }, "stats": { "magic_power": 60, "defence": { "melee": 15 } },
-      "spec_active": { "name": "Lightness", "cast": "self", "spec_cost": 100, "cooldown": 60,
-        "effects": [ { "type": "status", "on": "self", "kind": "melee_damage_taken_mult", "amount": -0.5, "duration": 5 } ] } },
-    { "id": "volatile_nightmare_staff", "name": "Volatile nightmare staff", "tier": "legendary", "cost": 3100,
-      "requirements": { "magic": 82 }, "stats": { "magic_power": 60 },
-      "spec_active": { "name": "Immolate", "cast": "target_unit", "range": 12, "spec_cost": 55, "cooldown": 15,
-        "effects": [ { "type": "damage", "base": 120, "ratio": { "magic_power": 1.0 }, "style": "magic" } ] } },
-
-    { "id": "berserker_helm", "name": "Berserker helm", "tier": "armour", "cost": 1100,
-      "requirements": { "defence": 45 }, "stats": { "health": 120, "damage": 6, "defence": { "melee": 12 } } },
-    { "id": "obsidian_platebody", "name": "Obsidian platebody", "tier": "armour", "cost": 2200, "set": "obsidian",
-      "requirements": { "defence": 60 }, "stats": { "health": 220, "damage": 8, "defence": { "melee": 25 } } },
-    { "id": "dharoks_platebody", "name": "Dharok's platebody", "tier": "armour", "cost": 2400, "set": "dharoks",
-      "requirements": { "defence": 70 }, "stats": { "health": 250, "defence": { "melee": 30, "ranged": 15 } } },
-    { "id": "ahrims_robetop", "name": "Ahrim's robetop", "tier": "armour", "cost": 2400, "set": "ahrims",
-      "requirements": { "magic": 70, "defence": 70 }, "stats": { "health": 150, "magic_power": 30, "defence": { "magic": 20 } } },
-    { "id": "karils_leathertop", "name": "Karil's leathertop", "tier": "armour", "cost": 2400, "set": "karils",
-      "requirements": { "ranged": 70, "defence": 70 }, "stats": { "health": 150, "damage": 15, "defence": { "ranged": 20 } } },
-    { "id": "bandos_chestplate", "name": "Bandos chestplate", "tier": "armour", "cost": 2900,
-      "requirements": { "defence": 65 }, "stats": { "health": 300, "damage": 10, "defence": { "melee": 40 } } },
-    { "id": "justiciar_chestguard", "name": "Justiciar chestguard", "tier": "armour", "cost": 3000, "set": "justiciar",
-      "requirements": { "defence": 75 }, "stats": { "health": 350, "defence_all": 25 } },
-    { "id": "masori_body", "name": "Masori body", "tier": "armour", "cost": 3000,
-      "requirements": { "ranged": 80, "defence": 30 }, "stats": { "health": 150, "damage": 20, "defence": { "ranged": 30 } } },
-    { "id": "ancestral_robe_top", "name": "Ancestral robe top", "tier": "armour", "cost": 3000,
-      "requirements": { "magic": 75, "defence": 65 }, "stats": { "health": 150, "magic_power": 40, "defence": { "magic": 25 } } },
-
-    { "id": "dragon_defender", "name": "Dragon defender", "tier": "offhand", "cost": 1800,
-      "requirements": { "defence": 60 }, "stats": { "damage": 15, "health": 80, "defence": { "melee": 12 } } },
-    { "id": "avernic_defender", "name": "Avernic defender", "tier": "offhand", "cost": 2800, "builds_from": ["dragon_defender"],
-      "requirements": { "attack": 70, "defence": 70 }, "stats": { "damage": 22, "health": 150, "defence_all": 15 } },
-    { "id": "elysian_spirit_shield", "name": "Elysian spirit shield", "tier": "offhand", "cost": 3200,
-      "requirements": { "defence": 75, "prayer": 75 }, "stats": { "health": 450, "defence_all": 20 },
-      "text": "70% chance to reduce each hit by 25% (planned as a passive)." },
-    { "id": "dinhs_bulwark", "name": "Dinh's bulwark", "tier": "offhand", "cost": 2800,
-      "requirements": { "attack": 75, "defence": 75 }, "stats": { "health": 400, "defence_all": 30 } },
-
-    { "id": "amulet_of_torture", "name": "Amulet of torture", "tier": "neck", "cost": 2600,
-      "stats": { "damage": 25, "health": 100 } },
-    { "id": "necklace_of_anguish", "name": "Necklace of anguish", "tier": "neck", "cost": 2600,
-      "stats": { "damage": 22, "attack_speed": 0.1 } },
-    { "id": "occult_necklace", "name": "Occult necklace", "tier": "neck", "cost": 2500,
-      "requirements": { "magic": 70 }, "stats": { "magic_power": 45 } },
-    { "id": "berserker_necklace", "name": "Berserker necklace", "tier": "neck", "cost": 1800,
-      "stats": { "damage": 18 } },
-
-    { "id": "lightbearer", "name": "Lightbearer", "tier": "ring", "cost": 2400,
-      "stats": { "spec_regen": 1.0 }, "text": "Doubles special attack regeneration." },
-    { "id": "ring_of_suffering", "name": "Ring of suffering", "tier": "ring", "cost": 2700,
-      "stats": { "defence_all": 20, "health": 200 } },
-    { "id": "berserker_ring", "name": "Berserker ring", "tier": "ring", "cost": 2200,
-      "stats": { "damage": 20 } },
-    { "id": "archers_ring", "name": "Archers ring", "tier": "ring", "cost": 2200,
-      "stats": { "damage": 18, "attack_speed": 0.08 } },
-    { "id": "seers_ring", "name": "Seers ring", "tier": "ring", "cost": 2200,
-      "stats": { "magic_power": 35 } },
-
-    { "id": "dragon_boots", "name": "Dragon boots", "tier": "boots", "cost": 1200, "builds_from": ["climbing_boots"],
-      "requirements": { "defence": 60 }, "stats": { "damage": 10, "move_speed": 0.5 } },
-    { "id": "primordial_boots", "name": "Primordial boots", "tier": "boots", "cost": 1800, "builds_from": ["dragon_boots"],
-      "requirements": { "defence": 75, "strength": 75 }, "stats": { "damage": 18, "move_speed": 0.7 } },
-    { "id": "pegasian_boots", "name": "Pegasian boots", "tier": "boots", "cost": 1800, "builds_from": ["boots_of_lightness"],
-      "requirements": { "ranged": 75, "defence": 75 }, "stats": { "attack_speed": 0.12, "move_speed": 0.7 } },
-    { "id": "eternal_boots", "name": "Eternal boots", "tier": "boots", "cost": 1800, "builds_from": ["boots_of_lightness"],
-      "requirements": { "magic": 75, "defence": 75 }, "stats": { "magic_power": 25, "move_speed": 0.7 } },
-
-    { "id": "shark", "name": "Shark", "consumable": true, "cost": 50,
-      "use": { "heal_over_time": 200, "duration": 5 } },
-    { "id": "cooked_karambwan", "name": "Cooked karambwan", "consumable": true, "cost": 40,
-      "use": { "heal": 80 } },
-    { "id": "saradomin_brew", "name": "Saradomin brew", "consumable": true, "cost": 120,
-      "use": { "heal_pct_max": 0.2, "statuses": [ { "kind": "armor_mult", "amount": 0.2, "duration": 5 }, { "kind": "damage_mult", "amount": -0.1, "duration": 5 } ] } },
-    { "id": "super_restore", "name": "Super restore", "consumable": true, "cost": 150,
-      "use": { "prayer": 40 } },
-    { "id": "prayer_potion", "name": "Prayer potion", "consumable": true, "cost": 90,
-      "use": { "prayer": 30 } },
-    { "id": "super_combat_potion", "name": "Super combat potion", "consumable": true, "cost": 150,
-      "use": { "statuses": [ { "kind": "damage_mult", "amount": 0.08, "duration": 60 } ] } },
-    { "id": "stamina_potion", "name": "Stamina potion", "consumable": true, "cost": 80,
-      "use": { "statuses": [ { "kind": "haste", "amount": 0.25, "duration": 6 } ] } }
+    {
+      "id": "rune_scimitar",
+      "name": "Rune scimitar",
+      "tier": "component",
+      "cost": 900,
+      "requirements": {
+        "attack": 40
+      },
+      "stats": {
+        "damage": 18
+      }
+    },
+    {
+      "id": "dragon_scimitar",
+      "name": "Dragon scimitar",
+      "tier": "component",
+      "cost": 1500,
+      "builds_from": [
+        "rune_scimitar"
+      ],
+      "requirements": {
+        "attack": 60
+      },
+      "stats": {
+        "damage": 28,
+        "attack_speed": 0.1
+      }
+    },
+    {
+      "id": "rune_crossbow",
+      "name": "Rune crossbow",
+      "tier": "component",
+      "cost": 900,
+      "requirements": {
+        "ranged": 61
+      },
+      "stats": {
+        "damage": 16,
+        "attack_speed": 0.05
+      }
+    },
+    {
+      "id": "ancient_staff",
+      "name": "Ancient staff",
+      "tier": "component",
+      "cost": 900,
+      "requirements": {
+        "attack": 50,
+        "magic": 50
+      },
+      "stats": {
+        "magic_power": 30
+      }
+    },
+    {
+      "id": "rune_platebody",
+      "name": "Rune platebody",
+      "tier": "component",
+      "cost": 900,
+      "requirements": {
+        "defence": 40
+      },
+      "stats": {
+        "health": 180,
+        "defence": {
+          "melee": 15,
+          "ranged": 10
+        }
+      }
+    },
+    {
+      "id": "green_dhide_body",
+      "name": "Green d'hide body",
+      "tier": "component",
+      "cost": 800,
+      "requirements": {
+        "ranged": 40,
+        "defence": 40
+      },
+      "stats": {
+        "health": 100,
+        "defence": {
+          "ranged": 20,
+          "magic": 10
+        }
+      }
+    },
+    {
+      "id": "mystic_robe_top",
+      "name": "Mystic robe top",
+      "tier": "component",
+      "cost": 800,
+      "requirements": {
+        "magic": 40,
+        "defence": 20
+      },
+      "stats": {
+        "health": 100,
+        "magic_power": 10,
+        "defence": {
+          "magic": 20
+        }
+      }
+    },
+    {
+      "id": "amulet_of_glory",
+      "name": "Amulet of glory",
+      "tier": "component",
+      "cost": 700,
+      "stats": {
+        "damage": 6,
+        "magic_power": 10,
+        "health": 60
+      }
+    },
+    {
+      "id": "amulet_of_fury",
+      "name": "Amulet of fury",
+      "tier": "component",
+      "cost": 1500,
+      "builds_from": [
+        "amulet_of_glory"
+      ],
+      "stats": {
+        "damage": 12,
+        "magic_power": 15,
+        "health": 120,
+        "defence_all": 6
+      }
+    },
+    {
+      "id": "ring_of_recoil",
+      "name": "Ring of recoil",
+      "tier": "component",
+      "cost": 500,
+      "stats": {
+        "defence_all": 8
+      },
+      "text": "Reflects 10% of damage taken (planned)."
+    },
+    {
+      "id": "climbing_boots",
+      "name": "Climbing boots",
+      "tier": "component",
+      "cost": 400,
+      "stats": {
+        "damage": 4,
+        "move_speed": 0.3
+      }
+    },
+    {
+      "id": "boots_of_lightness",
+      "name": "Boots of lightness",
+      "tier": "component",
+      "cost": 350,
+      "stats": {
+        "move_speed": 0.6
+      }
+    },
+    {
+      "id": "dragon_dagger",
+      "name": "Dragon dagger",
+      "tier": "spec",
+      "cost": 700,
+      "requirements": {
+        "attack": 60
+      },
+      "stats": {
+        "damage": 12,
+        "attack_speed": 0.12
+      },
+      "spec_active": {
+        "name": "Puncture",
+        "cast": "target_unit",
+        "range": 2.4,
+        "spec_cost": 25,
+        "cooldown": 4,
+        "effects": [
+          {
+            "type": "damage",
+            "hits": 2,
+            "hit_interval": 0.15,
+            "base": 25,
+            "ratio": {
+              "damage": 0.5
+            },
+            "style": "melee"
+          }
+        ]
+      }
+    },
+    {
+      "id": "granite_maul",
+      "name": "Granite maul",
+      "tier": "spec",
+      "cost": 1200,
+      "requirements": {
+        "attack": 50,
+        "strength": 50
+      },
+      "stats": {
+        "damage": 22
+      },
+      "spec_active": {
+        "name": "Quick Smash",
+        "cast": "target_unit",
+        "range": 2.6,
+        "spec_cost": 50,
+        "cooldown": 8,
+        "effects": [
+          {
+            "type": "damage",
+            "base": 40,
+            "ratio": {
+              "damage": 0.8
+            },
+            "style": "melee"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dragon_warhammer",
+      "name": "Dragon warhammer",
+      "tier": "spec",
+      "cost": 2000,
+      "requirements": {
+        "strength": 60
+      },
+      "stats": {
+        "damage": 30
+      },
+      "spec_active": {
+        "name": "Smash",
+        "cast": "target_unit",
+        "range": 2.6,
+        "spec_cost": 50,
+        "cooldown": 15,
+        "effects": [
+          {
+            "type": "damage",
+            "base": 50,
+            "ratio": {
+              "damage": 0.9
+            },
+            "style": "melee",
+            "target_statuses": [
+              {
+                "id": "dwh_smash",
+                "kind": "armor_mult",
+                "amount": -0.3,
+                "duration": 6
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dragon_claws",
+      "name": "Dragon claws",
+      "tier": "spec",
+      "cost": 2600,
+      "requirements": {
+        "attack": 60
+      },
+      "stats": {
+        "damage": 30,
+        "attack_speed": 0.1
+      },
+      "spec_active": {
+        "name": "Slice and Dice",
+        "cast": "target_unit",
+        "range": 2.6,
+        "spec_cost": 50,
+        "cooldown": 12,
+        "effects": [
+          {
+            "type": "damage",
+            "hits": 4,
+            "hit_interval": 0.12,
+            "cascade": true,
+            "base": 30,
+            "ratio": {
+              "damage": 0.45
+            },
+            "style": "melee"
+          }
+        ]
+      }
+    },
+    {
+      "id": "magic_shortbow_i",
+      "name": "Magic shortbow (i)",
+      "tier": "spec",
+      "cost": 1800,
+      "requirements": {
+        "ranged": 50
+      },
+      "stats": {
+        "damage": 30,
+        "attack_speed": 0.25
+      },
+      "spec_active": {
+        "name": "Snapshot",
+        "cast": "target_unit",
+        "range": 8,
+        "spec_cost": 55,
+        "cooldown": 8,
+        "effects": [
+          {
+            "type": "damage",
+            "hits": 2,
+            "hit_interval": 0.15,
+            "base": 30,
+            "ratio": {
+              "damage": 0.6
+            },
+            "style": "ranged"
+          }
+        ]
+      }
+    },
+    {
+      "id": "abyssal_whip",
+      "name": "Abyssal whip",
+      "tier": "legendary",
+      "cost": 2900,
+      "builds_from": [
+        "dragon_scimitar"
+      ],
+      "requirements": {
+        "attack": 70
+      },
+      "stats": {
+        "damage": 40,
+        "attack_speed": 0.2
+      }
+    },
+    {
+      "id": "abyssal_tentacle",
+      "name": "Abyssal tentacle",
+      "tier": "legendary",
+      "cost": 3300,
+      "builds_from": [
+        "abyssal_whip"
+      ],
+      "requirements": {
+        "attack": 75
+      },
+      "stats": {
+        "damage": 48,
+        "attack_speed": 0.2
+      }
+    },
+    {
+      "id": "armadyl_godsword",
+      "name": "Armadyl godsword",
+      "tier": "legendary",
+      "cost": 3400,
+      "requirements": {
+        "attack": 75
+      },
+      "stats": {
+        "damage": 70,
+        "armor_pen": 0.1
+      },
+      "spec_active": {
+        "name": "The Judgement",
+        "cast": "target_unit",
+        "range": 2.8,
+        "spec_cost": 50,
+        "cooldown": 15,
+        "effects": [
+          {
+            "type": "damage",
+            "base": 80,
+            "ratio": {
+              "damage": 1.4
+            },
+            "style": "melee"
+          }
+        ]
+      }
+    },
+    {
+      "id": "bandos_godsword",
+      "name": "Bandos godsword",
+      "tier": "legendary",
+      "cost": 3200,
+      "requirements": {
+        "attack": 75
+      },
+      "stats": {
+        "damage": 60,
+        "health": 100
+      },
+      "spec_active": {
+        "name": "Warstrike",
+        "cast": "target_unit",
+        "range": 2.8,
+        "spec_cost": 50,
+        "cooldown": 15,
+        "effects": [
+          {
+            "type": "damage",
+            "base": 60,
+            "ratio": {
+              "damage": 1.1
+            },
+            "style": "melee",
+            "shred_ratio": 0.1,
+            "shred_duration": 6
+          }
+        ]
+      }
+    },
+    {
+      "id": "saradomin_godsword",
+      "name": "Saradomin godsword",
+      "tier": "legendary",
+      "cost": 3100,
+      "requirements": {
+        "attack": 75
+      },
+      "stats": {
+        "damage": 55,
+        "health": 200
+      },
+      "spec_active": {
+        "name": "Healing Blade",
+        "cast": "target_unit",
+        "range": 2.8,
+        "spec_cost": 50,
+        "cooldown": 15,
+        "effects": [
+          {
+            "type": "damage",
+            "base": 60,
+            "ratio": {
+              "damage": 1.1
+            },
+            "style": "melee",
+            "lifesteal": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "id": "zamorak_godsword",
+      "name": "Zamorak godsword",
+      "tier": "legendary",
+      "cost": 3000,
+      "requirements": {
+        "attack": 75
+      },
+      "stats": {
+        "damage": 55
+      },
+      "spec_active": {
+        "name": "Ice Cleave",
+        "cast": "target_unit",
+        "range": 2.8,
+        "spec_cost": 50,
+        "cooldown": 15,
+        "effects": [
+          {
+            "type": "damage",
+            "base": 50,
+            "ratio": {
+              "damage": 1.0
+            },
+            "style": "melee",
+            "target_statuses": [
+              {
+                "kind": "root",
+                "duration": 2
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "voidwaker",
+      "name": "Voidwaker",
+      "tier": "legendary",
+      "cost": 3200,
+      "requirements": {
+        "attack": 75
+      },
+      "stats": {
+        "damage": 50
+      },
+      "spec_active": {
+        "name": "Disrupt",
+        "cast": "target_unit",
+        "range": 2.8,
+        "spec_cost": 50,
+        "cooldown": 15,
+        "effects": [
+          {
+            "type": "damage",
+            "base": 90,
+            "ratio": {
+              "damage": 0.9
+            },
+            "style": "magic"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scythe_of_vitur",
+      "name": "Scythe of vitur",
+      "tier": "legendary",
+      "cost": 3600,
+      "requirements": {
+        "attack": 80,
+        "strength": 90
+      },
+      "stats": {
+        "damage": 60,
+        "health": 150
+      },
+      "text": "Hits three times in an arc: 100%, 50%, 25% (planned)."
+    },
+    {
+      "id": "osmumtens_fang",
+      "name": "Osmumten's fang",
+      "tier": "legendary",
+      "cost": 3200,
+      "requirements": {
+        "attack": 82
+      },
+      "stats": {
+        "damage": 50,
+        "armor_pen": 0.15
+      }
+    },
+    {
+      "id": "ghrazi_rapier",
+      "name": "Ghrazi rapier",
+      "tier": "legendary",
+      "cost": 3100,
+      "requirements": {
+        "attack": 80
+      },
+      "stats": {
+        "damage": 52,
+        "attack_speed": 0.15
+      }
+    },
+    {
+      "id": "elder_maul",
+      "name": "Elder maul",
+      "tier": "legendary",
+      "cost": 3500,
+      "requirements": {
+        "attack": 75,
+        "strength": 75
+      },
+      "stats": {
+        "damage": 85,
+        "attack_speed": -0.1
+      }
+    },
+    {
+      "id": "armadyl_crossbow",
+      "name": "Armadyl crossbow",
+      "tier": "legendary",
+      "cost": 3000,
+      "builds_from": [
+        "rune_crossbow"
+      ],
+      "requirements": {
+        "ranged": 70
+      },
+      "stats": {
+        "damage": 45,
+        "attack_speed": 0.1
+      },
+      "spec_active": {
+        "name": "Armadyl Eye",
+        "cast": "target_unit",
+        "range": 8,
+        "spec_cost": 40,
+        "cooldown": 10,
+        "effects": [
+          {
+            "type": "damage",
+            "base": 60,
+            "ratio": {
+              "damage": 1.0
+            },
+            "style": "ranged",
+            "crit_mult": 1.5
+          }
+        ]
+      }
+    },
+    {
+      "id": "zaryte_crossbow",
+      "name": "Zaryte crossbow",
+      "tier": "legendary",
+      "cost": 3400,
+      "builds_from": [
+        "armadyl_crossbow"
+      ],
+      "requirements": {
+        "ranged": 80
+      },
+      "stats": {
+        "damage": 58,
+        "attack_speed": 0.1
+      }
+    },
+    {
+      "id": "twisted_bow",
+      "name": "Twisted bow",
+      "tier": "legendary",
+      "cost": 3600,
+      "requirements": {
+        "ranged": 75
+      },
+      "stats": {
+        "damage": 65
+      }
+    },
+    {
+      "id": "bow_of_faerdhinen",
+      "name": "Bow of faerdhinen",
+      "tier": "legendary",
+      "cost": 3100,
+      "requirements": {
+        "ranged": 80
+      },
+      "stats": {
+        "damage": 55
+      },
+      "text": "Stronger per Crystal armour piece (planned)."
+    },
+    {
+      "id": "dragon_hunter_crossbow",
+      "name": "Dragon hunter crossbow",
+      "tier": "legendary",
+      "cost": 2800,
+      "requirements": {
+        "ranged": 65
+      },
+      "stats": {
+        "damage": 45
+      },
+      "text": "+30% against dragons (planned)."
+    },
+    {
+      "id": "venator_bow",
+      "name": "Venator bow",
+      "tier": "legendary",
+      "cost": 3000,
+      "requirements": {
+        "ranged": 80
+      },
+      "verify": true,
+      "stats": {
+        "damage": 48
+      },
+      "text": "Arrows bounce to two nearby enemies (planned)."
+    },
+    {
+      "id": "toxic_blowpipe",
+      "name": "Toxic blowpipe",
+      "tier": "legendary",
+      "cost": 2900,
+      "requirements": {
+        "ranged": 75
+      },
+      "stats": {
+        "damage": 35,
+        "attack_speed": 0.35
+      }
+    },
+    {
+      "id": "trident_of_the_swamp",
+      "name": "Trident of the swamp",
+      "tier": "legendary",
+      "cost": 2600,
+      "requirements": {
+        "magic": 75
+      },
+      "stats": {
+        "magic_power": 50
+      }
+    },
+    {
+      "id": "kodai_wand",
+      "name": "Kodai wand",
+      "tier": "legendary",
+      "cost": 3000,
+      "requirements": {
+        "magic": 75
+      },
+      "stats": {
+        "magic_power": 70
+      }
+    },
+    {
+      "id": "sanguinesti_staff",
+      "name": "Sanguinesti staff",
+      "tier": "legendary",
+      "cost": 3200,
+      "requirements": {
+        "magic": 82
+      },
+      "stats": {
+        "magic_power": 65,
+        "health": 120
+      }
+    },
+    {
+      "id": "tumekens_shadow",
+      "name": "Tumeken's shadow",
+      "tier": "legendary",
+      "cost": 3800,
+      "requirements": {
+        "magic": 85
+      },
+      "stats": {
+        "magic_power": 120
+      }
+    },
+    {
+      "id": "toxic_staff_of_the_dead",
+      "name": "Toxic staff of the dead",
+      "tier": "legendary",
+      "cost": 2900,
+      "requirements": {
+        "attack": 75,
+        "magic": 75
+      },
+      "stats": {
+        "magic_power": 60,
+        "defence": {
+          "melee": 15
+        }
+      },
+      "spec_active": {
+        "name": "Lightness",
+        "cast": "self",
+        "spec_cost": 100,
+        "cooldown": 60,
+        "effects": [
+          {
+            "type": "status",
+            "on": "self",
+            "kind": "melee_damage_taken_mult",
+            "amount": -0.5,
+            "duration": 5
+          }
+        ]
+      }
+    },
+    {
+      "id": "volatile_nightmare_staff",
+      "name": "Volatile nightmare staff",
+      "tier": "legendary",
+      "cost": 3100,
+      "requirements": {
+        "magic": 82
+      },
+      "stats": {
+        "magic_power": 60
+      },
+      "spec_active": {
+        "name": "Immolate",
+        "cast": "target_unit",
+        "range": 12,
+        "spec_cost": 55,
+        "cooldown": 15,
+        "effects": [
+          {
+            "type": "damage",
+            "base": 120,
+            "ratio": {
+              "magic_power": 1.0
+            },
+            "style": "magic"
+          }
+        ]
+      }
+    },
+    {
+      "id": "berserker_helm",
+      "name": "Berserker helm",
+      "tier": "armour",
+      "cost": 1100,
+      "requirements": {
+        "defence": 45
+      },
+      "stats": {
+        "health": 120,
+        "damage": 6,
+        "defence": {
+          "melee": 12
+        }
+      }
+    },
+    {
+      "id": "obsidian_platebody",
+      "name": "Obsidian platebody",
+      "tier": "armour",
+      "cost": 2200,
+      "set": "obsidian",
+      "requirements": {
+        "defence": 60
+      },
+      "stats": {
+        "health": 220,
+        "damage": 8,
+        "defence": {
+          "melee": 25
+        }
+      }
+    },
+    {
+      "id": "dharoks_platebody",
+      "name": "Dharok's platebody",
+      "tier": "armour",
+      "cost": 2400,
+      "set": "dharoks",
+      "requirements": {
+        "defence": 70
+      },
+      "stats": {
+        "health": 250,
+        "defence": {
+          "melee": 30,
+          "ranged": 15
+        }
+      }
+    },
+    {
+      "id": "ahrims_robetop",
+      "name": "Ahrim's robetop",
+      "tier": "armour",
+      "cost": 2400,
+      "set": "ahrims",
+      "requirements": {
+        "magic": 70,
+        "defence": 70
+      },
+      "stats": {
+        "health": 150,
+        "magic_power": 30,
+        "defence": {
+          "magic": 20
+        }
+      }
+    },
+    {
+      "id": "karils_leathertop",
+      "name": "Karil's leathertop",
+      "tier": "armour",
+      "cost": 2400,
+      "set": "karils",
+      "requirements": {
+        "ranged": 70,
+        "defence": 70
+      },
+      "stats": {
+        "health": 150,
+        "damage": 15,
+        "defence": {
+          "ranged": 20
+        }
+      }
+    },
+    {
+      "id": "bandos_chestplate",
+      "name": "Bandos chestplate",
+      "tier": "armour",
+      "cost": 2900,
+      "requirements": {
+        "defence": 65
+      },
+      "stats": {
+        "health": 300,
+        "damage": 10,
+        "defence": {
+          "melee": 40
+        }
+      }
+    },
+    {
+      "id": "justiciar_chestguard",
+      "name": "Justiciar chestguard",
+      "tier": "armour",
+      "cost": 3000,
+      "set": "justiciar",
+      "requirements": {
+        "defence": 75
+      },
+      "stats": {
+        "health": 350,
+        "defence_all": 25
+      }
+    },
+    {
+      "id": "masori_body",
+      "name": "Masori body",
+      "tier": "armour",
+      "cost": 3000,
+      "requirements": {
+        "ranged": 80,
+        "defence": 30
+      },
+      "stats": {
+        "health": 150,
+        "damage": 20,
+        "defence": {
+          "ranged": 30
+        }
+      }
+    },
+    {
+      "id": "ancestral_robe_top",
+      "name": "Ancestral robe top",
+      "tier": "armour",
+      "cost": 3000,
+      "requirements": {
+        "magic": 75,
+        "defence": 65
+      },
+      "stats": {
+        "health": 150,
+        "magic_power": 40,
+        "defence": {
+          "magic": 25
+        }
+      }
+    },
+    {
+      "id": "dragon_defender",
+      "name": "Dragon defender",
+      "tier": "offhand",
+      "cost": 1800,
+      "requirements": {
+        "defence": 60
+      },
+      "stats": {
+        "damage": 15,
+        "health": 80,
+        "defence": {
+          "melee": 12
+        }
+      }
+    },
+    {
+      "id": "avernic_defender",
+      "name": "Avernic defender",
+      "tier": "offhand",
+      "cost": 2800,
+      "builds_from": [
+        "dragon_defender"
+      ],
+      "requirements": {
+        "attack": 70,
+        "defence": 70
+      },
+      "stats": {
+        "damage": 22,
+        "health": 150,
+        "defence_all": 15
+      }
+    },
+    {
+      "id": "elysian_spirit_shield",
+      "name": "Elysian spirit shield",
+      "tier": "offhand",
+      "cost": 3200,
+      "requirements": {
+        "defence": 75,
+        "prayer": 75
+      },
+      "stats": {
+        "health": 450,
+        "defence_all": 20
+      },
+      "text": "70% chance to reduce each hit by 25% (planned as a passive)."
+    },
+    {
+      "id": "dinhs_bulwark",
+      "name": "Dinh's bulwark",
+      "tier": "offhand",
+      "cost": 2800,
+      "requirements": {
+        "attack": 75,
+        "defence": 75
+      },
+      "stats": {
+        "health": 400,
+        "defence_all": 30
+      }
+    },
+    {
+      "id": "amulet_of_torture",
+      "name": "Amulet of torture",
+      "tier": "neck",
+      "cost": 2600,
+      "stats": {
+        "damage": 25,
+        "health": 100
+      }
+    },
+    {
+      "id": "necklace_of_anguish",
+      "name": "Necklace of anguish",
+      "tier": "neck",
+      "cost": 2600,
+      "stats": {
+        "damage": 22,
+        "attack_speed": 0.1
+      }
+    },
+    {
+      "id": "occult_necklace",
+      "name": "Occult necklace",
+      "tier": "neck",
+      "cost": 2500,
+      "requirements": {
+        "magic": 70
+      },
+      "stats": {
+        "magic_power": 45
+      }
+    },
+    {
+      "id": "berserker_necklace",
+      "name": "Berserker necklace",
+      "tier": "neck",
+      "cost": 1800,
+      "stats": {
+        "damage": 18
+      }
+    },
+    {
+      "id": "lightbearer",
+      "name": "Lightbearer",
+      "tier": "ring",
+      "cost": 2400,
+      "stats": {
+        "spec_regen": 1.0
+      },
+      "text": "Doubles special attack regeneration."
+    },
+    {
+      "id": "ring_of_suffering",
+      "name": "Ring of suffering",
+      "tier": "ring",
+      "cost": 2700,
+      "stats": {
+        "defence_all": 20,
+        "health": 200
+      }
+    },
+    {
+      "id": "berserker_ring",
+      "name": "Berserker ring",
+      "tier": "ring",
+      "cost": 2200,
+      "stats": {
+        "damage": 20
+      }
+    },
+    {
+      "id": "archers_ring",
+      "name": "Archers ring",
+      "tier": "ring",
+      "cost": 2200,
+      "stats": {
+        "damage": 18,
+        "attack_speed": 0.08
+      }
+    },
+    {
+      "id": "seers_ring",
+      "name": "Seers ring",
+      "tier": "ring",
+      "cost": 2200,
+      "stats": {
+        "magic_power": 35
+      }
+    },
+    {
+      "id": "dragon_boots",
+      "name": "Dragon boots",
+      "tier": "boots",
+      "cost": 1200,
+      "builds_from": [
+        "climbing_boots"
+      ],
+      "requirements": {
+        "defence": 60
+      },
+      "stats": {
+        "damage": 10,
+        "move_speed": 0.5
+      }
+    },
+    {
+      "id": "primordial_boots",
+      "name": "Primordial boots",
+      "tier": "boots",
+      "cost": 1800,
+      "builds_from": [
+        "dragon_boots"
+      ],
+      "requirements": {
+        "defence": 75,
+        "strength": 75
+      },
+      "stats": {
+        "damage": 18,
+        "move_speed": 0.7
+      }
+    },
+    {
+      "id": "pegasian_boots",
+      "name": "Pegasian boots",
+      "tier": "boots",
+      "cost": 1800,
+      "builds_from": [
+        "boots_of_lightness"
+      ],
+      "requirements": {
+        "ranged": 75,
+        "defence": 75
+      },
+      "stats": {
+        "attack_speed": 0.12,
+        "move_speed": 0.7
+      }
+    },
+    {
+      "id": "eternal_boots",
+      "name": "Eternal boots",
+      "tier": "boots",
+      "cost": 1800,
+      "builds_from": [
+        "boots_of_lightness"
+      ],
+      "requirements": {
+        "magic": 75,
+        "defence": 75
+      },
+      "stats": {
+        "magic_power": 25,
+        "move_speed": 0.7
+      }
+    },
+    {
+      "id": "shark",
+      "name": "Shark",
+      "consumable": true,
+      "cost": 50,
+      "use": {
+        "heal_over_time": 200,
+        "duration": 5
+      }
+    },
+    {
+      "id": "cooked_karambwan",
+      "name": "Cooked karambwan",
+      "consumable": true,
+      "cost": 40,
+      "use": {
+        "heal": 80
+      }
+    },
+    {
+      "id": "saradomin_brew",
+      "name": "Saradomin brew",
+      "consumable": true,
+      "cost": 120,
+      "use": {
+        "heal_pct_max": 0.2,
+        "statuses": [
+          {
+            "kind": "armor_mult",
+            "amount": 0.2,
+            "duration": 5
+          },
+          {
+            "kind": "damage_mult",
+            "amount": -0.1,
+            "duration": 5
+          }
+        ]
+      }
+    },
+    {
+      "id": "super_restore",
+      "name": "Super restore",
+      "consumable": true,
+      "cost": 150,
+      "use": {
+        "prayer": 40
+      }
+    },
+    {
+      "id": "prayer_potion",
+      "name": "Prayer potion",
+      "consumable": true,
+      "cost": 90,
+      "use": {
+        "prayer": 30
+      }
+    },
+    {
+      "id": "super_combat_potion",
+      "name": "Super combat potion",
+      "consumable": true,
+      "cost": 150,
+      "use": {
+        "statuses": [
+          {
+            "kind": "damage_mult",
+            "amount": 0.08,
+            "duration": 60
+          }
+        ]
+      }
+    },
+    {
+      "id": "stamina_potion",
+      "name": "Stamina potion",
+      "consumable": true,
+      "cost": 80,
+      "use": {
+        "statuses": [
+          {
+            "kind": "haste",
+            "amount": 0.25,
+            "duration": 6
+          }
+        ]
+      }
+    },
+    {
+      "id": "bronze_axe",
+      "name": "Bronze axe",
+      "tier": "tool",
+      "cost": 350,
+      "requirements": {
+        "woodcutting": 1
+      },
+      "stats": {
+        "skill_power": 10
+      }
+    },
+    {
+      "id": "rune_axe",
+      "name": "Rune axe",
+      "tier": "tool",
+      "cost": 1000,
+      "builds_from": [
+        "bronze_axe"
+      ],
+      "requirements": {
+        "woodcutting": 41
+      },
+      "stats": {
+        "skill_power": 25
+      }
+    },
+    {
+      "id": "dragon_axe",
+      "name": "Dragon axe",
+      "tier": "tool",
+      "cost": 2000,
+      "builds_from": [
+        "rune_axe"
+      ],
+      "requirements": {
+        "woodcutting": 61
+      },
+      "stats": {
+        "skill_power": 40,
+        "attack_speed": 0.1
+      },
+      "spec_active": {
+        "name": "Lumber Up",
+        "cast": "self",
+        "spec_cost": 50,
+        "cooldown": 30,
+        "effects": [
+          {
+            "type": "status",
+            "on": "self",
+            "kind": "skill_power_mult",
+            "amount": 0.3,
+            "duration": 6
+          }
+        ]
+      }
+    },
+    {
+      "id": "crystal_axe",
+      "name": "Crystal axe",
+      "tier": "tool",
+      "cost": 3000,
+      "builds_from": [
+        "dragon_axe"
+      ],
+      "requirements": {
+        "woodcutting": 71
+      },
+      "stats": {
+        "skill_power": 65,
+        "attack_speed": 0.1
+      }
+    },
+    {
+      "id": "infernal_axe",
+      "name": "Infernal axe",
+      "tier": "tool",
+      "cost": 3000,
+      "builds_from": [
+        "dragon_axe"
+      ],
+      "requirements": {
+        "woodcutting": 61,
+        "firemaking": 85
+      },
+      "stats": {
+        "skill_power": 55,
+        "health": 100
+      },
+      "text": "Burns the logs it chops (planned: Timber! sets a small fire)."
+    },
+    {
+      "id": "dragon_pickaxe",
+      "name": "Dragon pickaxe",
+      "tier": "tool",
+      "cost": 2000,
+      "requirements": {
+        "mining": 61
+      },
+      "stats": {
+        "skill_power": 35,
+        "attack_speed": 0.25
+      }
+    },
+    {
+      "id": "dragon_harpoon",
+      "name": "Dragon harpoon",
+      "tier": "tool",
+      "cost": 2000,
+      "requirements": {
+        "fishing": 61
+      },
+      "stats": {
+        "skill_power": 35,
+        "health": 150
+      }
+    },
+    {
+      "id": "imcando_hammer",
+      "name": "Imcando hammer",
+      "tier": "tool",
+      "cost": 2400,
+      "requirements": {
+        "smithing": 60
+      },
+      "stats": {
+        "skill_power": 40,
+        "defence_all": 10
+      }
+    },
+    {
+      "id": "pyromancer_garb",
+      "name": "Pyromancer garb",
+      "tier": "tool",
+      "cost": 1600,
+      "requirements": {
+        "firemaking": 50
+      },
+      "stats": {
+        "skill_power": 15,
+        "health": 220,
+        "defence": {
+          "magic": 15
+        }
+      }
+    },
+    {
+      "id": "graceful_outfit",
+      "name": "Graceful outfit",
+      "tier": "tool",
+      "cost": 1200,
+      "stats": {
+        "move_speed": 0.8
+      }
+    }
   ]
 }

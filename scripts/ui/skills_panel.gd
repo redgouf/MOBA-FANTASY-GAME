@@ -1,9 +1,10 @@
 class_name SkillsPanel
 extends Panel
-## An OSRS-style Skills tab for a build. Combat skills sit where OSRS puts
-## them (Attack, Strength, Defence, Ranged, Prayer, Magic down the first
-## column; Hitpoints top of the second), with "current / base" levels in
-## yellow, plus total and combat level. Hover a tile to see which shop items
+## An OSRS-style Skills tab for a build. Combat builds show the combat skills
+## where OSRS puts them (Attack, Strength, Defence, Ranged, Prayer, Magic down
+## the first column; Hitpoints top of the second) plus combat level. Builds
+## with skilling levels (the Skiller) get the full 24-skill OSRS grid.
+## Levels show as "current / base" in yellow, with total level at the bottom. Hover a tile to see which shop items
 ## that level lets the build use, and which it's too low for.
 ## In a match, Hitpoints and Prayer show live values, like in OSRS.
 
@@ -11,6 +12,10 @@ const TILE := Vector2(104, 46)
 const GAP := 4.0
 const PAD := 8.0
 const COLUMN_1: Array[String] = ["attack", "strength", "defence", "ranged", "prayer", "magic"]
+## The OSRS Skills tab, row by row (3 columns, 8 rows, Sailing included).
+const FULL_LAYOUT := [["attack", "hitpoints", "mining"], ["strength", "agility", "smithing"],
+	["defence", "herblore", "fishing"], ["ranged", "thieving", "cooking"], ["prayer", "crafting", "firemaking"],
+	["magic", "fletching", "woodcutting"], ["runecraft", "slayer", "farming"], ["construction", "hunter", "sailing"]]
 
 const STONE := Color(0.24, 0.215, 0.18)
 const STONE_LIGHT := Color(0.36, 0.33, 0.28)
@@ -21,10 +26,13 @@ const YELLOW := Color(1.0, 1.0, 0.0)
 var build: Dictionary = {}
 var champ: Champion
 
+var full := false
+
 var _tiles: Dictionary = {}
 var _title: Label
 var _combat: Label
 var _total: Label
+var _parts: Array[Node] = []
 var _refresh := 0.0
 
 
@@ -35,24 +43,67 @@ static func create(parent: Control) -> SkillsPanel:
 	return p
 
 
-static func panel_size() -> Vector2:
+static func panel_size(p_full: bool = false) -> Vector2:
+	if p_full:
+		return Vector2(PAD * 2 + TILE.x * 3 + GAP * 2, PAD * 2 + 26 + 8 * (TILE.y + GAP) + 30)
 	return Vector2(PAD * 2 + TILE.x * 2 + GAP, PAD * 2 + 26 + 6 * (TILE.y + GAP) + 30)
+
+
+## True if the build has skilling levels, so it gets the full OSRS grid.
+static func wants_full(def: Dictionary) -> bool:
+	for s in def.get("skills", {}):
+		if not Champion.SKILLS.has(str(s)):
+			return true
+	return false
 
 
 func _build() -> void:
 	var sb := UiStyle.box(PANEL_BG, Color(0.07, 0.06, 0.05), 3, 4)
 	add_theme_stylebox_override("panel", sb)
-	custom_minimum_size = panel_size()
-	size = panel_size()
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_layout(false)
+
+
+func _layout(p_full: bool) -> void:
+	full = p_full
+	for n in _parts:
+		n.queue_free()
+	_parts.clear()
+	_tiles.clear()
+	custom_minimum_size = panel_size(full)
+	size = panel_size(full)
 	_title = UiStyle.label(self, "Skills", 15, UiStyle.TITLE)
 	_title.position = Vector2(PAD, 4)
 	_title.size = Vector2(size.x - PAD * 2, 20)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_parts.append(_title)
 	var y0 := PAD + 22.0
-	for i in COLUMN_1.size():
-		_add_tile(COLUMN_1[i], Vector2(PAD, y0 + i * (TILE.y + GAP)))
-	_add_tile("hitpoints", Vector2(PAD + TILE.x + GAP, y0))
+	var rows := 6
+	if full:
+		rows = FULL_LAYOUT.size()
+		for r in FULL_LAYOUT.size():
+			for c in 3:
+				_add_tile(FULL_LAYOUT[r][c], Vector2(PAD + c * (TILE.x + GAP), y0 + r * (TILE.y + GAP)))
+		_combat = null
+	else:
+		for i in COLUMN_1.size():
+			_add_tile(COLUMN_1[i], Vector2(PAD, y0 + i * (TILE.y + GAP)))
+		_add_tile("hitpoints", Vector2(PAD + TILE.x + GAP, y0))
+		_build_combat_box(y0)
+	var footer := Panel.new()
+	footer.add_theme_stylebox_override("panel", UiStyle.box(STONE_DARK, STONE_LIGHT.darkened(0.3), 1, 2))
+	footer.position = Vector2(PAD, y0 + rows * (TILE.y + GAP))
+	footer.size = Vector2(size.x - PAD * 2, 26)
+	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(footer)
+	_parts.append(footer)
+	_total = UiStyle.label(footer, "", 14, YELLOW)
+	UiStyle.fill(_total)
+	_total.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_total.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+
+func _build_combat_box(y0: float) -> void:
 	# Second column under Hitpoints: the build's combat level, OSRS-style.
 	var info := Panel.new()
 	info.add_theme_stylebox_override("panel", UiStyle.box(STONE_DARK, STONE_LIGHT.darkened(0.3), 1, 2))
@@ -60,6 +111,7 @@ func _build() -> void:
 	info.size = Vector2(TILE.x, 5 * (TILE.y + GAP) - GAP)
 	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(info)
+	_parts.append(info)
 	var cl := UiStyle.label(info, "Combat\nlevel", 13, UiStyle.TITLE)
 	cl.position = Vector2(0, 40)
 	cl.size = Vector2(TILE.x, 40)
@@ -68,16 +120,6 @@ func _build() -> void:
 	_combat.position = Vector2(0, 84)
 	_combat.size = Vector2(TILE.x, 40)
 	_combat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var footer := Panel.new()
-	footer.add_theme_stylebox_override("panel", UiStyle.box(STONE_DARK, STONE_LIGHT.darkened(0.3), 1, 2))
-	footer.position = Vector2(PAD, y0 + 6 * (TILE.y + GAP))
-	footer.size = Vector2(TILE.x * 2 + GAP, 26)
-	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(footer)
-	_total = UiStyle.label(footer, "", 14, YELLOW)
-	UiStyle.fill(_total)
-	_total.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_total.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
 
 func _add_tile(skill: String, pos: Vector2) -> void:
@@ -87,22 +129,27 @@ func _add_tile(skill: String, pos: Vector2) -> void:
 	t.size = TILE
 	add_child(t)
 	_tiles[skill] = t
+	_parts.append(t)
 
 
 ## Show a build's skills. Pass the champion in a match for live HP/Prayer.
 func show_build(def: Dictionary, p_champ: Champion = null) -> void:
 	build = def
 	champ = p_champ
+	if wants_full(def) != full:
+		_layout(wants_full(def))
 	var skills: Dictionary = def.get("skills", {})
 	_title.text = "%s — Skills" % def.get("name", "")
-	_combat.text = str(Combat.osrs_combat_level(skills))
+	var combat := Combat.osrs_combat_level(skills)
+	if _combat != null:
+		_combat.text = str(combat)
 	var total := 0
-	for s in skills:
-		total += int(skills[s])
-	_total.text = "Total level: %d" % total
+	for s in _tiles:
+		total += level_of(skills, s)
+	_total.text = "Total level: %d%s" % [total, "    ·    Combat level: %d" % combat if full else ""]
 	for s in _tiles:
 		var t: SkillTile = _tiles[s]
-		t.base = int(skills.get(s, 1))
+		t.base = level_of(skills, s)
 		t.current = t.base
 		t.tooltip_text = skill_tooltip(def, s)
 		t.queue_redraw()
@@ -129,11 +176,20 @@ func _update_live() -> void:
 	pr.queue_redraw()
 
 
+static func level_of(skills: Dictionary, skill: String) -> int:
+	return int(skills.get(skill, 10 if skill == "hitpoints" else 1))
+
+
 ## Tooltip: what this level means for the build, and which items it gates.
 static func skill_tooltip(def: Dictionary, skill: String) -> String:
 	var skills: Dictionary = def.get("skills", {})
-	var lvl := int(skills.get(skill, 1))
+	var lvl := level_of(skills, skill)
 	var lines: Array[String] = ["%s: %d" % [skill.capitalize(), lvl]]
+	var abilities: Dictionary = def.get("abilities", {})
+	for slot in abilities:
+		var ab: Dictionary = abilities[slot]
+		if str(ab.get("skill", "")) == skill:
+			lines.append("Powers %s — %s" % [str(slot).to_upper(), ab.get("name", "")])
 	match skill:
 		"hitpoints":
 			lines.append("Shows your health as a Hitpoints level (current / base).")
@@ -162,8 +218,8 @@ static func skill_tooltip(def: Dictionary, skill: String) -> String:
 		lines.append("Can use: " + ", ".join(usable))
 	if not locked.is_empty():
 		lines.append("Too low for: " + ", ".join(locked))
-	if usable.is_empty() and locked.is_empty() and skill != "hitpoints" and skill != "prayer":
-		lines.append("No shop items need %s yet." % skill.capitalize())
+	if usable.is_empty() and locked.is_empty() and skill != "hitpoints" and skill != "prayer" and lines.size() == 1:
+		lines.append("No shop items or abilities use %s yet." % skill.capitalize())
 	return "\n".join(lines)
 
 

@@ -20,7 +20,7 @@ Champion abilities (`data/champions.json`) and item spec actives (`data/items.js
 
 | `type` | Key fields |
 | --- | --- |
-| `damage` | `base`, `base_per_level`, `ratio` {`damage`, `magic_power`}, `style`, `hits` + `hit_interval`, `cascade` (dragon claws), `pct_current_health` / `pct_max_health` + `cap`, `missing_health_bonus`, `bonus_below_health` {`threshold`, `mult`}, `lifesteal`, `crit_mult`, `armor_pen`, `true`, `ignores_prayer`, `falloff`, `shred_ratio` + `shred_duration`, `target_statuses` [...], `area` |
+| `damage` | `base`, `base_per_rank` (kit abilities), `base_per_level` (champion level), `ratio` {`damage`, `magic_power`, `skill_power`}, `style`, `hits` + `hit_interval`, `cascade` (dragon claws), `pct_current_health` / `pct_max_health` + `cap`, `missing_health_bonus`, `bonus_below_health` {`threshold`, `mult`}, `lifesteal`, `crit_mult`, `armor_pen`, `true`, `ignores_prayer`, `falloff`, `shred_ratio` + `shred_duration`, `target_statuses` [...], `area` |
 | `heal` | `base`, `base_per_level`, `ratio.magic_power`, `pct_missing`, `pct_max`, `from_self_cost_mult`, `over_time`, `on` (`self`/`target`), `area` (heals allies) |
 | `self_cost` | `pct_current_health` (never drops below 1) |
 | `status` | `on` (`self`, `target`, `area_allies`, `area_enemies`), `kind`, `amount`, `duration`, `chance`, `data`, `area` |
@@ -30,6 +30,10 @@ Champion abilities (`data/champions.json`) and item spec actives (`data/items.js
 | `summon` | `unit` (from `units.json` → `summons`), `duration` |
 | `toggle_form` | Switches champion form (Hybrid) |
 | `taunt` | `area`, `duration` |
+| `pull` | `distance` (reels the target toward the caster) |
+| `prop` | `shape` (`tree`, `fire`, `anvil`, `harpoon`, `fireworks`), `at` (`self`/`point`/`target`), `duration`. Visual only. |
+
+Any effect can also take `delay` (seconds) and `repeat` + `repeat_interval` (a ground zone that ticks, like Bonfire).
 
 ## Areas
 
@@ -47,7 +51,7 @@ Champion abilities (`data/champions.json`) and item spec actives (`data/items.js
 
 ## Passive types
 
-Set in a champion's `passive.type`: `missing_health_damage`, `glass_cannon`, `nth_hit_bonus`, `form_switch`, `target_magic_scaling`, `monster_bonus`, `venom`, `stacking_damage`, `flat_reduction`, `rune_pouch` (placeholder). Implemented in `Champion.modify_outgoing`, `modify_incoming` and `on_attack_landed`.
+Set in a champion's `passive.type`: `missing_health_damage`, `glass_cannon`, `nth_hit_bonus`, `form_switch`, `target_magic_scaling`, `monster_bonus`, `venom`, `stacking_damage`, `flat_reduction`, `skilling_level_up` (every Nth ability runs the passive's own `effects`), `rune_pouch` (placeholder). Implemented in `Champion.modify_outgoing`, `modify_incoming` and `on_attack_landed`.
 
 ## Item requirements
 

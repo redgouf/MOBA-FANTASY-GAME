@@ -34,7 +34,7 @@ The living design doc (full kits, item tables, map breakdown, open questions) is
 | Dragon | Chromatic dragons (Vorkath as the elder) |
 | Blue / red buff | Abyssal demon (spec regen) / Fire giant (burn) |
 
-## Champions (launch 10)
+## Champions (11)
 
 | Champion | Role | Overheads | Signature |
 | --- | --- | --- | --- |
@@ -48,3 +48,4 @@ The living design doc (full kits, item tables, map breakdown, open questions) is
 | Zerker | Top/jungle diver | No | Berserker stacks; dragon claws |
 | Justiciar Tank | Support/top tank | Yes | Flat damage reduction; shove; BGS |
 | Lunar | Support enchanter | No | Heal Other, Vengeance Other, Energy Transfer |
+| Skiller | Mid/support zone control | No | Level 3 (1 combat, 99 skilling). Damage only from skilling actions: Timber! (Woodcutting), Bonfire (Firemaking + Cooking), Harpoon (Fishing), Anvil Drop (Smithing), ore-toss basic attacks (Mining), Level up! fireworks. Scales with **skill power** from skilling tools. |

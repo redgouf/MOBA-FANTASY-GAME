@@ -6,7 +6,7 @@ A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School Run
 
 Built with **Godot 4.7.2** (GDScript, Forward+).
 
-## Status: whitebox prototype (v0.3)
+## Status: whitebox prototype (v0.4)
 
 ![Playing the Pure: stats and items bottom-left, abilities centre, minimap bottom-right, inspected target top-left](docs/screenshots/play.png)
 
@@ -15,11 +15,11 @@ Playable today, with primitive shapes standing in for art:
 - **5v5**: play one champion with 4 bot allies, or **watch NPC vs NPC** in spectator mode.
 - **League-style HUD**: portrait, stats, 6 item slots and food belt bottom-left; passive, Q/W/E/R with ranks and cooldowns, prayers and bars in the centre; minimap bottom-right; left-click any unit to inspect it top-left (with a ring under its feet).
 - **League of Legends mob and structure stats**: minions, turrets, altars (inhibitors), the standard (nexus) and every jungle camp use Summoner's Rift numbers, wave timings and turret rules. See [docs/LOL_VALUES.md](docs/LOL_VALUES.md).
-- **OSRS Skills tab** ([screenshot](docs/screenshots/champion_select.png)) for every build (Attack, Hitpoints, Strength, Defence, Ranged, Prayer, Magic, total and combat level) on champion select, and on hover over your portrait or the inspect panel's portrait in-game. Hover a skill to see which items that level unlocks.
+- **OSRS Skills tab** ([screenshot](docs/screenshots/champion_select.png); the Skiller gets the [full 24-skill tab](docs/screenshots/skiller_skills.png)) for every build (Attack, Hitpoints, Strength, Defence, Ranged, Prayer, Magic, total and combat level) on champion select, and on hover over your portrait or the inspect panel's portrait in-game. Hover a skill to see which items that level unlocks.
 - **League-style leveling**: start with nothing learned and one point; one point per level; basic abilities rank up to 5 (rank n at level 2n−1), R unlocks at 6/11/16.
 
 - **The Wilderness Rift**: three lanes, the Ditch (visual only), four jungle quadrants, Jad and dragon pits, towers, altars and team flags with LoL-style destruction order, and a runtime-baked navmesh.
-- **10 champions** with full data-driven kits (passive + Q/W/E/R), OSRS skill levels, and lane bots.
+- **11 champions** with full data-driven kits (passive + Q/W/E/R), OSRS skill levels, and lane bots, including the **level-3 Skiller** ([in action](docs/screenshots/skiller_kit.png)), who never swings a weapon: a felled yew (Timber!), a Bonfire, a Harpoon and an Anvil Drop do the damage, and every 4th ability sets off level-up fireworks.
 - **Combat**: melee/ranged/magic triangle, three resists, tick-based attack speed, special attack energy powering ultimates *and* spec-weapon items, overheads only on tank/main builds, offensive prayers set by Prayer level (Piety at 70, Chivalry at 60, ...).
 - **Shop**: 70+ OSRS items with real requirements (a 1 Defence Pure can't wear Bandos), build paths, spec actives (Dragon claws, AGS, Voidwaker...), and a food/potion belt.
 - **Minion waves** (goblins, dark wizards, dwarf cannon carts), jungle camps with buffs, TzTok-Jad (telegraphs his next style), and the Giant Mole before 14:00.

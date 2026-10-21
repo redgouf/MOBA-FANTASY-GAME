@@ -466,7 +466,10 @@ func _update_bottom_left() -> void:
 	_stats["melee_def"].text = "Melee def %d" % int(champ.get_defence(0))
 	_stats["ranged_def"].text = "Range def %d" % int(champ.get_defence(1))
 	_stats["magic_def"].text = "Magic def %d" % int(champ.get_defence(2))
-	_stats["armor_pen"].text = "Pen %d%%" % int(champ.armor_pen * 100.0)
+	if champ.get_skill_power() > 0.0:
+		_stats["armor_pen"].text = "Skill %d" % int(champ.get_skill_power())
+	else:
+		_stats["armor_pen"].text = "Pen %d%%" % int(champ.armor_pen * 100.0)
 	_stats["combat"].text = "Combat %d" % champ.combat_level()
 	for i in 6:
 		var id := champ.inventory[i] if i < champ.inventory.size() else ""
@@ -483,15 +486,13 @@ func _update_bottom_left() -> void:
 ## so its tiles' item tooltips can be read).
 func _update_skills_popups() -> void:
 	var mouse := _root.get_global_mouse_position()
-	var over_own := _portrait_panel.get_global_rect().has_point(mouse) \
+	var over_own := force_skills_popups or _portrait_panel.get_global_rect().has_point(mouse) \
 		or (_skills_popup.visible and _skills_popup.get_global_rect().has_point(mouse))
 	if over_own and _skills_shown_for != champ:
 		_skills_shown_for = champ
 		_skills_popup.show_build(champ.def, champ)
-	over_own = over_own or force_skills_popups
-	if over_own and _skills_shown_for != champ:
-		_skills_shown_for = champ
-		_skills_popup.show_build(champ.def, champ)
+		var sz := SkillsPanel.panel_size(_skills_popup.full)
+		UiStyle.place(_skills_popup, Control.PRESET_BOTTOM_LEFT, Vector2(8, -206 - sz.y), sz)
 	_skills_popup.visible = over_own
 	var t := target_frame.target
 	var over_target := target_frame.visible and t is Champion and (force_skills_popups \
@@ -500,6 +501,7 @@ func _update_skills_popups() -> void:
 	if over_target and _target_skills_shown_for != t:
 		_target_skills_shown_for = t
 		_target_skills_popup.show_build((t as Champion).def, t as Champion)
+		UiStyle.place(_target_skills_popup, Control.PRESET_TOP_LEFT, Vector2(8, 182), SkillsPanel.panel_size(_target_skills_popup.full))
 	_target_skills_popup.visible = over_target
 
 
@@ -520,6 +522,8 @@ func _update_bottom_center() -> void:
 	var ptext := str(p.get("name", ""))
 	if champ.passive_stacks() > 0:
 		ptext += "\n×%d" % champ.passive_stacks()
+	elif str(p.get("type", "")) == "skilling_level_up":
+		ptext += "\nin %d" % champ.skilling_casts_until_level_up()
 	elif not champ.forms.is_empty():
 		ptext += "\n(%s)" % champ.form_name()
 	_passive_label.text = ptext

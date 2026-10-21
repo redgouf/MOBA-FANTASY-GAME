@@ -5,17 +5,29 @@ extends RefCounted
 ## See docs/ABILITIES.md for the full effect reference.
 
 
+## Effects run in order. "delay" postpones one; "repeat": n with
+## "repeat_interval": s runs it n times (ground zones like Bonfire).
 static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vector3, rank: int = 1) -> void:
 	var ctx := {"self_cost": 0.0, "rank": maxi(rank, 1)}
 	for effect in ab.get("effects", []):
 		var delay := float(effect.get("delay", 0.0))
-		if delay > 0.0:
-			var run := func() -> void:
-				if is_instance_valid(caster) and not caster.is_dead:
-					apply_effect(caster, effect, target, point, ctx)
-			caster.get_tree().create_timer(delay, false).timeout.connect(run)
-		else:
-			apply_effect(caster, effect, target, point, ctx)
+		var repeats := maxi(1, int(effect.get("repeat", 1)))
+		var interval := float(effect.get("repeat_interval", 0.5))
+		for k in repeats:
+			var when := delay + interval * float(k)
+			if when > 0.0:
+				# Weak references: the caster or target may be freed before this fires.
+				var caster_ref: WeakRef = weakref(caster)
+				var target_ref: WeakRef = weakref(target) if target != null else null
+				var run := func() -> void:
+					var c: Champion = caster_ref.get_ref()
+					if c == null or c.is_dead:
+						return
+					var t: Unit = target_ref.get_ref() if target_ref != null else null
+					apply_effect(c, effect, t, point, ctx)
+				caster.get_tree().create_timer(when, false).timeout.connect(run)
+			else:
+				apply_effect(caster, effect, target, point, ctx)
 
 
 static func apply_effect(caster: Champion, e: Dictionary, target: Unit, point: Vector3, ctx: Dictionary) -> void:
@@ -41,6 +53,25 @@ static func apply_effect(caster: Champion, e: Dictionary, target: Unit, point: V
 				dir.y = 0.0
 				dir = dir.normalized() if dir.length() > 0.01 else caster.forward()
 				target.start_dash(target.global_position + dir * float(e.get("distance", 3.0)), 24.0)
+		"pull":
+			# Reel the target toward the caster (stops short of them).
+			if _valid(target) and target != caster and not target.is_structure():
+				var to := caster.global_position - target.global_position
+				to.y = 0.0
+				var dist := minf(float(e.get("distance", 4.0)), maxf(0.0, to.length() - caster.radius - target.radius - 0.4))
+				if dist > 0.05:
+					target.start_dash(target.global_position + to.normalized() * dist, 22.0)
+		"prop":
+			var dir := point - caster.global_position
+			dir.y = 0.0
+			var at := caster.global_position
+			match str(e.get("at", "point")):
+				"point":
+					at = point
+				"target":
+					at = target.global_position if _valid(target) else point
+			PropFx.spawn(caster.get_parent(), str(e.get("shape", "")), at, dir.normalized() if dir.length() > 0.01 else caster.forward(),
+				float(e.get("duration", 1.0)), caster.global_position)
 		"spec_transfer":
 			if _valid(target) and target is Champion:
 				var ally := target as Champion
@@ -76,8 +107,13 @@ static func _damage(caster: Champion, e: Dictionary, target: Unit, point: Vector
 			if h == 0:
 				_hit(caster, e, t, center, ctx, m)
 			else:
+				var caster_ref: WeakRef = weakref(caster)
+				var t_ref: WeakRef = weakref(t)
 				var later := func() -> void:
-					_hit(caster, e, t, center, ctx, m)
+					var c: Champion = caster_ref.get_ref()
+					var tt: Unit = t_ref.get_ref()
+					if c != null and tt != null:
+						_hit(c, e, tt, center, ctx, m)
 				caster.get_tree().create_timer(interval * h, false).timeout.connect(later)
 
 
@@ -108,6 +144,7 @@ static func compute_amount(caster: Champion, e: Dictionary, t: Unit, ctx: Dictio
 	var ratio: Dictionary = e.get("ratio", {})
 	amount += float(ratio.get("damage", 0.0)) * caster.get_damage()
 	amount += float(ratio.get("magic_power", 0.0)) * caster.get_magic_power()
+	amount += float(ratio.get("skill_power", 0.0)) * caster.get_skill_power()
 	var pct_part := float(e.get("pct_current_health", 0.0)) * t.health + float(e.get("pct_max_health", 0.0)) * t.max_health
 	if e.has("cap"):
 		pct_part = minf(pct_part, float(e["cap"]))
@@ -161,7 +198,10 @@ static func _heal(caster: Champion, e: Dictionary, target: Unit, point: Vector3,
 	var recipients: Array[Unit] = []
 	var area: Dictionary = e.get("area", {})
 	if not area.is_empty():
-		recipients = collect_area(caster, area, target, point, true)
+		# Area heals only reach allied champions, not minions or structures.
+		for u in collect_area(caster, area, target, point, true):
+			if u is Champion:
+				recipients.append(u)
 	elif str(e.get("on", "self")) == "target" and _valid(target):
 		recipients.append(target)
 	else:
@@ -169,6 +209,7 @@ static func _heal(caster: Champion, e: Dictionary, target: Unit, point: Vector3,
 	for u in recipients:
 		var amount := flat_amount(caster, e, ctx)
 		amount += float(e.get("ratio", {}).get("magic_power", 0.0)) * caster.get_magic_power()
+		amount += float(e.get("ratio", {}).get("skill_power", 0.0)) * caster.get_skill_power()
 		amount += float(e.get("pct_missing", 0.0)) * (u.max_health - u.health)
 		amount += float(e.get("pct_max", 0.0)) * u.max_health
 		amount += float(ctx.get("self_cost", 0.0)) * float(e.get("from_self_cost_mult", 0.0))

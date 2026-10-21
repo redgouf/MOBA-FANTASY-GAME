@@ -14,8 +14,12 @@ signal command_issued(champion: Champion, kind: String, point: Vector3, label: S
 
 const SLOTS: Array[String] = ["q", "w", "e", "r"]
 
-## OSRS skills each build has, in the order of the OSRS Skills tab.
+## Combat skills every build defines (combat level comes from these).
 const SKILLS: Array[String] = ["attack", "hitpoints", "strength", "defence", "ranged", "prayer", "magic"]
+## Every OSRS skill (2026, incl. Sailing). Builds may set any of them; unset = 1 (Hitpoints 10).
+const ALL_SKILLS: Array[String] = ["attack", "hitpoints", "mining", "strength", "agility", "smithing",
+	"defence", "herblore", "fishing", "ranged", "thieving", "cooking", "prayer", "crafting", "firemaking",
+	"magic", "fletching", "woodcutting", "runecraft", "slayer", "farming", "construction", "hunter", "sailing"]
 
 var champ_id := ""
 var def: Dictionary = {}
@@ -37,6 +41,8 @@ var prayer_max := 99.0
 var protect_style := -1
 var offensive_prayer_cd := 0.0
 var spec := 100.0
+## Skill power: what skilling actions (the Skiller's kit) scale with, like magic power for mages.
+var skill_power := 0.0
 var cooldowns := {"q": 0.0, "w": 0.0, "e": 0.0, "r": 0.0}
 ## League-style ability ranks: everything starts unlearned with one point to spend.
 var ranks := {"q": 0, "w": 0, "e": 0, "r": 0}
@@ -71,6 +77,7 @@ var _repath_timer := 0.0
 var _bot_think := 0.0
 var _last_cmd_point := Vector3(INF, 0.0, INF)
 var _bot_waypoint := 1
+var _skill_casts := 0
 
 
 ## Call before adding to the tree (team decides groups and colours).
@@ -137,6 +144,7 @@ func recompute_stats(full_heal: bool = false) -> void:
 	bonus_attack_speed = float(growth.get("attack_speed", 0.0)) * lv + _item_stat("attack_speed")
 	base_move_speed = float(base.get("move_speed", 6.0)) + _item_stat("move_speed")
 	armor_pen = _item_stat("armor_pen")
+	skill_power = float(base.get("skill_power", 0.0)) + float(growth.get("skill_power", 0.0)) * lv + _item_stat("skill_power")
 	health = max_health if full_heal else max_health * old_ratio
 
 
@@ -174,7 +182,11 @@ func get_protected_style() -> int:
 
 
 func skill(name: String) -> int:
-	return int(skills.get(name, 1))
+	return int(skills.get(name, 10 if name == "hitpoints" else 1))
+
+
+func get_skill_power() -> float:
+	return skill_power * maxf(0.0, 1.0 + status_sum("skill_power_mult"))
 
 
 ## The strongest offensive prayer this build's Prayer level unlocks for its
@@ -533,6 +545,7 @@ func _execute_cast(slot: String, ab: Dictionary, target: Unit, point: Vector3) -
 		face_toward(point)
 	AbilityRunner.execute(self, ab, target, point, ability_rank(slot))
 	ability_cast.emit(self, slot)
+	_on_ability_used(slot)
 	var aim := target.global_position if target != null and target != self else point
 	var label := str(GameData.item(slot.substr(5)).get("name", "")) if slot.begins_with("item:") else slot.to_upper()
 	_last_cmd_point = aim
@@ -585,6 +598,20 @@ func form_name() -> String:
 
 # --- Passives ----------------------------------------------------------------
 
+## "Level up!" (Skiller): every Nth kit ability sets off OSRS level-up fireworks.
+func _on_ability_used(slot: String) -> void:
+	if str(passive.get("type", "")) != "skilling_level_up" or slot.begins_with("item:"):
+		return
+	_skill_casts += 1
+	if _skill_casts % maxi(1, int(passive.get("every", 4))) == 0:
+		AbilityRunner.execute(self, {"effects": passive.get("effects", [])}, null, global_position, 1)
+
+
+func skilling_casts_until_level_up() -> int:
+	var every := maxi(1, int(passive.get("every", 4)))
+	return every - (_skill_casts % every)
+
+
 func modify_outgoing(info: DamageInfo, target: Unit) -> void:
 	super(info, target)
 	match str(passive.get("type", "")):
@@ -592,6 +619,9 @@ func modify_outgoing(info: DamageInfo, target: Unit) -> void:
 			info.amount *= 1.0 + (1.0 - health_ratio()) * float(passive.get("pct_per_pct", 1.0))
 		"glass_cannon":
 			info.amount *= 1.0 + float(passive.get("damage_dealt", 0.15))
+		"skilling_level_up":
+			if info.is_attack:
+				info.amount += skill_power * float(passive.get("attack_skill_ratio", 0.3))
 		"nth_hit_bonus":
 			_hit_counter += 1
 			if _hit_counter % maxi(1, int(passive.get("n", 4))) == 0:

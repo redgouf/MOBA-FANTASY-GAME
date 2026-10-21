@@ -103,6 +103,8 @@ func _parse_args() -> Dictionary:
 func _show_champion_select() -> void:
 	var select := ChampionSelect.new()
 	add_child(select)
+	if _args.has("shot-select"):
+		select.call_deferred("_show_detail", str(_args["shot-select"]))
 	select.champion_selected.connect(func(id: String) -> void:
 		select.queue_free()
 		start_match(id))
@@ -143,6 +145,10 @@ func start_spectate() -> void:
 	_spawn_world()
 	var pool: Array[String] = GameData.champion_order.duplicate()
 	pool.shuffle()
+	if _args.has("champion") and pool.has(str(_args["champion"])):
+		# Make sure a requested build is in the match (picked first).
+		pool.erase(str(_args["champion"]))
+		pool.append(str(_args["champion"]))
 	var size := mini(team_size(), int(pool.size() / 2.0))
 	for team in [Combat.Team.SARADOMIN, Combat.Team.ZAMORAK]:
 		for i in size:
@@ -553,6 +559,17 @@ func _apply_demo(c: Champion, target_level: int) -> void:
 func _take_screenshot() -> void:
 	_shot_taken = true
 	match str(_args.get("shot-ui", "")):
+		"kit":
+			# Cast Q, W and R in front of the camera, then capture mid-animation.
+			var p := focused.global_position
+			for slot in Champion.SLOTS:
+				focused.ranks[slot] = maxi(1, int(focused.ranks[slot]))
+				focused.cooldowns[slot] = 0.0
+			focused.spec = 100.0
+			focused.try_cast("w", null, p + Vector3(-5.0, 0.0, -4.0))
+			focused.try_cast("r", null, p + Vector3(5.5, 0.0, 2.0))
+			focused.try_cast("q", null, p + Vector3(7.0, 0.0, -5.0))
+			hud.force_skills_popups = true
 		"skills":
 			for c in champions:
 				if c.team != focused.team:

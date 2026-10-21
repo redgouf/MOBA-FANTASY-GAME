@@ -4,7 +4,7 @@ extends Node
 ## Exits with code 0 when every check passes, 1 otherwise.
 
 const KNOWN_EFFECTS := ["damage", "heal", "self_cost", "status", "dash", "knockback",
-	"spec_transfer", "summon", "toggle_form", "taunt"]
+	"spec_transfer", "summon", "toggle_form", "taunt", "pull", "prop"]
 const KNOWN_CASTS := ["self", "target_unit", "point"]
 
 var _passed := 0
@@ -22,6 +22,7 @@ func _ready() -> void:
 	test_lol_minions_and_waves()
 	await test_lol_turrets()
 	test_lol_monsters()
+	await test_skiller()
 	await test_item_specs()
 	await test_every_ability()
 	print("\n%d passed, %d failed" % [_passed, _failed])
@@ -39,7 +40,7 @@ func check(cond: bool, label: String) -> void:
 # --- Data --------------------------------------------------------------------
 
 func test_data_integrity() -> void:
-	check(GameData.champions.size() == 10, "10 champions load (got %d)" % GameData.champions.size())
+	check(GameData.champions.size() == 11, "11 champions load (got %d)" % GameData.champions.size())
 	check(GameData.items.size() >= 40, "at least 40 items load (got %d)" % GameData.items.size())
 	for id in GameData.champion_order:
 		var c := GameData.champion(id)
@@ -58,7 +59,7 @@ func test_data_integrity() -> void:
 	for id in GameData.item_order:
 		var it := GameData.item(id)
 		for s in it.get("requirements", {}):
-			check(Champion.SKILLS.has(str(s)), "%s requirement '%s' is a real skill" % [id, s])
+			check(Champion.ALL_SKILLS.has(str(s)), "%s requirement '%s' is a real skill" % [id, s])
 		for comp in it.get("builds_from", []):
 			check(GameData.items.has(comp), "%s builds from existing item %s" % [id, comp])
 		if it.has("spec_active"):
@@ -326,6 +327,62 @@ func test_lol_monsters() -> void:
 	check(timings["grubs"]["first"] == 480 and timings["mole"]["first"] == 900 and timings["jad"]["first"] == 1200,
 		"Voidgrubs 8:00, Herald 15:00, Baron 20:00")
 	check(timings["sara_chickens"]["members"].size() == 6, "the chicken camp is 1 big + 5 small, like Raptors")
+
+
+func test_skiller() -> void:
+	var c := _make("skiller", Combat.Team.SARADOMIN, Vector3(-82, 0, 82))
+	var foe := _make("dharok", Combat.Team.ZAMORAK, Vector3(-80, 0, 82))
+	foe.spawn_point = MapLayout.ZAMORAK_BASE   # keep it away from a healing fountain
+	await get_tree().physics_frame
+	check(c.combat_level() == 3, "the Skiller is combat level 3 (got %d)" % c.combat_level())
+	check(c.skill("woodcutting") == 99 and c.skill("attack") == 1 and c.skill("hitpoints") == 10, "1 combat, 99 skilling, 10 Hitpoints")
+	check(SkillsPanel.wants_full(c.def) and not SkillsPanel.wants_full(GameData.champion("dharok")), "only skilling builds get the full Skills grid")
+	c.gold = 99999
+	check(not c.can_buy("rune_scimitar") and not c.can_buy("bandos_chestplate"), "the Skiller can't wield combat gear")
+	check(c.buy_item("bronze_axe") and c.buy_item("rune_axe") and c.buy_item("dragon_axe"), "but can work up to a Dragon axe")
+	check(c.buy_item("dragon_pickaxe") and c.buy_item("dragon_harpoon"), "and buy a Dragon pickaxe and harpoon")
+	check(is_equal_approx(c.get_skill_power(), 40.0 + 40.0 + 35.0 + 35.0), "tools add skill power")
+	c.spec = 100.0
+	var sp := c.get_skill_power()
+	check(c.use_item(0, null, c.global_position) and c.get_skill_power() > sp, "Dragon axe spec (Lumber Up) boosts skill power")
+	c.remove_status(c.find_status_id("skill_power_mult"))
+	for slot in Champion.SLOTS:
+		c.ranks[slot] = 1
+	foe.global_position = Vector3(-76, 0, 82)
+	var before := c.flat_distance_to(foe)
+	c.try_cast("e", foe, foe.global_position)
+	for i in 30:
+		await get_tree().physics_frame
+	check(c.flat_distance_to(foe) < before - 2.0, "Harpoon reels the target in (%.1f -> %.1f m)" % [before, c.flat_distance_to(foe)])
+	foe.health = foe.max_health
+	foe.global_position = c.global_position + Vector3(5, 0, 0)
+	c.cooldowns["q"] = 0.0
+	c.try_cast("q", null, foe.global_position)
+	var hp := foe.health
+	await get_tree().create_timer(0.8).timeout
+	check(foe.health < hp and foe.has_status("slow"), "Timber! hits and slows enemies the tree falls on")
+	foe.health = foe.max_health
+	c.cooldowns["w"] = 0.0
+	c.try_cast("w", null, foe.global_position)
+	await get_tree().create_timer(0.3).timeout
+	var after_first := foe.health
+	await get_tree().create_timer(1.6).timeout
+	check(foe.health < after_first, "Bonfire keeps burning enemies inside")
+	c.health = c.max_health * 0.5
+	foe.health = foe.max_health
+	foe.global_position = c.global_position + Vector3(2, 0, 0)
+	var foe_hp := foe.health
+	var my_hp := c.health
+	c.spec = 100.0
+	c.cooldowns["r"] = 0.0
+	check(c.skilling_casts_until_level_up() == 1, "the 4th ability triggers Level up!")
+	c.try_cast("r", null, Vector3(-60, 0, 60))
+	await get_tree().physics_frame
+	check(c.health > my_hp and foe.health < foe_hp, "Level up! fireworks heal the Skiller and hit nearby enemies")
+	check(c.skilling_casts_until_level_up() == 4, "the Level up! counter resets")
+	c.queue_free()
+	foe.queue_free()
+	await get_tree().process_frame
 
 
 func test_item_specs() -> void:

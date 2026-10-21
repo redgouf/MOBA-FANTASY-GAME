@@ -24,6 +24,40 @@ static func draw_icon(c: CanvasItem, skill: String, center: Vector2, s: float) -
 			_prayer(c, center, s)
 		"magic":
 			_hat(c, center, s)
+		"mining":
+			_pickaxe(c, center, s)
+		"agility":
+			_runner(c, center, s)
+		"smithing":
+			_anvil(c, center, s)
+		"herblore":
+			_herb(c, center, s)
+		"fishing":
+			_fish(c, center, s)
+		"thieving":
+			_mask(c, center, s)
+		"cooking":
+			_chef_hat(c, center, s)
+		"crafting":
+			_chisel(c, center, s)
+		"firemaking":
+			_flame(c, center, s)
+		"fletching":
+			_arrows(c, center, s)
+		"woodcutting":
+			_tree(c, center, s)
+		"runecraft":
+			_rune(c, center, s)
+		"slayer":
+			_skull(c, center, s)
+		"farming":
+			_watering_can(c, center, s)
+		"construction":
+			_house(c, center, s)
+		"hunter":
+			_paw(c, center, s)
+		"sailing":
+			_anchor(c, center, s)
 
 
 static func _poly(c: CanvasItem, pts: PackedVector2Array, fill: Color) -> void:
@@ -101,3 +135,157 @@ static func _hat(c: CanvasItem, o: Vector2, s: float) -> void:
 	_poly(c, PackedVector2Array([o + Vector2(-s * 0.55, s * 0.62), o + Vector2(s * 0.55, s * 0.62),
 		o + Vector2(s * 0.2, -s * 0.5), o + Vector2(s * 0.55, -s * 0.95), o + Vector2(-s * 0.1, -s * 0.6)]), blue)
 	c.draw_circle(o + Vector2(-s * 0.05, s * 0.05), s * 0.12, Color(1.0, 0.9, 0.3))
+
+
+static func _pickaxe(c: CanvasItem, o: Vector2, s: float) -> void:
+	c.draw_line(o + Vector2(-s * 0.6, s * 0.85), o + Vector2(s * 0.35, -s * 0.4), Color(0.5, 0.32, 0.15), 4.0)
+	var head := PackedVector2Array([o + Vector2(-s * 0.55, -s * 0.75), o + Vector2(s * 0.1, -s * 0.55),
+		o + Vector2(s * 0.85, s * 0.15), o + Vector2(s * 0.3, -s * 0.25), o + Vector2(-s * 0.1, -s * 0.35)])
+	_poly(c, head, STEEL)
+
+
+static func _runner(c: CanvasItem, o: Vector2, s: float) -> void:
+	var col := Color(0.95, 0.95, 0.9)
+	c.draw_circle(o + Vector2(s * 0.3, -s * 0.7), s * 0.22, col)
+	c.draw_line(o + Vector2(s * 0.2, -s * 0.45), o + Vector2(-s * 0.1, s * 0.2), col, 3.0)
+	c.draw_line(o + Vector2(-s * 0.1, s * 0.2), o + Vector2(s * 0.45, s * 0.85), col, 3.0)
+	c.draw_line(o + Vector2(-s * 0.1, s * 0.2), o + Vector2(-s * 0.7, s * 0.6), col, 3.0)
+	c.draw_line(o + Vector2(s * 0.12, -s * 0.25), o + Vector2(s * 0.7, -s * 0.05), col, 3.0)
+	c.draw_line(o + Vector2(s * 0.12, -s * 0.25), o + Vector2(-s * 0.55, -s * 0.3), col, 3.0)
+
+
+static func _anvil(c: CanvasItem, o: Vector2, s: float) -> void:
+	var iron := Color(0.45, 0.46, 0.5)
+	_poly(c, PackedVector2Array([o + Vector2(-s * 0.95, -s * 0.2), o + Vector2(s * 0.8, -s * 0.2),
+		o + Vector2(s * 0.6, s * 0.15), o + Vector2(-s * 0.55, s * 0.15)]), iron)
+	_poly(c, PackedVector2Array([o + Vector2(-s * 0.25, s * 0.15), o + Vector2(s * 0.25, s * 0.15),
+		o + Vector2(s * 0.5, s * 0.75), o + Vector2(-s * 0.5, s * 0.75)]), iron.darkened(0.2))
+	c.draw_line(o + Vector2(s * 0.1, -s * 0.95), o + Vector2(s * 0.6, -s * 0.45), Color(0.5, 0.32, 0.15), 3.0)
+	_poly(c, PackedVector2Array([o + Vector2(-s * 0.05, -s * 0.85), o + Vector2(s * 0.25, -s * 1.0),
+		o + Vector2(s * 0.4, -s * 0.75), o + Vector2(s * 0.1, -s * 0.6)]), STEEL)
+
+
+static func _herb(c: CanvasItem, o: Vector2, s: float) -> void:
+	var green := Color(0.25, 0.7, 0.25)
+	c.draw_line(o + Vector2(0, s * 0.9), o + Vector2(0, -s * 0.5), Color(0.2, 0.5, 0.2), 2.0)
+	for side in [-1.0, 1.0]:
+		for k in 2:
+			var y := -s * 0.3 + float(k) * s * 0.5
+			_poly(c, PackedVector2Array([o + Vector2(0, y), o + Vector2(side * s * 0.75, y - s * 0.35),
+				o + Vector2(side * s * 0.35, y + s * 0.1)]), green)
+	_poly(c, PackedVector2Array([o + Vector2(0, -s * 0.95), o + Vector2(s * 0.25, -s * 0.45), o + Vector2(-s * 0.25, -s * 0.45)]), green.lightened(0.2))
+
+
+static func _fish(c: CanvasItem, o: Vector2, s: float) -> void:
+	var body := PackedVector2Array()
+	for i in 20:
+		var a := TAU * float(i) / 20.0
+		body.append(o + Vector2(cos(a) * s * 0.7 - s * 0.1, sin(a) * s * 0.38))
+	_poly(c, body, Color(0.45, 0.65, 0.85))
+	_poly(c, PackedVector2Array([o + Vector2(s * 0.55, 0), o + Vector2(s * 0.98, -s * 0.4), o + Vector2(s * 0.98, s * 0.4)]), Color(0.35, 0.55, 0.8))
+	c.draw_circle(o + Vector2(-s * 0.5, -s * 0.08), s * 0.08, OUTLINE)
+
+
+static func _mask(c: CanvasItem, o: Vector2, s: float) -> void:
+	var pts := PackedVector2Array([o + Vector2(-s * 0.95, -s * 0.35), o + Vector2(s * 0.95, -s * 0.35),
+		o + Vector2(s * 0.8, s * 0.3), o + Vector2(s * 0.15, s * 0.2), o + Vector2(0, s * 0.35),
+		o + Vector2(-s * 0.15, s * 0.2), o + Vector2(-s * 0.8, s * 0.3)])
+	_poly(c, pts, Color(0.12, 0.12, 0.14))
+	c.draw_circle(o + Vector2(-s * 0.42, -s * 0.03), s * 0.17, Color(0.85, 0.85, 0.8))
+	c.draw_circle(o + Vector2(s * 0.42, -s * 0.03), s * 0.17, Color(0.85, 0.85, 0.8))
+
+
+static func _chef_hat(c: CanvasItem, o: Vector2, s: float) -> void:
+	var white := Color(0.97, 0.97, 0.95)
+	_poly(c, PackedVector2Array([o + Vector2(-s * 0.5, s * 0.2), o + Vector2(s * 0.5, s * 0.2),
+		o + Vector2(s * 0.5, s * 0.85), o + Vector2(-s * 0.5, s * 0.85)]), white)
+	for x in [-0.45, 0.0, 0.45]:
+		c.draw_circle(o + Vector2(x * s, -s * 0.2), s * 0.42, OUTLINE)
+	for x in [-0.45, 0.0, 0.45]:
+		c.draw_circle(o + Vector2(x * s, -s * 0.2), s * 0.38, white)
+
+
+static func _chisel(c: CanvasItem, o: Vector2, s: float) -> void:
+	c.draw_line(o + Vector2(-s * 0.85, s * 0.85), o + Vector2(-s * 0.05, s * 0.05), Color(0.5, 0.32, 0.15), 5.0)
+	_poly(c, PackedVector2Array([o + Vector2(-s * 0.15, s * 0.0), o + Vector2(s * 0.05, -s * 0.2),
+		o + Vector2(s * 0.9, -s * 0.85), o + Vector2(s * 0.75, -s * 0.6)]), STEEL)
+	c.draw_circle(o + Vector2(s * 0.45, s * 0.5), s * 0.28, Color(0.3, 0.75, 0.9))
+
+
+static func _flame(c: CanvasItem, o: Vector2, s: float) -> void:
+	_poly(c, PackedVector2Array([o + Vector2(0, -s), o + Vector2(s * 0.55, -s * 0.1), o + Vector2(s * 0.5, s * 0.55),
+		o + Vector2(0, s * 0.9), o + Vector2(-s * 0.5, s * 0.55), o + Vector2(-s * 0.55, -s * 0.1), o + Vector2(-s * 0.2, -s * 0.35)]),
+		Color(1.0, 0.45, 0.08))
+	_poly(c, PackedVector2Array([o + Vector2(0, -s * 0.3), o + Vector2(s * 0.28, s * 0.3), o + Vector2(0, s * 0.7),
+		o + Vector2(-s * 0.28, s * 0.3)]), Color(1.0, 0.85, 0.25))
+
+
+static func _arrows(c: CanvasItem, o: Vector2, s: float) -> void:
+	for k in 2:
+		var off := Vector2(float(k) * s * 0.35, float(k) * s * 0.1)
+		c.draw_line(o + off + Vector2(-s * 0.8, s * 0.8), o + off + Vector2(s * 0.6, -s * 0.6), Color(0.6, 0.45, 0.25), 2.5)
+		_poly(c, PackedVector2Array([o + off + Vector2(s * 0.75, -s * 0.75), o + off + Vector2(s * 0.42, -s * 0.62),
+			o + off + Vector2(s * 0.62, -s * 0.42)]), STEEL)
+		_poly(c, PackedVector2Array([o + off + Vector2(-s * 0.8, s * 0.8), o + off + Vector2(-s * 0.85, s * 0.45),
+			o + off + Vector2(-s * 0.55, s * 0.55)]), Color(0.9, 0.9, 0.9))
+
+
+static func _tree(c: CanvasItem, o: Vector2, s: float) -> void:
+	c.draw_rect(Rect2(o + Vector2(-s * 0.15, s * 0.2), Vector2(s * 0.3, s * 0.75)), Color(0.45, 0.28, 0.13))
+	c.draw_circle(o + Vector2(0, -s * 0.25), s * 0.65, OUTLINE)
+	c.draw_circle(o + Vector2(0, -s * 0.25), s * 0.6, Color(0.2, 0.55, 0.2))
+	c.draw_circle(o + Vector2(-s * 0.2, -s * 0.4), s * 0.2, Color(0.3, 0.68, 0.28))
+
+
+static func _rune(c: CanvasItem, o: Vector2, s: float) -> void:
+	var pts := PackedVector2Array()
+	for i in 10:
+		var a := TAU * float(i) / 10.0
+		pts.append(o + Vector2(cos(a) * s * 0.85, sin(a) * s * 0.75))
+	_poly(c, pts, Color(0.6, 0.6, 0.62))
+	c.draw_line(o + Vector2(-s * 0.3, -s * 0.35), o + Vector2(s * 0.3, s * 0.35), Color(0.2, 0.45, 0.9), 3.0)
+	c.draw_line(o + Vector2(s * 0.3, -s * 0.35), o + Vector2(-s * 0.3, s * 0.35), Color(0.2, 0.45, 0.9), 3.0)
+
+
+static func _skull(c: CanvasItem, o: Vector2, s: float) -> void:
+	var bone := Color(0.93, 0.92, 0.85)
+	c.draw_circle(o + Vector2(0, -s * 0.15), s * 0.7, OUTLINE)
+	c.draw_circle(o + Vector2(0, -s * 0.15), s * 0.66, bone)
+	c.draw_rect(Rect2(o + Vector2(-s * 0.4, s * 0.3), Vector2(s * 0.8, s * 0.45)), bone)
+	c.draw_circle(o + Vector2(-s * 0.27, -s * 0.15), s * 0.18, OUTLINE)
+	c.draw_circle(o + Vector2(s * 0.27, -s * 0.15), s * 0.18, OUTLINE)
+	for x in [-0.2, 0.0, 0.2]:
+		c.draw_line(o + Vector2(x * s, s * 0.45), o + Vector2(x * s, s * 0.75), OUTLINE, 1.2)
+
+
+static func _watering_can(c: CanvasItem, o: Vector2, s: float) -> void:
+	var tin := Color(0.6, 0.62, 0.66)
+	_poly(c, PackedVector2Array([o + Vector2(-s * 0.55, -s * 0.3), o + Vector2(s * 0.3, -s * 0.3),
+		o + Vector2(s * 0.3, s * 0.7), o + Vector2(-s * 0.55, s * 0.7)]), tin)
+	c.draw_line(o + Vector2(s * 0.3, s * 0.3), o + Vector2(s * 0.95, -s * 0.45), tin.darkened(0.2), 3.5)
+	c.draw_arc(o + Vector2(-s * 0.12, -s * 0.3), s * 0.35, PI, TAU, 10, tin.darkened(0.3), 2.5)
+	c.draw_circle(o + Vector2(s * 0.95, -s * 0.5), s * 0.12, Color(0.4, 0.7, 1.0))
+
+
+static func _house(c: CanvasItem, o: Vector2, s: float) -> void:
+	_poly(c, PackedVector2Array([o + Vector2(-s * 0.95, -s * 0.05), o + Vector2(0, -s * 0.9), o + Vector2(s * 0.95, -s * 0.05)]), Color(0.65, 0.25, 0.18))
+	_poly(c, PackedVector2Array([o + Vector2(-s * 0.7, -s * 0.05), o + Vector2(s * 0.7, -s * 0.05),
+		o + Vector2(s * 0.7, s * 0.85), o + Vector2(-s * 0.7, s * 0.85)]), Color(0.8, 0.7, 0.5))
+	c.draw_rect(Rect2(o + Vector2(-s * 0.15, s * 0.35), Vector2(s * 0.3, s * 0.5)), Color(0.4, 0.25, 0.12))
+
+
+static func _paw(c: CanvasItem, o: Vector2, s: float) -> void:
+	var brown := Color(0.55, 0.38, 0.22)
+	c.draw_circle(o + Vector2(0, s * 0.3), s * 0.42, OUTLINE)
+	c.draw_circle(o + Vector2(0, s * 0.3), s * 0.38, brown)
+	for p in [Vector2(-0.6, -0.15), Vector2(-0.22, -0.6), Vector2(0.22, -0.6), Vector2(0.6, -0.15)]:
+		c.draw_circle(o + p * s, s * 0.2, OUTLINE)
+		c.draw_circle(o + p * s, s * 0.17, brown)
+
+
+static func _anchor(c: CanvasItem, o: Vector2, s: float) -> void:
+	var iron := Color(0.55, 0.57, 0.62)
+	c.draw_arc(o + Vector2(0, -s * 0.72), s * 0.18, 0, TAU, 12, iron, 2.5)
+	c.draw_line(o + Vector2(0, -s * 0.55), o + Vector2(0, s * 0.8), iron, 3.0)
+	c.draw_line(o + Vector2(-s * 0.4, -s * 0.3), o + Vector2(s * 0.4, -s * 0.3), iron, 3.0)
+	c.draw_arc(o + Vector2(0, s * 0.2), s * 0.65, PI * 0.15, PI * 0.85, 12, iron, 3.0)
