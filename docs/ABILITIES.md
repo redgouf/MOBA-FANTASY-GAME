@@ -55,4 +55,4 @@ Set in a champion's `passive.type`: `missing_health_damage`, `glass_cannon`, `nt
 "requirements": { "attack": 75, "defence": 65 }
 ```
 
-Skills: `attack`, `strength`, `defence`, `ranged`, `magic`, `prayer`. A champion can only buy an item if every level in its `skills` meets the requirement.
+Skills: `attack`, `hitpoints`, `strength`, `defence`, `ranged`, `prayer`, `magic` (Hitpoints is shown in the Skills tab and counts toward combat level; no items require it yet). A champion can only buy an item if every level in its `skills` meets the requirement.

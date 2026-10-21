@@ -6,10 +6,16 @@ extends Unit
 signal leveled_up(champion: Champion)
 signal respawned(champion: Champion)
 signal ability_cast(champion: Champion, slot: String)
+signal ranks_changed(champion: Champion)
+## Fired for every order the champion is given, human or bot: kind is
+## "move", "attack" or "cast"; label is the ability key or item name.
+## The spectator's ghost cursor follows these.
+signal command_issued(champion: Champion, kind: String, point: Vector3, label: String)
 
 const SLOTS: Array[String] = ["q", "w", "e", "r"]
 
-const SKILLS: Array[String] = ["attack", "strength", "defence", "ranged", "magic", "prayer"]
+## OSRS skills each build has, in the order of the OSRS Skills tab.
+const SKILLS: Array[String] = ["attack", "hitpoints", "strength", "defence", "ranged", "prayer", "magic"]
 
 var champ_id := ""
 var def: Dictionary = {}
@@ -32,6 +38,10 @@ var protect_style := -1
 var offensive_prayer_cd := 0.0
 var spec := 100.0
 var cooldowns := {"q": 0.0, "w": 0.0, "e": 0.0, "r": 0.0}
+## League-style ability ranks: everything starts unlearned with one point to spend.
+var ranks := {"q": 0, "w": 0, "e": 0, "r": 0}
+var skill_points := 1
+var creep_score := 0
 var inventory: Array[String] = []
 var consumables: Array[String] = []
 
@@ -42,6 +52,8 @@ var respawn_timer := 0.0
 var recall_timer := -1.0
 ## Time (seconds) this champion last damaged an enemy champion. Towers use it for aggro.
 var last_champion_aggro := -100.0
+## Where the allied champion it hit was standing (turrets only react nearby).
+var last_aggro_victim_pos := Vector3(INF, 0.0, INF)
 
 var forms: Array = []
 var form_index := 0
@@ -57,6 +69,7 @@ var _move_point := Vector3.ZERO
 var _queued_cast: Dictionary = {}
 var _repath_timer := 0.0
 var _bot_think := 0.0
+var _last_cmd_point := Vector3(INF, 0.0, INF)
 var _bot_waypoint := 1
 
 
@@ -82,7 +95,10 @@ func setup(id: String, p_team: int, spawn: Vector3, bot: bool) -> void:
 	if not forms.is_empty():
 		_apply_form(0)
 		_switch_bonus_ready = false
+	skill_points = int(GameData.rule("starting_skill_points", 1))
 	recompute_stats(true)
+	if is_bot:
+		bot_spend_skill_points()
 
 
 func _ready() -> void:
@@ -141,8 +157,9 @@ func _rebuild_item_stats() -> void:
 				_item_stats[k] = float(_item_stats.get(k, 0.0)) + float(stats[k])
 
 
+## The build's real OSRS combat level (from its skills; doesn't change in a match).
 func combat_level() -> int:
-	return Combat.combat_level(level, int(GameData.rule("max_level", 18)))
+	return Combat.osrs_combat_level(skills)
 
 
 func spec_regen_mult() -> float:
@@ -205,8 +222,76 @@ func add_xp(amount: float) -> void:
 		var hp_gain := float(def.get("growth", {}).get("max_health", 0.0))
 		recompute_stats(false)
 		heal(hp_gain)
+		skill_points += 1
 		set_label(_label_text())
+		if is_bot:
+			bot_spend_skill_points()
 		leveled_up.emit(self)
+
+
+# --- Ability ranks -----------------------------------------------------------
+
+func max_rank(slot: String) -> int:
+	return int(GameData.rule("ultimate_max_rank", 3)) if slot == "r" else int(GameData.rule("basic_max_rank", 5))
+
+
+## Champion level needed to put the next point into this ability.
+## Basic abilities: rank n needs level 2n-1. Ultimate: levels 6, 11, 16.
+func level_needed_for_next_rank(slot: String) -> int:
+	var next := int(ranks.get(slot, 0)) + 1
+	if slot == "r":
+		var gates: Array = GameData.rule("ultimate_rank_levels", [6, 11, 16])
+		return int(gates[next - 1]) if next - 1 < gates.size() else 999
+	return 2 * next - 1
+
+
+func can_rank_up(slot: String) -> bool:
+	return skill_points > 0 and ranks.has(slot) and int(ranks[slot]) < max_rank(slot) \
+		and level >= level_needed_for_next_rank(slot)
+
+
+func rank_up(slot: String) -> bool:
+	if not can_rank_up(slot):
+		return false
+	ranks[slot] = int(ranks[slot]) + 1
+	skill_points -= 1
+	ranks_changed.emit(self)
+	return true
+
+
+## Rank of a kit ability, or 1 for an item spec (items don't level).
+func ability_rank(key: String) -> int:
+	if key.begins_with("item:"):
+		return 1
+	return int(ranks.get(key, 0))
+
+
+func ability_cooldown(key: String, ab: Dictionary) -> float:
+	var cd := float(ab.get("cooldown", 0.0))
+	if key.begins_with("item:") or key == "r":
+		return cd
+	var per_rank := float(GameData.rule("basic_cooldown_reduction_per_rank", 0.06))
+	return cd * maxf(0.2, 1.0 - per_rank * float(ability_rank(key) - 1))
+
+
+## Bots take Q, W, E at levels 1-3, then always R when possible, then max Q > W > E.
+func bot_spend_skill_points() -> void:
+	var order: Array = def.get("skill_order", ["q", "w", "e"])
+	while skill_points > 0:
+		var picked := ""
+		for slot in order:
+			if int(ranks[slot]) == 0 and can_rank_up(slot):
+				picked = slot
+				break
+		if picked == "" and can_rank_up("r"):
+			picked = "r"
+		if picked == "":
+			for slot in order:
+				if can_rank_up(slot):
+					picked = slot
+					break
+		if picked == "" or not rank_up(picked):
+			return
 
 
 # --- Items -------------------------------------------------------------------
@@ -314,6 +399,9 @@ func command_move(point: Vector3) -> void:
 	attack_target = null
 	_queued_cast = {}
 	_set_move_target(point)
+	if flat_distance(point, _last_cmd_point) > 1.0:
+		_last_cmd_point = point
+		command_issued.emit(self, "move", point, "")
 
 
 func command_attack(target: Unit) -> void:
@@ -321,6 +409,9 @@ func command_attack(target: Unit) -> void:
 		return
 	_cancel_recall()
 	_queued_cast = {}
+	if attack_target != target:
+		_last_cmd_point = target.global_position
+		command_issued.emit(self, "attack", target.global_position, "")
 	attack_target = target
 
 
@@ -398,7 +489,7 @@ func try_cast(slot: String, target: Unit, point: Vector3) -> bool:
 	if is_dead or not can_act():
 		return false
 	var ab := get_action(slot)
-	if ab.is_empty() or cooldowns.get(slot, 0.0) > 0.0:
+	if ab.is_empty() or ability_rank(slot) <= 0 or cooldowns.get(slot, 0.0) > 0.0:
 		return false
 	if spec < float(ab.get("spec_cost", 0.0)):
 		return false
@@ -434,14 +525,18 @@ func try_cast(slot: String, target: Unit, point: Vector3) -> bool:
 
 func _execute_cast(slot: String, ab: Dictionary, target: Unit, point: Vector3) -> void:
 	_cancel_recall()
-	cooldowns[slot] = float(ab.get("cooldown", 0.0))
+	cooldowns[slot] = ability_cooldown(slot, ab)
 	spec = maxf(0.0, spec - float(ab.get("spec_cost", 0.0)))
 	if target != null and target != self:
 		face_toward(target.global_position)
 	elif str(ab.get("cast", "self")) == "point":
 		face_toward(point)
-	AbilityRunner.execute(self, ab, target, point)
+	AbilityRunner.execute(self, ab, target, point, ability_rank(slot))
 	ability_cast.emit(self, slot)
+	var aim := target.global_position if target != null and target != self else point
+	var label := str(GameData.item(slot.substr(5)).get("name", "")) if slot.begins_with("item:") else slot.to_upper()
+	_last_cmd_point = aim
+	command_issued.emit(self, "cast", aim, label)
 
 
 func _has_effect(ab: Dictionary, effect_type: String) -> bool:
@@ -550,7 +645,8 @@ func _on_damaged(_unit: Unit, amount: float, source: Unit) -> void:
 	if amount > 0.0:
 		_cancel_recall()
 	if source is Champion and source.team != team:
-		source.last_champion_aggro = Time.get_ticks_msec() / 1000.0
+		source.last_champion_aggro = Combat.clock
+		source.last_aggro_victim_pos = global_position
 
 
 # --- Frame update ------------------------------------------------------------
@@ -682,6 +778,10 @@ func _bot_update(delta: float) -> void:
 		return
 	if in_shop_range():
 		_bot_shop()
+	elif gold >= 1400.0 and home_d > 30.0 and _nearest_enemy_champion(14.0) == null \
+			and not has_status("tele_block") and _next_affordable_item() != "":
+		start_recall()   # go home to spend gold, like a real player would
+		return
 	if home_d < 12.0 and health_ratio() < 0.95:
 		command_stop()
 		return
@@ -740,6 +840,17 @@ func _bot_shop() -> void:
 		buy_item("shark")
 
 
+## First item on the build path this bot could buy right now (ignoring shop range).
+func _next_affordable_item() -> String:
+	for id in def.get("recommended_items", []):
+		var item_id := str(id)
+		if inventory.has(item_id) or _owns_upgrade_of(item_id) or not meets_requirements(item_id):
+			continue
+		if gold >= float(item_cost(item_id)):
+			return item_id
+	return ""
+
+
 func _owns_upgrade_of(item_id: String) -> bool:
 	for owned in inventory:
 		if _builds_into(item_id, owned):
@@ -756,7 +867,7 @@ func _builds_into(component: String, item_id: String) -> bool:
 
 func _bot_try_ability(slot: String, target: Unit) -> bool:
 	var ab := get_ability(slot)
-	if ab.is_empty() or cooldowns[slot] > 0.0 or spec < float(ab.get("spec_cost", 0.0)):
+	if ab.is_empty() or ranks[slot] <= 0 or cooldowns[slot] > 0.0 or spec < float(ab.get("spec_cost", 0.0)):
 		return false
 	if slot == "r" and not (target is Champion or target.is_epic):
 		return false
@@ -785,7 +896,7 @@ func _bot_try_ability(slot: String, target: Unit) -> bool:
 func _bot_support_allies() -> void:
 	for slot in SLOTS:
 		var ab := get_ability(slot)
-		if not bool(ab.get("target_ally", false)) or cooldowns[slot] > 0.0:
+		if not bool(ab.get("target_ally", false)) or ranks[slot] <= 0 or cooldowns[slot] > 0.0:
 			continue
 		var weakest: Champion = null
 		for n in get_tree().get_nodes_in_group("champions"):

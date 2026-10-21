@@ -111,26 +111,52 @@ static func all_walls() -> Array[Dictionary]:
 	return out
 
 
-## Jungle camps on the Saradomin side; Zamorak's are mirrored. [{id, monster, pos}]
+## Jungle camps on the Saradomin side; Zamorak's are mirrored.
+## Each camp: id, pos, members [[monster, offset]], first spawn and respawn (seconds),
+## following League of Legends Summoner's Rift timings.
 static func saradomin_camps() -> Array[Dictionary]:
 	return [
-		{"id": "blue", "monster": "abyssal_demon", "pos": Vector3(-52.0, 0.0, 15.0)},
-		{"id": "red", "monster": "fire_giant", "pos": Vector3(-10.0, 0.0, 52.0)},
-		{"id": "moss", "monster": "moss_giant", "pos": Vector3(-63.0, 0.0, -10.0)},
-		{"id": "wolves", "monster": "white_wolf", "pos": Vector3(-40.0, 0.0, -14.0)},
-		{"id": "chickens", "monster": "chicken", "pos": Vector3(-28.0, 0.0, 46.0)},
-		{"id": "ogres", "monster": "ogre", "pos": Vector3(14.0, 0.0, 60.0)},
+		{"id": "blue", "pos": Vector3(-52.0, 0.0, 15.0), "first": 55, "respawn": 300,
+			"members": [["abyssal_demon", Vector3.ZERO]]},
+		{"id": "red", "pos": Vector3(-10.0, 0.0, 52.0), "first": 55, "respawn": 300,
+			"members": [["fire_giant", Vector3.ZERO]]},
+		{"id": "moss", "pos": Vector3(-63.0, 0.0, -10.0), "first": 67, "respawn": 135,
+			"members": [["moss_giant", Vector3.ZERO]]},
+		{"id": "wolves", "pos": Vector3(-40.0, 0.0, -14.0), "first": 55, "respawn": 135,
+			"members": [["big_wolf", Vector3.ZERO], ["white_wolf", Vector3(2.2, 0.0, 1.6)], ["white_wolf", Vector3(-2.2, 0.0, 1.6)]]},
+		{"id": "chickens", "pos": Vector3(-28.0, 0.0, 46.0), "first": 55, "respawn": 135,
+			"members": [["rooster", Vector3.ZERO], ["chicken", Vector3(1.8, 0.0, 0.0)], ["chicken", Vector3(-1.8, 0.0, 0.0)],
+				["chicken", Vector3(0.0, 0.0, 1.8)], ["chicken", Vector3(1.3, 0.0, -1.5)], ["chicken", Vector3(-1.3, 0.0, -1.5)]]},
+		{"id": "ogres", "pos": Vector3(14.0, 0.0, 60.0), "first": 67, "respawn": 135,
+			"members": [["ogre_chieftain", Vector3.ZERO], ["ogre", Vector3(2.4, 0.0, 0.8)]]},
 	]
 
 
-## Every neutral spawn on the map, including river crabs and the two epic pits.
+## Every neutral spawn on the map: mirrored jungle camps, river crabs, and the
+## two epic pits. Optional keys: "once" (never respawns), "despawn" (removed at
+## this game time if still alive).
 static func all_camps() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for c in saradomin_camps():
-		out.append({"id": "sara_" + c["id"], "monster": c["monster"], "pos": c["pos"]})
-		out.append({"id": "zam_" + c["id"], "monster": c["monster"], "pos": mirror(c["pos"])})
-	out.append({"id": "crab_top", "monster": "rock_crab", "pos": Vector3(-20.0, 0.0, -20.0)})
-	out.append({"id": "crab_bot", "monster": "rock_crab", "pos": Vector3(20.0, 0.0, 20.0)})
-	out.append({"id": "jad", "monster": "tztok_jad", "pos": JAD_PIT})
-	out.append({"id": "dragon", "monster": "chromatic_dragon", "pos": DRAGON_PIT})
+		var zam: Dictionary = c.duplicate(true)
+		var mirrored: Array = []
+		for m in c["members"]:
+			mirrored.append([m[0], mirror(m[1])])
+		zam["members"] = mirrored
+		zam["pos"] = mirror(c["pos"])
+		zam["id"] = "zam_" + c["id"]
+		var sara: Dictionary = c.duplicate(true)
+		sara["id"] = "sara_" + c["id"]
+		out.append(sara)
+		out.append(zam)
+	for crab in [["crab_top", Vector3(-20.0, 0.0, -20.0)], ["crab_bot", Vector3(20.0, 0.0, 20.0)]]:
+		out.append({"id": crab[0], "pos": crab[1], "first": 175, "respawn": 150, "members": [["rock_crab", Vector3.ZERO]]})
+	# Top pit: Voidgrubs (8:00, once) -> Rift Herald (15:00, once) -> Baron (20:00, every 6:00)
+	out.append({"id": "grubs", "pos": JAD_PIT, "first": 480, "once": true, "despawn": 885,
+		"members": [["baby_mole", Vector3(-2.5, 0.0, 0.0)], ["baby_mole", Vector3(2.5, 0.0, 0.0)], ["baby_mole", Vector3(0.0, 0.0, 2.5)]]})
+	out.append({"id": "mole", "pos": JAD_PIT, "first": 900, "once": true, "despawn": 1185,
+		"members": [["giant_mole", Vector3.ZERO]]})
+	out.append({"id": "jad", "pos": JAD_PIT, "first": 1200, "respawn": 360, "members": [["tztok_jad", Vector3.ZERO]]})
+	# Bottom pit: drakes from 5:00, every 5:00
+	out.append({"id": "dragon", "pos": DRAGON_PIT, "first": 300, "respawn": 300, "members": [["chromatic_dragon", Vector3.ZERO]]})
 	return out

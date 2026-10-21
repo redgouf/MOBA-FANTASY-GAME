@@ -14,6 +14,8 @@ static var tick_seconds := 0.25
 static var triangle_bonus := 0.15
 static var protect_prayer_reduction := 0.40
 static var resist_constant := 100.0
+## Game-time clock in seconds, advanced by the match (stops while paused).
+static var clock := 0.0
 
 
 static func configure(rules: Dictionary) -> void:
@@ -67,8 +69,13 @@ static func mitigate(amount: float, damage_style: int, defender_style: int, resi
 	return maxf(result, 0.0)
 
 
-## Champion level 1-18 displayed as an OSRS combat level (3 to 126).
-static func combat_level(level: int, max_level: int = 18) -> int:
-	if max_level <= 1:
-		return 3
-	return int(round(3.0 + float(level - 1) * 123.0 / float(max_level - 1)))
+## The real OSRS combat level formula, from a build's skill levels.
+static func osrs_combat_level(skills: Dictionary) -> int:
+	var def := float(skills.get("defence", 1))
+	var hp := float(skills.get("hitpoints", 10))
+	var pray := floorf(float(skills.get("prayer", 1)) / 2.0)
+	var base := 0.25 * (def + hp + pray)
+	var melee := 0.325 * (float(skills.get("attack", 1)) + float(skills.get("strength", 1)))
+	var ranged := 0.325 * floorf(float(skills.get("ranged", 1)) * 1.5)
+	var magic := 0.325 * floorf(float(skills.get("magic", 1)) * 1.5)
+	return int(floor(base + maxf(melee, maxf(ranged, magic))))

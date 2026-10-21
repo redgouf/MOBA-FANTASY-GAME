@@ -59,22 +59,53 @@ func _ready() -> void:
 
 # --- Setup -------------------------------------------------------------------
 
+## Reads a unit definition. Accepts both our native fields and League-style ones:
+##   max_health | health          (a number, or [start, ...] for scaling units)
+##   defence {melee, ranged, magic} | armor + magic_resist (armor covers melee and ranged)
+##   attack_ticks | attack_speed  (attacks per second)
+##   attack_range | attack_range_lol, move_speed | move_speed_lol  (LoL units)
+## Minions and monsters then apply their own upgrade/level scaling on top.
 func configure_from_def(def: Dictionary) -> void:
 	display_name = str(def.get("name", display_name))
-	max_health = float(def.get("max_health", 100.0))
-	health = max_health
-	base_damage = float(def.get("damage", 0.0))
-	base_magic_power = float(def.get("magic_power", 0.0))
-	var d: Dictionary = def.get("defence", {})
-	base_defence = [float(d.get("melee", 0.0)), float(d.get("ranged", 0.0)), float(d.get("magic", 0.0))]
 	attack_style = Combat.style_from_string(str(def.get("style", "melee")))
-	base_attack_range = float(def.get("attack_range", 2.0))
-	attack_ticks = float(def.get("attack_ticks", 4.0))
-	base_move_speed = float(def.get("move_speed", 5.0))
+	max_health = float(first_value(def.get("max_health", def.get("health", 100.0))))
+	health = max_health
+	base_damage = float(first_value(def.get("damage", 0.0)))
+	if def.has("magic_power"):
+		base_magic_power = float(def["magic_power"])
+	else:
+		base_magic_power = base_damage if attack_style == Combat.Style.MAGIC else 0.0
+	if def.has("defence"):
+		var d: Dictionary = def["defence"]
+		base_defence = [float(d.get("melee", 0.0)), float(d.get("ranged", 0.0)), float(d.get("magic", 0.0))]
+	else:
+		var armor := float(first_value(def.get("armor", 0.0)))
+		base_defence = [armor, armor, float(first_value(def.get("magic_resist", 0.0)))]
+	if def.has("attack_range_lol"):
+		base_attack_range = lol_to_meters(float(def["attack_range_lol"]))
+	else:
+		base_attack_range = float(def.get("attack_range", 2.0))
+	if def.has("attack_speed"):
+		attack_ticks = 1.0 / (maxf(float(def["attack_speed"]), 0.01) * Combat.tick_seconds)
+	else:
+		attack_ticks = float(def.get("attack_ticks", 4.0))
+	if def.has("move_speed_lol"):
+		base_move_speed = lol_to_meters(float(def["move_speed_lol"]))
+	else:
+		base_move_speed = float(def.get("move_speed", 5.0))
 	radius = float(def.get("radius", 0.5))
-	gold_value = int(def.get("gold", 0))
-	xp_value = int(def.get("xp", 0))
+	gold_value = int(first_value(def.get("gold", 0)))
+	xp_value = int(first_value(def.get("xp", 0)))
 	is_epic = bool(def.get("epic", false))
+
+
+## League of Legends distance units -> metres (our map is ~200 m, Summoner's Rift ~14,870 units).
+static func lol_to_meters(units: float) -> float:
+	return units / float(GameData.rule("lol_units_per_meter", 75.0))
+
+
+static func first_value(v: Variant) -> Variant:
+	return v[0] if v is Array and not (v as Array).is_empty() else v
 
 
 static func team_color(p_team: int) -> Color:
@@ -314,7 +345,8 @@ func take_damage(info: DamageInfo) -> float:
 			_spawn_hitsplat(0.0, info)
 			return 0.0
 
-	var amt := Combat.mitigate(info.amount * info.crit_mult, info.style, attack_style,
+	var def_style := -1 if info.ignore_triangle else attack_style
+	var amt := Combat.mitigate(info.amount * info.crit_mult, info.style, def_style,
 		get_defence(info.style), info.armor_pen, get_protected_style(), info.ignores_prayer, info.is_true)
 	amt *= maxf(0.0, 1.0 + status_sum("damage_taken_mult"))
 	if info.style == Combat.Style.MELEE and not info.is_true:
@@ -328,7 +360,7 @@ func take_damage(info: DamageInfo) -> float:
 
 	health -= amt
 	if src:
-		recent_attackers[src.get_instance_id()] = {"unit": src, "time": Time.get_ticks_msec() / 1000.0}
+		recent_attackers[src.get_instance_id()] = {"unit": src, "time": Combat.clock}
 
 	var veng := find_status_id("vengeance")
 	if veng != "" and src and amt > 0.0 and not info.is_true:
@@ -369,7 +401,7 @@ func _on_death(_killer: Unit) -> void:
 	visible = false
 	collision_layer = 0
 	if is_inside_tree():
-		get_tree().create_timer(0.5).timeout.connect(queue_free)
+		get_tree().create_timer(0.5, false).timeout.connect(queue_free)
 
 
 ## Hook for passives that change outgoing damage (champions extend this).
@@ -383,9 +415,23 @@ func modify_incoming(amount: float, _info: DamageInfo) -> float:
 
 
 func on_attack_landed(target: Unit, _dealt: float) -> void:
-	var burn := find_status_id("burn_on_hit")
-	if burn != "" and is_instance_valid(target) and not target.is_dead:
-		target.add_status("burn", "burn", float(statuses[burn]["amount"]), 3.0, self)
+	if not has_status("crest_of_cinders") or not is_instance_valid(target) or target.is_dead:
+		return
+	# Red buff (League's Crest of Cinders): 3 instances of 5-20 true damage
+	# (on hit, then each second for 2 s) and a 3 s slow: melee 10/15/25%,
+	# ranged 5/7.5/12.5% at levels 1/6/11.
+	var lvl: int = self.level if self is Champion else 1
+	var per := 5.0 + 15.0 * float(lvl - 1) / 17.0
+	var hit := DamageInfo.make(per, Combat.Style.MAGIC, self)
+	hit.is_true = true
+	hit.label = "burn"
+	target.take_damage(hit)
+	if target.is_dead:
+		return
+	target.add_status("cinders_burn", "burn", per, 2.0, self)
+	var tier := 0 if lvl < 6 else (1 if lvl < 11 else 2)
+	var slows: Array = [0.10, 0.15, 0.25] if attack_style == Combat.Style.MELEE else [0.05, 0.075, 0.125]
+	target.add_status("cinders_slow", "slow", float(slows[tier]), 3.0, self)
 
 
 # --- Auto attacks --------------------------------------------------------------

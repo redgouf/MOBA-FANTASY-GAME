@@ -9,11 +9,12 @@
       "style": "melee",
       "skills": {
         "attack": 85,
+        "hitpoints": 99,
         "strength": 99,
         "defence": 75,
         "ranged": 70,
-        "magic": 70,
-        "prayer": 70
+        "prayer": 70,
+        "magic": 70
       },
       "overheads": false,
       "recommended_items": [
@@ -71,7 +72,7 @@
                 "center": "self"
               },
               "base": 60,
-              "base_per_level": 12,
+              "base_per_rank": 48,
               "ratio": {
                 "damage": 1.0
               },
@@ -139,7 +140,7 @@
             {
               "type": "damage",
               "base": 90,
-              "base_per_level": 10,
+              "base_per_rank": 80,
               "ratio": {
                 "damage": 1.1
               },
@@ -158,11 +159,12 @@
       "style": "melee",
       "skills": {
         "attack": 75,
+        "hitpoints": 90,
         "strength": 99,
         "defence": 1,
         "ranged": 99,
-        "magic": 94,
-        "prayer": 52
+        "prayer": 52,
+        "magic": 94
       },
       "overheads": false,
       "recommended_items": [
@@ -217,7 +219,7 @@
             {
               "type": "damage",
               "base": 40,
-              "base_per_level": 8,
+              "base_per_rank": 32,
               "ratio": {
                 "damage": 0.8
               },
@@ -249,7 +251,7 @@
             {
               "type": "damage",
               "base": 30,
-              "base_per_level": 6,
+              "base_per_rank": 24,
               "ratio": {
                 "damage": 0.7
               },
@@ -297,7 +299,7 @@
               "hits": 2,
               "hit_interval": 0.15,
               "base": 35,
-              "base_per_level": 5,
+              "base_per_rank": 40,
               "ratio": {
                 "damage": 0.6
               },
@@ -316,11 +318,12 @@
       "style": "magic",
       "skills": {
         "attack": 60,
+        "hitpoints": 85,
         "strength": 60,
         "defence": 75,
         "ranged": 70,
-        "magic": 94,
-        "prayer": 77
+        "prayer": 77,
+        "magic": 94
       },
       "overheads": false,
       "recommended_items": [
@@ -378,7 +381,7 @@
                 "center": "point"
               },
               "base": 50,
-              "base_per_level": 10,
+              "base_per_rank": 40,
               "ratio": {
                 "magic_power": 0.6
               },
@@ -407,7 +410,7 @@
                 "center": "point"
               },
               "base": 45,
-              "base_per_level": 8,
+              "base_per_rank": 32,
               "ratio": {
                 "magic_power": 0.5
               },
@@ -431,7 +434,7 @@
                 "center": "point"
               },
               "base": 40,
-              "base_per_level": 7,
+              "base_per_rank": 28,
               "ratio": {
                 "magic_power": 0.45
               },
@@ -457,7 +460,7 @@
             {
               "type": "damage",
               "base": 160,
-              "base_per_level": 20,
+              "base_per_rank": 160,
               "ratio": {
                 "magic_power": 1.2
               },
@@ -480,11 +483,12 @@
       "style": "ranged",
       "skills": {
         "attack": 75,
+        "hitpoints": 92,
         "strength": 85,
         "defence": 75,
         "ranged": 99,
-        "magic": 99,
-        "prayer": 77
+        "prayer": 77,
+        "magic": 99
       },
       "overheads": false,
       "recommended_items": [
@@ -570,7 +574,7 @@
                 {
                   "type": "damage",
                   "base": 40,
-                  "base_per_level": 6,
+                  "base_per_rank": 24,
                   "ratio": {
                     "magic_power": 0.5
                   },
@@ -637,7 +641,7 @@
               "type": "damage",
               "delay": 0.2,
               "base": 110,
-              "base_per_level": 15,
+              "base_per_rank": 120,
               "ratio": {
                 "damage": 1.0
               },
@@ -657,11 +661,12 @@
       "style": "ranged",
       "skills": {
         "attack": 75,
+        "hitpoints": 99,
         "strength": 75,
         "defence": 80,
         "ranged": 99,
-        "magic": 80,
-        "prayer": 77
+        "prayer": 77,
+        "magic": 80
       },
       "overheads": false,
       "recommended_items": [
@@ -736,7 +741,7 @@
               },
               "falloff": true,
               "base": 60,
-              "base_per_level": 10,
+              "base_per_rank": 40,
               "ratio": {
                 "damage": 0.7
               },
@@ -789,7 +794,7 @@
                 "width": 2.5
               },
               "base": 180,
-              "base_per_level": 25,
+              "base_per_rank": 200,
               "ratio": {
                 "damage": 1.4
               },
@@ -808,11 +813,12 @@
       "style": "ranged",
       "skills": {
         "attack": 70,
+        "hitpoints": 85,
         "strength": 70,
         "defence": 60,
         "ranged": 90,
-        "magic": 75,
-        "prayer": 52
+        "prayer": 52,
+        "magic": 75
       },
       "overheads": false,
       "recommended_items": [
@@ -885,7 +891,7 @@
                 "center": "point"
               },
               "base": 30,
-              "base_per_level": 6,
+              "base_per_rank": 24,
               "ratio": {
                 "damage": 0.4
               },
@@ -943,7 +949,7 @@
             {
               "type": "damage",
               "base": 120,
-              "base_per_level": 15,
+              "base_per_rank": 120,
               "ratio": {
                 "damage": 1.5
               },
@@ -963,11 +969,12 @@
       "style": "melee",
       "skills": {
         "attack": 90,
+        "hitpoints": 99,
         "strength": 99,
         "defence": 85,
         "ranged": 85,
-        "magic": 85,
-        "prayer": 85
+        "prayer": 85,
+        "magic": 85
       },
       "overheads": true,
       "recommended_items": [
@@ -1020,7 +1027,7 @@
             {
               "type": "damage",
               "base": 45,
-              "base_per_level": 8,
+              "base_per_rank": 32,
               "ratio": {
                 "damage": 0.9
               },
@@ -1075,7 +1082,7 @@
             {
               "type": "damage",
               "base": 110,
-              "base_per_level": 14,
+              "base_per_rank": 112,
               "ratio": {
                 "damage": 1.2
               },
@@ -1101,11 +1108,12 @@
       "style": "melee",
       "skills": {
         "attack": 75,
+        "hitpoints": 90,
         "strength": 99,
         "defence": 45,
         "ranged": 85,
-        "magic": 85,
-        "prayer": 52
+        "prayer": 52,
+        "magic": 85
       },
       "overheads": false,
       "recommended_items": [
@@ -1164,7 +1172,7 @@
                 "center": "self"
               },
               "base": 55,
-              "base_per_level": 10,
+              "base_per_rank": 40,
               "ratio": {
                 "damage": 1.0
               },
@@ -1230,7 +1238,7 @@
               "hit_interval": 0.12,
               "cascade": true,
               "base": 30,
-              "base_per_level": 5,
+              "base_per_rank": 40,
               "ratio": {
                 "damage": 0.5
               },
@@ -1249,11 +1257,12 @@
       "style": "melee",
       "skills": {
         "attack": 80,
+        "hitpoints": 99,
         "strength": 85,
         "defence": 99,
         "ranged": 85,
-        "magic": 85,
-        "prayer": 99
+        "prayer": 99,
+        "magic": 85
       },
       "overheads": true,
       "recommended_items": [
@@ -1303,7 +1312,7 @@
             {
               "type": "damage",
               "base": 30,
-              "base_per_level": 6,
+              "base_per_rank": 24,
               "ratio": {
                 "damage": 0.5
               },
@@ -1389,7 +1398,7 @@
               "type": "damage",
               "delay": 0.25,
               "base": 100,
-              "base_per_level": 14,
+              "base_per_rank": 112,
               "ratio": {
                 "damage": 1.0
               },
@@ -1410,11 +1419,12 @@
       "style": "magic",
       "skills": {
         "attack": 60,
+        "hitpoints": 80,
         "strength": 60,
         "defence": 40,
         "ranged": 70,
-        "magic": 95,
-        "prayer": 70
+        "prayer": 70,
+        "magic": 95
       },
       "overheads": false,
       "recommended_items": [
@@ -1470,7 +1480,7 @@
               "type": "heal",
               "on": "target",
               "base": 60,
-              "base_per_level": 12,
+              "base_per_rank": 48,
               "ratio": {
                 "magic_power": 0.5
               },
@@ -1529,7 +1539,7 @@
                 "center": "self"
               },
               "base": 120,
-              "base_per_level": 15,
+              "base_per_rank": 120,
               "ratio": {
                 "magic_power": 0.6
               }

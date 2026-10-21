@@ -1,100 +1,196 @@
 {
+  "_source": "League of Legends Summoner's Rift values (LoL Wiki and riftpatchnotes.com, patch 26.x, checked 2026-10-21). Ranges and speeds are in LoL units (*_lol) and converted with rules.lol_units_per_meter. 'armor' covers melee+ranged defence, 'magic_resist' covers magic defence. Values marked 'inferred' were not published per upgrade; see docs/LOL_VALUES.md.",
+
   "minions": {
     "goblin": {
-      "name": "Goblin", "style": "melee", "max_health": 320, "damage": 14,
-      "defence": { "melee": 10, "ranged": 10, "magic": 0 },
-      "attack_range": 1.6, "attack_ticks": 5, "move_speed": 5.0, "radius": 0.45, "gold": 21, "xp": 60
+      "name": "Goblin", "lol_name": "Melee minion", "role": "melee", "style": "melee",
+      "health": [430, 35, 1550],
+      "damage": [9.5, 1.5, 80, 4, 15],
+      "armor": [0, 0.625, 20],
+      "magic_resist": 0,
+      "attack_speed": 1.25, "attack_range_lol": 110, "move_speed_lol": 350,
+      "radius": 0.45, "gold": [20, 0, 20], "xp": 62,
+      "bonus_vs_minions_pct_current": 0.02
     },
     "dark_wizard": {
-      "name": "Dark wizard", "style": "magic", "max_health": 240, "magic_power": 24,
-      "defence": { "melee": 0, "ranged": 5, "magic": 15 },
-      "attack_range": 6.5, "attack_ticks": 6, "move_speed": 5.0, "radius": 0.45, "gold": 15, "xp": 30
+      "name": "Dark wizard", "lol_name": "Caster minion", "role": "caster", "style": "magic",
+      "health": [275, 9, 600],
+      "damage": [19.5, 1.5, 125, 4, 15],
+      "armor": 0, "magic_resist": 0,
+      "attack_speed": 0.667, "attack_range_lol": 550, "move_speed_lol": 350,
+      "radius": 0.45, "gold": [14, 0, 14], "xp": 31,
+      "bonus_vs_minions_pct_current": 0.035
     },
     "cannon_cart": {
-      "name": "Dwarf cannon cart", "style": "ranged", "max_health": 800, "damage": 42,
-      "defence": { "melee": 30, "ranged": 30, "magic": 30 },
-      "attack_range": 7.5, "attack_ticks": 8, "move_speed": 5.0, "radius": 0.8, "gold": 60, "xp": 90
+      "name": "Dwarf cannon cart", "lol_name": "Siege minion", "role": "siege", "style": "ranged",
+      "health": [750, 85, 5850],
+      "damage": [36, 1.5, 126, 4, 15],
+      "armor": 0, "magic_resist": 0,
+      "attack_speed": 1.0, "attack_range_lol": 300, "move_speed_lol": 350,
+      "radius": 0.8, "gold": [50, 1, 999], "xp": 75
+    },
+    "knight": {
+      "name": "Knight", "lol_name": "Super minion", "role": "super", "style": "melee",
+      "names_by_team": ["White Knight", "Black Knight"],
+      "health": [1600, 200, 7500],
+      "damage": [185, 10, 480],
+      "armor": 100, "magic_resist": -30,
+      "attack_speed": 0.85, "attack_range_lol": 170, "move_speed_lol": 350,
+      "radius": 0.7, "gold": [50, 1, 999], "xp": 75
     }
   },
+
+  "minion_rules": {
+    "damage_to_champions_mult": 0.6,
+    "damage_to_structures_mult": 0.6,
+    "siege_damage_to_structures_mult": 0.84
+  },
+
   "structures": {
-    "tower": {
-      "name_saradomin": "White Knight watchtower", "name_zamorak": "Dark Wizard tower",
-      "style": "ranged", "max_health": 3500, "damage": 160,
-      "defence": { "melee": 60, "ranged": 60, "magic": 60 },
-      "attack_range": 10, "attack_ticks": 4, "radius": 1.4, "gold": 250
+    "tower_outer": {
+      "name_saradomin": "White Knight watchtower", "name_zamorak": "Dark Wizard tower", "lol_name": "Outer turret",
+      "style": "ranged", "max_health": 9000, "damage": 182, "damage_per_minute": 12, "damage_max": 350,
+      "armor": 60, "magic_resist": 60, "attack_speed": 0.833, "attack_range_lol": 750,
+      "radius": 1.4, "global_gold": 50,
+      "minion_damage_pct": { "melee": 0.45, "caster": 0.70, "siege": 0.14, "super": 0.07 }
+    },
+    "tower_inner": {
+      "name_saradomin": "White Knight watchtower", "name_zamorak": "Dark Wizard tower", "lol_name": "Inner turret",
+      "style": "ranged", "max_health": 5000, "damage": 187, "damage_per_minute": 12, "damage_max": 427,
+      "armor": 60, "magic_resist": 60, "attack_speed": 0.833, "attack_range_lol": 750,
+      "radius": 1.4, "global_gold": 25,
+      "minion_damage_pct": { "melee": 0.45, "caster": 0.70, "siege": 0.11, "super": 0.07 }
+    },
+    "tower_inhibitor": {
+      "name_saradomin": "Saradomin altar tower", "name_zamorak": "Chaos altar tower", "lol_name": "Inhibitor turret",
+      "style": "ranged", "max_health": 4750, "damage": 187, "damage_per_minute": 12, "damage_max": 427,
+      "armor": 60, "magic_resist": 60, "attack_speed": 0.833, "attack_range_lol": 750,
+      "radius": 1.4, "global_gold": 25,
+      "regen": 3, "regen_caps": [0.30, 0.75, 1.0],
+      "minion_damage_pct": { "melee": 0.45, "caster": 0.70, "siege": 0.08, "super": 0.07 }
+    },
+    "tower_nexus": {
+      "name_saradomin": "Standard guard tower", "name_zamorak": "Standard guard tower", "lol_name": "Nexus turret",
+      "style": "ranged", "max_health": 3500, "damage": 165, "damage_per_minute": 12, "damage_max": 405,
+      "armor": 60, "magic_resist": 60, "attack_speed": 0.833, "attack_range_lol": 750,
+      "radius": 1.4, "global_gold": 50,
+      "regen": 6, "regen_caps": [0.40, 0.70, 1.0],
+      "respawn_sec": 180, "respawn_health_pct": 0.40,
+      "minion_damage_pct": { "melee": 0.45, "caster": 0.70, "siege": 0.08, "super": 0.07 }
     },
     "altar": {
-      "name_saradomin": "Saradomin altar", "name_zamorak": "Chaos altar",
-      "max_health": 2600, "attack_range": 0,
-      "defence": { "melee": 40, "ranged": 40, "magic": 40 }, "radius": 1.8, "gold": 50
+      "name_saradomin": "Saradomin altar", "name_zamorak": "Chaos altar", "lol_name": "Inhibitor",
+      "max_health": 4000, "attack_range": 0, "armor": 20, "magic_resist": 0,
+      "regen": 15, "respawn_sec": 300, "radius": 1.8, "last_hit_gold": 50
     },
     "flag": {
-      "name_saradomin": "Saradomin standard", "name_zamorak": "Zamorak standard",
-      "max_health": 4500, "attack_range": 0,
-      "defence": { "melee": 40, "ranged": 40, "magic": 40 }, "radius": 2.2, "gold": 0
+      "name_saradomin": "Saradomin standard", "name_zamorak": "Zamorak standard", "lol_name": "Nexus",
+      "max_health": 5500, "attack_range": 0, "armor": 0, "magic_resist": 0, "radius": 2.2
     }
   },
+
+  "turret_rules": {
+    "warming_up_per_hit": 0.5,
+    "warming_up_max": 1.5,
+    "warming_up_reset_sec": 5,
+    "champion_aggro_radius_lol": 1400,
+    "melee_champion_damage_mult": 1.2,
+    "first_turret_bonus_gold": 300
+  },
+
   "monsters": {
     "abyssal_demon": {
-      "name": "Abyssal demon", "style": "melee", "max_health": 1800, "damage": 40,
-      "defence": { "melee": 30, "ranged": 30, "magic": 20 },
-      "attack_range": 1.8, "attack_ticks": 4, "move_speed": 5.5, "radius": 0.9, "gold": 100, "xp": 150,
-      "buff": { "kind": "spec_regen_mult", "amount": 1.0, "duration": 90, "label": "Abyssal surge" }
+      "name": "Abyssal demon", "lol_name": "Blue Sentinel", "style": "melee",
+      "health": [2300, 6210], "damage": [66, 198], "attack_speed": 0.493, "attack_range_lol": 150,
+      "armor": 42, "magic_resist": 42, "gold": 90, "xp": [95, 142.5],
+      "move_speed": 5.5, "radius": 0.9, "leash": 14,
+      "buff": { "kind": "spec_regen_mult", "amount": 1.0, "duration": 120, "label": "Abyssal surge (Crest of Insight)" }
     },
     "fire_giant": {
-      "name": "Fire giant", "style": "melee", "max_health": 1900, "damage": 44,
-      "defence": { "melee": 30, "ranged": 25, "magic": 25 },
-      "attack_range": 2.0, "attack_ticks": 5, "move_speed": 5.0, "radius": 1.1, "gold": 100, "xp": 150,
-      "buff": { "kind": "burn_on_hit", "amount": 12, "duration": 90, "label": "Giant's ember" }
+      "name": "Fire giant", "lol_name": "Red Brambleback", "style": "melee",
+      "health": [2300, 6210], "damage": [66, 198], "attack_speed": 0.493, "attack_range_lol": 150,
+      "armor": 42, "magic_resist": 42, "gold": 90, "xp": [95, 142.5],
+      "move_speed": 5.0, "radius": 1.1, "leash": 14,
+      "buff": { "kind": "crest_of_cinders", "amount": 1.0, "duration": 120, "label": "Giant's ember (Crest of Cinders)" }
     },
     "moss_giant": {
-      "name": "Moss giant", "style": "melee", "max_health": 1100, "damage": 30,
-      "defence": { "melee": 20, "ranged": 15, "magic": 10 },
-      "attack_range": 2.0, "attack_ticks": 5, "move_speed": 5.0, "radius": 1.0, "gold": 70, "xp": 100
+      "name": "Moss giant", "lol_name": "Gromp", "style": "melee",
+      "health": [2050, 4817.5], "damage": [70, 210], "attack_speed": 0.425, "attack_range_lol": 150,
+      "armor": 42, "magic_resist": 42, "gold": 80, "xp": [120, 180],
+      "move_speed": 5.0, "radius": 1.0, "leash": 14
+    },
+    "big_wolf": {
+      "name": "Big wolf", "lol_name": "Greater Murk Wolf", "style": "melee",
+      "health": [1600, 3760], "damage": [30, 90], "attack_speed": 0.625, "attack_range_lol": 175,
+      "armor": 42, "magic_resist": 42, "gold": 55, "xp": [50, 75],
+      "move_speed": 6.0, "radius": 0.75, "leash": 14
     },
     "white_wolf": {
-      "name": "White wolf", "style": "melee", "max_health": 800, "damage": 26,
-      "defence": { "melee": 10, "ranged": 10, "magic": 10 },
-      "attack_range": 1.5, "attack_ticks": 4, "move_speed": 6.0, "radius": 0.6, "gold": 60, "xp": 80
+      "name": "White wolf", "lol_name": "Murk Wolf", "style": "melee",
+      "health": [630, 1480.5], "damage": [10, 30], "attack_speed": 0.625, "attack_range_lol": 150,
+      "armor": 20, "magic_resist": 20, "gold": 15, "xp": [15, 22.5],
+      "move_speed": 6.0, "radius": 0.5, "leash": 14
+    },
+    "rooster": {
+      "name": "Rooster", "lol_name": "Crimson Raptor", "style": "melee",
+      "health": [1200, 2820], "damage": [17, 51], "attack_speed": 0.667, "attack_range_lol": 200,
+      "armor": 42, "magic_resist": 42, "gold": 35, "xp": [20, 30],
+      "move_speed": 5.0, "radius": 0.6, "leash": 14
     },
     "chicken": {
-      "name": "Lumbridge chicken", "style": "melee", "max_health": 120, "damage": 6,
-      "defence": { "melee": 0, "ranged": 0, "magic": 0 },
-      "attack_range": 1.2, "attack_ticks": 4, "move_speed": 5.0, "radius": 0.35, "gold": 15, "xp": 15
+      "name": "Chicken", "lol_name": "Raptor", "style": "melee",
+      "health": [500, 1175], "damage": [7, 21], "attack_speed": 1.0, "attack_range_lol": 150,
+      "armor": 20, "magic_resist": 20, "gold": 8, "xp": [10, 15],
+      "move_speed": 5.0, "radius": 0.35, "leash": 14
+    },
+    "ogre_chieftain": {
+      "name": "Ogre chieftain", "lol_name": "Ancient Krug", "style": "melee",
+      "health": [1350, 3172.5], "damage": [57, 171], "attack_speed": 0.613, "attack_range_lol": 150,
+      "armor": 42, "magic_resist": 42, "gold": 15, "xp": [15, 22.5],
+      "move_speed": 4.8, "radius": 1.1, "leash": 14
     },
     "ogre": {
-      "name": "Ogre", "style": "melee", "max_health": 1300, "damage": 34,
-      "defence": { "melee": 25, "ranged": 20, "magic": 10 },
-      "attack_range": 2.0, "attack_ticks": 6, "move_speed": 4.8, "radius": 1.0, "gold": 80, "xp": 110
+      "name": "Ogre", "lol_name": "Krug", "style": "melee",
+      "health": [650, 1527.5], "damage": [20, 60], "attack_speed": 0.613, "attack_range_lol": 110,
+      "armor": 20, "magic_resist": 20, "gold": 10, "xp": [10, 15],
+      "move_speed": 4.8, "radius": 0.8, "leash": 14
     },
     "rock_crab": {
-      "name": "Rock crab", "style": "melee", "max_health": 600, "damage": 10,
-      "defence": { "melee": 40, "ranged": 40, "magic": 10 },
-      "attack_range": 1.5, "attack_ticks": 5, "move_speed": 4.0, "radius": 0.7, "gold": 40, "xp": 60,
-      "buff": { "kind": "haste", "amount": 0.2, "duration": 30, "label": "Crab scuttle" }
+      "name": "Rock crab", "lol_name": "Rift Scuttler", "style": "melee",
+      "health": [1550, 5270], "damage": [0, 0], "attack_speed": 0.638, "attack_range": 0,
+      "armor": 42, "magic_resist": 42, "gold": [55, 121], "xp": [100, 150],
+      "move_speed": 3.4, "radius": 0.7, "leash": 14, "passive": true,
+      "buff": { "kind": "haste", "amount": 0.3, "duration": 20, "label": "Crab scuttle (Speed Shrine, approximated)" }
+    },
+    "baby_mole": {
+      "name": "Baby mole", "lol_name": "Voidgrub", "style": "ranged", "start_level": 7,
+      "health": [2269, 4700], "damage": [21.69, 46], "attack_speed": 0.5, "attack_range_lol": 500,
+      "armor": [72.76, 170], "magic_resist": [51.38, 100], "gold": 30, "xp": 65,
+      "move_speed": 4.5, "radius": 0.8, "epic": true, "leash": 10
     },
     "giant_mole": {
-      "name": "Giant Mole", "style": "melee", "max_health": 4500, "damage": 70,
-      "defence": { "melee": 40, "ranged": 40, "magic": 40 },
-      "attack_range": 2.2, "attack_ticks": 5, "move_speed": 5.0, "radius": 1.6, "gold": 200, "xp": 300,
-      "epic": true, "leash": 10
+      "name": "Giant Mole", "lol_name": "Rift Herald", "style": "melee", "start_level": 9,
+      "health": [11718, 18900], "damage": [99.5, 250], "attack_speed": 0.4, "attack_range_lol": 250,
+      "armor": [87.92, 170], "magic_resist": [58.96, 100], "gold": 100, "xp": 240,
+      "move_speed": 4.5, "radius": 1.6, "epic": true, "leash": 10
     },
     "tztok_jad": {
-      "name": "TzTok-Jad", "style": "magic", "cycle_styles": ["melee", "ranged", "magic"],
-      "max_health": 9000, "damage": 180, "magic_power": 180,
-      "defence": { "melee": 70, "ranged": 70, "magic": 70 },
-      "attack_range": 8, "attack_ticks": 8, "move_speed": 4.5, "radius": 2.2, "gold": 300, "xp": 600,
-      "epic": true, "leash": 10,
-      "team_buff": { "kind": "damage_mult", "amount": 0.12, "duration": 180, "label": "Fire cape" }
+      "name": "TzTok-Jad", "lol_name": "Baron Nashor", "style": "magic", "start_level": 12,
+      "cycle_styles": ["melee", "ranged", "magic"],
+      "health": [17791.75, 19190], "damage": [350.5, 515], "attack_speed": 0.625, "attack_range_lol": 955,
+      "armor": [104.2, 170], "magic_resist": [67.1, 100], "gold": 150, "team_gold": 100, "xp": 650,
+      "move_speed": 4.5, "radius": 2.2, "epic": true, "leash": 10,
+      "team_buff": { "kind": "damage_mult", "amount": 0.12, "duration": 180, "label": "Fire cape (Hand of Baron, approximated)" }
     },
     "chromatic_dragon": {
-      "name": "Chromatic dragon", "style": "magic", "max_health": 5000, "magic_power": 90,
-      "defence": { "melee": 50, "ranged": 50, "magic": 60 },
-      "attack_range": 6, "attack_ticks": 6, "move_speed": 4.5, "radius": 2.0, "gold": 150, "xp": 300,
-      "epic": true, "leash": 10,
-      "team_buff": { "kind": "damage_mult", "amount": 0.04, "duration": -1, "label": "Dragon soul stack" }
+      "name": "Chromatic dragon", "lol_name": "Elemental Drake", "style": "magic", "start_level": 6,
+      "health": [5106.25, 10000], "damage": [70, 70], "attack_speed": 0.5, "attack_range_lol": 500,
+      "armor": [65.6, 170], "magic_resist": [47.8, 100], "gold": 75, "xp": [160, 400],
+      "move_speed": 4.5, "radius": 2.0, "epic": true, "leash": 10,
+      "team_buff": { "kind": "damage_mult", "amount": 0.04, "duration": -1, "label": "Dragon slayer stack" }
     }
   },
+
   "summons": {
     "dwarf_multicannon": {
       "name": "Dwarf multicannon", "style": "ranged", "max_health": 400, "damage": 35,

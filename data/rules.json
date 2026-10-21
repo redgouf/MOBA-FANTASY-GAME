@@ -1,5 +1,6 @@
 {
   "tick_seconds": 0.25,
+  "lol_units_per_meter": 75,
   "triangle_bonus": 0.15,
   "protect_prayer_reduction": 0.40,
   "resist_constant": 100,
@@ -28,6 +29,7 @@
 
   "spec_regen_per_sec": 1.0,
 
+  "team_size": 5,
   "starting_gold": 500,
   "passive_gold_per_sec": 2.0,
   "passive_gold_start": 60,
@@ -38,6 +40,11 @@
   "shop_radius": 14,
 
   "max_level": 18,
+  "starting_skill_points": 1,
+  "basic_max_rank": 5,
+  "ultimate_max_rank": 3,
+  "ultimate_rank_levels": [6, 11, 16],
+  "basic_cooldown_reduction_per_rank": 0.06,
   "xp_base": 280,
   "xp_step": 100,
   "xp_share_radius": 14,
@@ -48,11 +55,9 @@
   "fountain_radius": 12,
   "fountain_heal_pct_per_sec": 0.10,
 
-  "first_wave_sec": 15,
+  "first_wave_sec": 30,
   "wave_interval_sec": 30,
-  "siege_every": 3,
-
-  "monster_respawn_sec": 120,
-  "epic_respawn_sec": 300,
-  "jad_spawn_sec": 840
+  "minion_upgrade_interval_sec": 90,
+  "minion_spawn_spacing_sec": 0.792,
+  "monster_xp_share_radius": 20
 }

@@ -9,6 +9,7 @@ var is_attack := false           # auto attack (triggers on-hit effects)
 var is_ability := false
 var is_true := false             # ignores resists, triangle and prayer
 var ignores_prayer := false
+var ignore_triangle := false     # e.g. turret shots on minions (fixed % of max health)
 var armor_pen := 0.0
 var crit_mult := 1.0
 var label := ""

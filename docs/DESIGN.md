@@ -14,7 +14,8 @@ The living design doc (full kits, item tables, map breakdown, open questions) is
 | Combat triangle | Melee > Ranged > Magic > Melee. Countering style deals +15%. Three resists: melee, ranged, magic defence. |
 | Ticks | 1 tick = 0.25s. Attack speed is defined in ticks (whip 4, godsword 6, Dharok's greataxe 7). |
 | Special attack energy | One 0–100% bar, +1%/s. Pays for every ultimate **and** every spec-weapon item active. |
-| Skill levels | Each champion has OSRS levels (Attack, Strength, Defence, Ranged, Magic, Prayer). Items keep real OSRS requirements. |
+| Skill levels | Each champion has OSRS levels (Attack, Hitpoints, Strength, Defence, Ranged, Prayer, Magic), shown in an OSRS-style Skills tab. Items keep real OSRS requirements. Name tags show the build's real OSRS combat level. |
+| Mobs and structures | League of Legends Summoner's Rift values for minions, turrets, inhibitors, nexus and jungle (see LOL_VALUES.md). |
 | Protection prayers | **Not universal.** Only tank and main-account builds (currently Justiciar Tank and Slayer) have overheads: −40% from one style, drains prayer. |
 | Offensive prayers | Every build gets the best its Prayer level allows: Piety 70 / Chivalry 60 / Ultimate Strength 31 (melee), Rigour 74 / Eagle Eye 44 (ranged), Augury 77 / Mystic Might 45 (magic). |
 | Spec weapons | Active items in the 6 item slots, each with its own cooldown, spending the shared spec bar. Requirements stop builds from using gear their account couldn't wield. |

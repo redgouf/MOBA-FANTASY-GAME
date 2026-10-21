@@ -18,6 +18,10 @@ func _ready() -> void:
 	test_requirements()
 	test_prayers()
 	test_item_build_paths()
+	test_skill_leveling()
+	test_lol_minions_and_waves()
+	await test_lol_turrets()
+	test_lol_monsters()
 	await test_item_specs()
 	await test_every_ability()
 	print("\n%d passed, %d failed" % [_passed, _failed])
@@ -64,7 +68,8 @@ func test_data_integrity() -> void:
 	for cat in ["minions", "structures", "monsters", "summons"]:
 		check(not GameData.units.get(cat, {}).is_empty(), "units.json has %s" % cat)
 	for c in MapLayout.all_camps():
-		check(not GameData.unit_def("monsters", c["monster"]).is_empty(), "camp monster %s exists" % c["monster"])
+		for member in c["members"]:
+			check(not GameData.unit_def("monsters", member[0]).is_empty(), "camp monster %s exists" % member[0])
 
 
 # --- Combat ------------------------------------------------------------------
@@ -84,7 +89,10 @@ func test_combat_math() -> void:
 	check(is_equal_approx(prayed, 60.0), "protect from melee blocks 40%")
 	var true_dmg := Combat.mitigate(100.0, Combat.Style.MELEE, Combat.Style.RANGED, 500.0, 0.0, Combat.Style.MELEE, false, true)
 	check(is_equal_approx(true_dmg, 100.0), "true damage ignores everything")
-	check(Combat.combat_level(1) == 3 and Combat.combat_level(18) == 126, "levels 1-18 show combat 3-126")
+	var maxed := {"attack": 99, "hitpoints": 99, "strength": 99, "defence": 99, "ranged": 99, "prayer": 99, "magic": 99}
+	check(Combat.osrs_combat_level(maxed) == 126, "maxed skills are combat 126")
+	check(Combat.osrs_combat_level({"hitpoints": 10}) == 3, "a fresh account is combat 3")
+	check(Combat.osrs_combat_level(GameData.champion("pure")["skills"]) == 85, "the Pure build is combat 85")
 
 
 func _make(id: String, team: int, pos: Vector3) -> Champion:
@@ -154,6 +162,172 @@ func test_item_build_paths() -> void:
 	pure.queue_free()
 
 
+func test_skill_leveling() -> void:
+	var c := _make("pure", Combat.Team.SARADOMIN, Vector3(-82, 0, 82))
+	check(c.skill_points == 1 and c.ranks == {"q": 0, "w": 0, "e": 0, "r": 0}, "start with nothing learned and 1 point")
+	check(not c.try_cast("q", null, Vector3.ZERO), "an unlearned ability can't be cast")
+	check(not c.can_rank_up("r"), "R is locked at level 1")
+	check(c.rank_up("q") and c.ranks["q"] == 1 and c.skill_points == 0, "spend the first point on Q")
+	check(not c.rank_up("w"), "no points left")
+	c.add_xp(c.xp_to_next())
+	check(c.level == 2 and c.skill_points == 1, "level 2 grants a point")
+	check(not c.can_rank_up("q"), "Q rank 2 needs level 3")
+	check(c.rank_up("w"), "level 2 can learn W")
+	while c.level < 6:
+		c.add_xp(c.xp_to_next())
+	check(c.can_rank_up("r") and c.rank_up("r"), "R unlocks at level 6")
+	check(not c.can_rank_up("r"), "R rank 2 waits for level 11")
+	var cd1 := c.ability_cooldown("q", c.get_ability("q"))
+	c.ranks["q"] = 5
+	check(c.ability_cooldown("q", c.get_ability("q")) < cd1, "higher ranks shorten basic cooldowns")
+	var bot := Champion.new()
+	bot.setup("dharok", Combat.Team.ZAMORAK, Vector3(82, 0, -82), true)
+	check(bot.ranks["q"] == 1 and bot.skill_points == 0, "bots spend their level 1 point")
+	for i in 5:
+		bot.add_xp(bot.xp_to_next())
+	check(bot.level == 6 and bot.ranks["r"] == 1 and bot.skill_points == 0, "bots take R at level 6")
+	var e := {"base": 100.0, "base_per_rank": 40.0}
+	check(is_equal_approx(AbilityRunner.flat_amount(c, e, {"rank": 3}), 180.0), "rank 3 adds two rank steps")
+	bot.free()
+	c.queue_free()
+
+
+# --- League of Legends values ------------------------------------------------
+
+func test_lol_minions_and_waves() -> void:
+	var melee := GameData.unit_def("minions", "goblin")
+	var caster := GameData.unit_def("minions", "dark_wizard")
+	var siege := GameData.unit_def("minions", "cannon_cart")
+	check(is_equal_approx(Minion.scaled(melee["health"], 1), 465.0), "first-wave melee minion has 465 health")
+	check(is_equal_approx(Minion.scaled(melee["health"], 60), 1550.0), "melee minion health caps at 1550")
+	check(is_equal_approx(Minion.scaled(melee["damage"], 1), 11.0), "first-wave melee minion deals 11")
+	check(is_equal_approx(Minion.scaled(caster["health"], 1), 284.0), "first-wave caster minion has 284 health")
+	check(is_equal_approx(Minion.scaled(caster["damage"], 1), 21.0), "first-wave caster minion deals 21")
+	check(is_equal_approx(Minion.scaled(siege["health"], 1), 835.0), "first siege minion has 835 health")
+	check(is_equal_approx(Minion.scaled(siege["damage"], 1), 37.5), "first siege minion deals 37.5")
+	check(is_equal_approx(Minion.scaled(siege["damage"], 20), 36.0 + 1.5 * 15 + 4.0 * 5), "siege damage grows +4 after upgrade 15")
+	check(is_equal_approx(Minion.scaled(siege["damage"], 99), 126.0), "siege damage caps at 126")
+	var m := Minion.new()
+	m.init_minion("goblin", melee, Combat.Team.SARADOMIN, "mid", MapLayout.lane_path("mid", 0), 1)
+	check(is_equal_approx(1.0 / m.get_attack_interval(), 1.25), "melee minions attack 1.25 times per second")
+	check(is_equal_approx(m.get_attack_range(), 110.0 / 75.0), "melee minion range is 110 LoL units")
+	m.free()
+	check(WaveSpawner.upgrades_at(29.0) == 0 and WaveSpawner.upgrades_at(30.0) == 1, "first upgrade at 0:30")
+	check(WaveSpawner.upgrades_at(119.0) == 1 and WaveSpawner.upgrades_at(120.0) == 2, "then one every 90 s")
+	check(WaveSpawner.wave_interval_at(60.0) == 30.0 and WaveSpawner.wave_interval_at(900.0) == 25.0 \
+		and WaveSpawner.wave_interval_at(1900.0) == 20.0, "waves every 30 / 25 / 20 s")
+	var ws := WaveSpawner.new()
+	var normal := ws.wave_composition(60.0, 0, "mid", false)
+	check(normal.count("goblin") == 3 and normal.count("dark_wizard") == 3 and normal.size() == 6, "normal wave: 3 melee + 3 casters")
+	var late := ws.wave_composition(900.0, 0, "mid", true)
+	check(late.count("goblin") == 2 and late.has("cannon_cart"), "after 14:00 a siege wave has one fewer melee")
+	check(ws.wave_composition(1900.0, 0, "mid", false).count("dark_wizard") == 2, "2 casters per wave after 30:00")
+	ws.altar_down = func(team: int, lane: String) -> bool: return team == 1 and lane == "top"
+	var top := ws.wave_composition(600.0, 0, "top", true)
+	check(top.has("knight") and not top.has("cannon_cart"), "a Knight replaces the siege minion while that altar is down")
+	check(not ws.wave_composition(600.0, 0, "mid", false).has("knight"), "other lanes get no Knight")
+	ws.altar_down = func(team: int, _lane: String) -> bool: return team == 1
+	check(ws.wave_composition(600.0, 0, "mid", false).count("knight") == 2, "two Knights per lane with all altars down")
+	ws.altar_down = Callable()
+	var siege_waves: Array[int] = []
+	for w in 9:
+		ws._queue_wave(30.0 + 30.0 * w)
+		if ws._waves_since_siege == 0:
+			siege_waves.append(ws.wave)
+	check(siege_waves == [3, 6, 9], "siege minion on every 3rd wave before 14:00 (got %s)" % str(siege_waves))
+	ws.free()
+
+
+func test_lol_turrets() -> void:
+	Combat.clock = 0.0
+	var tower := Structure.new()
+	tower.init_structure("tower", GameData.unit_def("structures", "tower_outer"), Combat.Team.ZAMORAK, "Test tower", "tower_outer")
+	add_child(tower)
+	check(is_equal_approx(tower.max_health, 9000.0) and is_equal_approx(tower.get_defence(0), 60.0), "outer turret: 9000 health, 60 armor")
+	check(is_equal_approx(1.0 / tower.get_attack_interval(), 0.833), "turrets attack 0.833 times per second")
+	check(is_equal_approx(tower.get_attack_range(), 10.0), "turret range is 750 LoL units (10 m)")
+	check(is_equal_approx(tower.get_damage(), 182.0), "outer turret starts at 182 damage")
+	Combat.clock = 7 * 60.0
+	check(is_equal_approx(tower.get_damage(), 266.0), "outer turret damage grows 12 per minute")
+	Combat.clock = 30 * 60.0
+	check(is_equal_approx(tower.get_damage(), 350.0), "outer turret damage caps at 350")
+	Combat.clock = 0.0
+	var melee := Minion.new()
+	melee.init_minion("goblin", GameData.unit_def("minions", "goblin"), 0, "mid", MapLayout.lane_path("mid", 0), 1)
+	add_child(melee)
+	var caster := Minion.new()
+	caster.init_minion("dark_wizard", GameData.unit_def("minions", "dark_wizard"), 0, "mid", MapLayout.lane_path("mid", 0), 1)
+	add_child(caster)
+	check(is_equal_approx(tower.build_attack_damage(melee).amount, 0.45 * 465.0), "turret shots deal 45% of a melee minion's max health")
+	var shots := 0
+	while not melee.is_dead and shots < 10:
+		melee.take_damage(tower.build_attack_damage(melee))
+		shots += 1
+	check(shots == 3, "a turret kills a melee minion in 3 shots (took %d)" % shots)
+	shots = 0
+	while not caster.is_dead and shots < 10:
+		caster.take_damage(tower.build_attack_damage(caster))
+		shots += 1
+	check(shots == 2, "a turret kills a caster minion in 2 shots (took %d)" % shots)
+	var champ := _make("dharok", Combat.Team.SARADOMIN, Vector3(0, 0, 0))
+	var amounts: Array[float] = []
+	for i in 5:
+		amounts.append(tower.build_attack_damage(champ).amount)
+	check(is_equal_approx(amounts[1] / amounts[0], 1.5) and is_equal_approx(amounts[3] / amounts[0], 2.5) \
+		and is_equal_approx(amounts[4] / amounts[0], 2.5), "Warming Up: +50% per shot on champions, up to +150%")
+	Combat.clock = 10.0
+	check(is_equal_approx(tower.build_attack_damage(champ).amount, tower.get_damage()), "Warming Up resets 5 s after the last champion hit")
+	Combat.clock = 0.0
+	var hit := DamageInfo.make(100.0, Combat.Style.MELEE, champ)
+	hit.is_attack = true
+	check(is_equal_approx(tower.modify_incoming(100.0, hit), 120.0), "melee champions deal 20% more damage to turrets")
+	var minion_hit := DamageInfo.make(100.0, Combat.Style.MELEE, null)
+	var gob := Minion.new()
+	gob.init_minion("goblin", GameData.unit_def("minions", "goblin"), 0, "mid", MapLayout.lane_path("mid", 0), 1)
+	var vs_champ := DamageInfo.make(100.0, Combat.Style.MELEE, gob)
+	gob.modify_outgoing(vs_champ, champ)
+	check(is_equal_approx(vs_champ.amount, 60.0), "minions deal 60% damage to champions")
+	gob.free()
+	var altar := Structure.new()
+	altar.init_structure("altar", GameData.unit_def("structures", "altar"), Combat.Team.ZAMORAK, "Test altar", "altar")
+	add_child(altar)
+	check(is_equal_approx(altar.max_health, 4000.0), "altars (inhibitors) have 4000 health")
+	altar.die(null)
+	await get_tree().physics_frame
+	check(altar.is_dead and is_equal_approx(altar.respawn_timer, 300.0), "altars respawn after 5 minutes")
+	altar._dead_process(300.0)
+	check(not altar.is_dead and is_equal_approx(altar.health, 4000.0), "a respawned altar comes back at full health")
+	for n in [tower, champ, altar]:
+		n.queue_free()
+	await get_tree().process_frame
+
+
+func test_lol_monsters() -> void:
+	check(is_equal_approx(Monster.by_level([2300, 6210], 1, 1), 2300.0), "Blue Sentinel has 2300 health at level 1")
+	check(is_equal_approx(Monster.by_level([2300, 6210], 18, 1), 6210.0), "...and 6210 at level 18")
+	var blue := Monster.new()
+	blue.init_monster("abyssal_demon", GameData.unit_def("monsters", "abyssal_demon"), Vector3.ZERO, "test", 1)
+	check(is_equal_approx(blue.max_health, 2300.0) and is_equal_approx(blue.get_defence(2), 42.0), "abyssal demon = Blue Sentinel (2300 HP, 42 MR)")
+	check(is_equal_approx(1.0 / blue.get_attack_interval(), 0.493), "Blue Sentinel attacks 0.493 times per second")
+	blue.free()
+	var drake := Monster.new()
+	drake.init_monster("chromatic_dragon", GameData.unit_def("monsters", "chromatic_dragon"), Vector3.ZERO, "test", 1)
+	check(drake.level == 6 and is_equal_approx(drake.max_health, 5106.25), "drakes start at level 6 with 5106 health")
+	drake.free()
+	var jad := Monster.new()
+	jad.init_monster("tztok_jad", GameData.unit_def("monsters", "tztok_jad"), Vector3.ZERO, "test", 18)
+	check(is_equal_approx(jad.max_health, 19190.0) and is_equal_approx(jad.base_damage, 515.0), "Jad = Baron Nashor (19190 HP, 515 damage at level 18)")
+	jad.free()
+	var timings := {}
+	for c in MapLayout.all_camps():
+		timings[c["id"]] = c
+	check(timings["sara_blue"]["first"] == 55 and timings["sara_blue"]["respawn"] == 300, "blue/red: 0:55, every 5:00")
+	check(timings["dragon"]["first"] == 300, "first drake at 5:00")
+	check(timings["grubs"]["first"] == 480 and timings["mole"]["first"] == 900 and timings["jad"]["first"] == 1200,
+		"Voidgrubs 8:00, Herald 15:00, Baron 20:00")
+	check(timings["sara_chickens"]["members"].size() == 6, "the chicken camp is 1 big + 5 small, like Raptors")
+
+
 func test_item_specs() -> void:
 	var tank := _make("justiciar", Combat.Team.SARADOMIN, Vector3(0, 0, 0))
 	var foe := _make("dharok", Combat.Team.ZAMORAK, Vector3(1.5, 0, 0))
@@ -178,6 +352,8 @@ func test_every_ability() -> void:
 		var ally := _make("justiciar", Combat.Team.SARADOMIN, Vector3(-1.5, 0, 0))
 		var foe := _make("dharok", Combat.Team.ZAMORAK, Vector3(1.8, 0, 0))
 		await get_tree().physics_frame
+		for slot in Champion.SLOTS:
+			caster.ranks[slot] = 1
 		for slot in Champion.SLOTS:
 			caster.spec = 100.0
 			caster.cooldowns[slot] = 0.0

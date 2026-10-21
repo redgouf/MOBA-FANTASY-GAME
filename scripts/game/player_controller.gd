@@ -1,8 +1,10 @@
 class_name PlayerController
 extends Node
 ## Turns mouse and keyboard input into champion commands.
-## Right-click: move or attack. Q/W/E/R: abilities at the cursor. 1-6: item specs.
-## 7-0: food and potions. Z/X/C: overheads (builds that have them). V: offensive prayer.
+## Left-click: select (inspect) a unit. Right-click: move or attack.
+## Q/W/E/R: abilities at the cursor. Ctrl+Q/W/E/R: spend a skill point.
+## 1-6: item specs. 7-0: food and potions. Z/X/C: overheads (builds that have them).
+## V: offensive prayer. Middle-mouse drag pans the camera (CameraRig).
 
 const PICK_RADIUS_PX := 36.0
 
@@ -26,6 +28,15 @@ func _process(_delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if champion == null or rig == null:
 		return
+	if event.is_action_pressed("select") and event is InputEventMouseButton:
+		main.select_unit(pick_unit(event.position))
+		get_viewport().set_input_as_handled()
+		return
+	for slot in Champion.SLOTS:
+		if event.is_action_pressed("level_" + slot):
+			champion.rank_up(slot)
+			get_viewport().set_input_as_handled()
+			return
 	if event.is_action_pressed("move_command") and event is InputEventMouseButton:
 		var pos: Vector2 = event.position
 		var u := pick_unit(pos)
@@ -39,7 +50,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	for slot in Champion.SLOTS:
-		if event.is_action_pressed("ability_" + slot):
+		if event.is_action_pressed("ability_" + slot, false, true):
 			_cast(slot)
 			return
 	for i in 6:
@@ -79,8 +90,7 @@ func _cursor_target() -> Dictionary:
 
 
 func ground_point(screen_pos: Vector2) -> Variant:
-	var cam := rig.camera
-	return Plane(Vector3.UP, 0.0).intersects_ray(cam.project_ray_origin(screen_pos), cam.project_ray_normal(screen_pos))
+	return rig.ground_point(screen_pos)
 
 
 ## Screen-space picking: the unit whose body is closest to the cursor.
@@ -103,18 +113,4 @@ func pick_unit(screen_pos: Vector2) -> Unit:
 
 
 func _click_marker(p: Vector3) -> void:
-	var marker := MeshInstance3D.new()
-	var ring := TorusMesh.new()
-	ring.inner_radius = 0.35
-	ring.outer_radius = 0.5
-	marker.mesh = ring
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(0.4, 1.0, 0.4, 0.9)
-	marker.material_override = mat
-	main.add_child(marker)
-	marker.global_position = p + Vector3.UP * 0.08
-	var tween := marker.create_tween()
-	tween.tween_property(marker, "scale", Vector3(0.2, 0.2, 0.2), 0.35)
-	tween.tween_callback(marker.queue_free)
+	ClickMarker.spawn(main, p, ClickMarker.MOVE)

@@ -5,15 +5,15 @@ extends RefCounted
 ## See docs/ABILITIES.md for the full effect reference.
 
 
-static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vector3) -> void:
-	var ctx := {"self_cost": 0.0}
+static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vector3, rank: int = 1) -> void:
+	var ctx := {"self_cost": 0.0, "rank": maxi(rank, 1)}
 	for effect in ab.get("effects", []):
 		var delay := float(effect.get("delay", 0.0))
 		if delay > 0.0:
 			var run := func() -> void:
 				if is_instance_valid(caster) and not caster.is_dead:
 					apply_effect(caster, effect, target, point, ctx)
-			caster.get_tree().create_timer(delay).timeout.connect(run)
+			caster.get_tree().create_timer(delay, false).timeout.connect(run)
 		else:
 			apply_effect(caster, effect, target, point, ctx)
 
@@ -78,7 +78,7 @@ static func _damage(caster: Champion, e: Dictionary, target: Unit, point: Vector
 			else:
 				var later := func() -> void:
 					_hit(caster, e, t, center, ctx, m)
-				caster.get_tree().create_timer(interval * h).timeout.connect(later)
+				caster.get_tree().create_timer(interval * h, false).timeout.connect(later)
 
 
 ## Dragon claws style cascade: a missed hit rolls its damage into the next one.
@@ -95,8 +95,16 @@ static func _hit_multipliers(hits: int, cascade: bool, miss_chance: float) -> Ar
 	return out
 
 
-static func compute_amount(caster: Champion, e: Dictionary, t: Unit) -> float:
-	var amount := float(e.get("base", 0.0)) + float(e.get("base_per_level", 0.0)) * float(caster.level - 1)
+## Flat part of an effect: "base" plus "base_per_rank" for each rank past 1
+## (kit abilities) and "base_per_level" per champion level past 1 (item specs).
+static func flat_amount(caster: Champion, e: Dictionary, ctx: Dictionary) -> float:
+	return float(e.get("base", 0.0)) \
+		+ float(e.get("base_per_rank", 0.0)) * float(int(ctx.get("rank", 1)) - 1) \
+		+ float(e.get("base_per_level", 0.0)) * float(caster.level - 1)
+
+
+static func compute_amount(caster: Champion, e: Dictionary, t: Unit, ctx: Dictionary = {}) -> float:
+	var amount := flat_amount(caster, e, ctx)
 	var ratio: Dictionary = e.get("ratio", {})
 	amount += float(ratio.get("damage", 0.0)) * caster.get_damage()
 	amount += float(ratio.get("magic_power", 0.0)) * caster.get_magic_power()
@@ -118,7 +126,7 @@ static func _hit(caster: Champion, e: Dictionary, t: Unit, center: Vector3, ctx:
 	if mult <= 0.0:
 		t._spawn_hitsplat(0.0, DamageInfo.new())
 		return
-	var amount := compute_amount(caster, e, t) * mult
+	var amount := compute_amount(caster, e, t, ctx) * mult
 	var area: Dictionary = e.get("area", {})
 	if bool(e.get("falloff", false)) and not area.is_empty():
 		var r := float(area.get("radius", 3.0))
@@ -159,7 +167,7 @@ static func _heal(caster: Champion, e: Dictionary, target: Unit, point: Vector3,
 	else:
 		recipients.append(caster)
 	for u in recipients:
-		var amount := float(e.get("base", 0.0)) + float(e.get("base_per_level", 0.0)) * float(caster.level - 1)
+		var amount := flat_amount(caster, e, ctx)
 		amount += float(e.get("ratio", {}).get("magic_power", 0.0)) * caster.get_magic_power()
 		amount += float(e.get("pct_missing", 0.0)) * (u.max_health - u.health)
 		amount += float(e.get("pct_max", 0.0)) * u.max_health

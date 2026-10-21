@@ -3,7 +3,7 @@
 ## Flow
 
 1. `GameData` (autoload) loads `data/*.json` and configures `Combat`.
-2. `scenes/main.tscn` runs `scripts/game/main.gd`, which builds the map (`MapBuilder`), shows `ChampionSelect`, then `start_match()` spawns structures, camps, champions, the `WaveSpawner`, camera, input and HUD.
+2. `scenes/main.tscn` runs `scripts/game/main.gd`, which builds the map (`MapBuilder`), shows `ChampionSelect`, then `start_match()` (you + 4 bots vs 5 bots, `PlayerController`) or `start_spectate()` (10 bots, `SpectatorController`) spawns structures, camps, champions, the `WaveSpawner`, camera, HUD and `PauseMenu`.
 3. Every fighter is a `Unit` (`CharacterBody3D`). Subclasses add behaviour in `_unit_process()`:
    - `Champion`: player input or bot AI, navmesh pathing, abilities, items, prayer, spec energy, leveling
    - `Minion`: walks its lane, fights the nearest enemy
@@ -11,6 +11,14 @@
    - `Monster`: neutral camps and epics with leash and reset
 4. Damage always goes through `Unit.take_damage(DamageInfo)` → `Combat.mitigate()` (triangle, resists, protection prayer) → status modifiers → passive hooks.
 5. `Main` listens to every `died` signal and pays gold, XP, buffs, and checks the win condition.
+
+## UI
+
+- `Hud` lays everything out with `UiStyle.place()` (anchor preset + offset), so it holds at any window size; the project uses `canvas_items` stretch from a 1600x900 base.
+- `Hud.set_champion()` switches whose perspective is shown; spectator mode uses it to lock onto bots.
+- Champions emit `command_issued(kind, point, label)` for every order; `GhostCursor` draws it.
+- `Settings` (autoload) saves to `user://settings.cfg`; `Combat.clock` is the pausable game clock.
+- Visual checks: `--screenshot=PATH --screenshot-at=SECONDS [--shot-ui=target|menu|settings|controls|shop] [--demo-level=N]` renders a PNG and quits (works under Xvfb with `--rendering-method gl_compatibility`).
 
 ## Conventions
 
@@ -21,18 +29,19 @@
 
 ## Roadmap
 
-**v0.2 — feel**
+**v0.3 — feel**
 - Low-poly OSRS-style models and animations, hitsplat polish, ability VFX
-- Minimap, fog of war, brush (evergreen tree clusters)
+- Fog of war, brush (evergreen tree clusters)
+- Smarter bots: jungling, tower-dive avoidance, objective fights
 - Armour set bonuses and the "planned" item effects (scythe arcs, recoil, venator bounces)
 - Bots that jungle and contest Jad/dragons; dragon souls and Vorkath
 
-**v0.3 — 5v5**
-- Full 5v5 with role-based bots; spellbook (summoner) spells
+**v0.4 — depth**
+- Role-based bots; spellbook (summoner) spells
 - Giant Mole tower-burrow behaviour; Fire cape empowered minions
 - Prayer drain from Smite, Rune pouch for the Lunar
 
-**v0.4 — multiplayer**
+**v0.5 — multiplayer**
 - Server-authoritative netcode with Godot's high-level multiplayer (ENet), lobby and champion draft
 
 **Later**

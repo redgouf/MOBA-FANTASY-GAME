@@ -35,11 +35,21 @@ const KEY_BINDINGS := {
 	"camera_right": KEY_RIGHT,
 	"camera_up": KEY_UP,
 	"camera_down": KEY_DOWN,
+	"menu": KEY_ESCAPE,
+}
+
+## Ctrl + key bindings (League-style ability level-up).
+const CTRL_BINDINGS := {
+	"level_q": KEY_Q,
+	"level_w": KEY_W,
+	"level_e": KEY_E,
+	"level_r": KEY_R,
 }
 
 const MOUSE_BINDINGS := {
 	"move_command": MOUSE_BUTTON_RIGHT,
 	"select": MOUSE_BUTTON_LEFT,
+	"camera_drag": MOUSE_BUTTON_MIDDLE,
 	"camera_zoom_in": MOUSE_BUTTON_WHEEL_UP,
 	"camera_zoom_out": MOUSE_BUTTON_WHEEL_DOWN,
 }
@@ -53,6 +63,14 @@ func _ready() -> void:
 		var ev := InputEventKey.new()
 		ev.physical_keycode = KEY_BINDINGS[action]
 		InputMap.action_add_event(action, ev)
+	for action in CTRL_BINDINGS:
+		if InputMap.has_action(action):
+			continue
+		InputMap.add_action(action)
+		var ctrl_ev := InputEventKey.new()
+		ctrl_ev.physical_keycode = CTRL_BINDINGS[action]
+		ctrl_ev.ctrl_pressed = true
+		InputMap.action_add_event(action, ctrl_ev)
 	for action in MOUSE_BINDINGS:
 		if InputMap.has_action(action):
 			continue
