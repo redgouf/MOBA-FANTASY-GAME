@@ -21,6 +21,7 @@ var _stats: Label
 var _info: Label
 var _items_row: HBoxContainer
 var _items: Array[ItemSlot] = []
+var _buffs: BuffBar
 
 
 static func create(parent: Control) -> TargetFrame:
@@ -30,6 +31,8 @@ static func create(parent: Control) -> TargetFrame:
 	UiStyle.place(f, Control.PRESET_TOP_LEFT, Vector2(8, 8), Vector2(WIDTH, 168))
 	f.mouse_filter = Control.MOUSE_FILTER_STOP
 	f._build()
+	# Buffs/debuffs under the frame: allies (and yourself) only, never enemies.
+	f._buffs = BuffBar.create(f, Rect2(0, 172, WIDTH, 34))
 	f.visible = false
 	return f
 
@@ -86,7 +89,7 @@ func portrait_rect() -> Rect2:
 func show_unit(u: Unit, viewer_team: int, caption: String = "") -> void:
 	target = u
 	_caption.text = caption
-	if not is_instance_valid(u):
+	if not is_instance_valid(u) or u.fog_hidden:
 		visible = false
 		return
 	visible = true
@@ -137,10 +140,12 @@ func show_unit(u: Unit, viewer_team: int, caption: String = "") -> void:
 				info.append("Next attack: %s" % str(m.cycle_styles[m._cycle % m.cycle_styles.size()]))
 		_sub.text = "%s %s" % [team_name, kind]
 	_hp.set_values(u.health, u.max_health)
+	_buffs.unit = u if u.team == viewer_team else null
 
 	var style_name := Combat.style_name(u.attack_style).capitalize()
 	var dmg := u.get_magic_power() if u.attack_style == Combat.Style.MAGIC else u.get_damage()
-	_stats.text = "%s %d   Def %d / %d / %d   Atk/s %.2f   Move %.1f   Range %.1f" % [
+	_stats.text = "%s %d   Def %d / %d / %d   Atk %s   Move %.1f   Range %.1f" % [
 		style_name, int(dmg), int(u.get_defence(0)), int(u.get_defence(1)), int(u.get_defence(2)),
-		1.0 / u.get_attack_interval() if u.base_attack_range > 0.0 else 0.0, u.get_move_speed(), u.get_attack_range()]
+		"%.1fs (%d ticks)" % [u.get_attack_interval(), roundi(u.attack_ticks)] if u.base_attack_range > 0.0 else "-",
+		u.get_move_speed(), u.get_attack_range()]
 	_info.text = "   ".join(info)

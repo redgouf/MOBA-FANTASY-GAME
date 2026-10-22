@@ -3,11 +3,14 @@ extends Node
 ## Turns mouse and keyboard input into champion commands.
 ## Left-click: select (inspect) a unit. Right-click: move or attack.
 ## Q/W/E/R: abilities at the cursor. Ctrl+Q/W/E/R: spend a skill point.
-## Casting follows Settings.cast_mode: quick cast with indicator (hold to aim,
-## release to cast; the default), normal cast (press to aim, left-click to
-## cast) or quick cast. Right-click (or Esc) cancels aiming.
+## Casting follows Settings.cast_mode: normal cast (the default: press to show
+## the indicator, left-click to cast; it stays up while you right-click to
+## walk, so you can line a cast up on the move; Esc cancels), quick cast with
+## indicator (hold to aim, release to cast; right-click cancels) or quick cast.
 ## 1-6: item specs. 7-0: food and potions. Z/X/C: overheads (builds that have them).
 ## V: offensive prayer. Middle-mouse drag pans the camera (CameraRig).
+## Every order goes through GameTick.queue_input: a click between ticks
+## takes effect on the next game tick, as in OSRS. Aiming stays instant.
 
 const PICK_RADIUS_PX := 36.0
 
@@ -112,7 +115,17 @@ func cast_at_cursor(key: String) -> bool:
 	var tree := tree_under_cursor(key)
 	if tree != null:
 		point = tree.global_position
-	return champion.try_cast(key, t["unit"], point)
+	var target: Unit = t["unit"]
+	order(func() -> void: champion.try_cast(key, target, point))
+	return true
+
+
+## Queues an order for the next game tick (dropped if the champion is gone).
+func order(action: Callable) -> void:
+	var c := champion
+	GameTick.queue_input(func() -> void:
+		if is_instance_valid(c):
+			action.call())
 
 
 ## Your Timber! yew under the cursor: picked on screen (its trunk) or by the
@@ -155,10 +168,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			confirm_aim()
 			get_viewport().set_input_as_handled()
 			return
-		if event.is_action_pressed("move_command"):
+		if event.is_action_pressed("move_command") and Settings.cast_mode != Settings.CAST_NORMAL:
 			cancel_aim()
 			get_viewport().set_input_as_handled()
 			return
+		# Normal cast: right-click moves (or attacks) and the indicator stays up.
 	if aiming != "" and _aim_input != "" and event.is_action_released(_aim_input) \
 			and Settings.cast_mode == Settings.CAST_QUICK_INDICATOR:
 		confirm_aim()
@@ -170,18 +184,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	for slot in Champion.SLOTS:
 		if event.is_action_pressed("level_" + slot):
-			champion.rank_up(slot)
+			order(func() -> void: champion.rank_up(slot))
 			get_viewport().set_input_as_handled()
 			return
 	if event.is_action_pressed("move_command") and event is InputEventMouseButton:
 		var pos: Vector2 = event.position
 		var u := pick_unit(pos)
+		var altar := altar_under_cursor(pos)
 		if u != null and u.team != champion.team and u.is_damageable():
-			champion.command_attack(u)
+			order(func() -> void:
+				if is_instance_valid(u):
+					champion.command_attack(u))
+		elif altar != null:
+			order(func() -> void: champion.command_pray(altar))
+			_click_marker(altar.global_position)
 		else:
 			var p: Variant = ground_point(pos)
 			if p != null:
-				champion.command_move(p)
+				var to: Vector3 = p
+				order(func() -> void: champion.command_move(to))
 				_click_marker(p)
 		get_viewport().set_input_as_handled()
 		return
@@ -197,20 +218,20 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	for i in 4:
 		if event.is_action_pressed("consume_%d" % (i + 1)):
-			champion.use_consumable(i)
+			order(func() -> void: champion.use_consumable(i))
 			return
 	if event.is_action_pressed("prayer_melee"):
-		champion.toggle_protect(Combat.Style.MELEE)
+		order(func() -> void: champion.toggle_protect(Combat.Style.MELEE))
 	elif event.is_action_pressed("prayer_ranged"):
-		champion.toggle_protect(Combat.Style.RANGED)
+		order(func() -> void: champion.toggle_protect(Combat.Style.RANGED))
 	elif event.is_action_pressed("prayer_magic"):
-		champion.toggle_protect(Combat.Style.MAGIC)
+		order(func() -> void: champion.toggle_protect(Combat.Style.MAGIC))
 	elif event.is_action_pressed("prayer_offensive"):
-		champion.activate_offensive_prayer()
+		order(func() -> void: champion.toggle_chosen_prayer())
 	elif event.is_action_pressed("recall"):
-		champion.start_recall()
+		order(func() -> void: champion.start_recall())
 	elif event.is_action_pressed("stop"):
-		champion.command_stop()
+		order(func() -> void: champion.command_stop())
 	elif event.is_action_pressed("toggle_shop") and main.get("hud") != null:
 		main.hud.toggle_shop()
 
@@ -232,7 +253,7 @@ func pick_unit(screen_pos: Vector2) -> Unit:
 	var best_d := PICK_RADIUS_PX
 	for n in get_tree().get_nodes_in_group("units"):
 		var u := n as Unit
-		if u == null or u.is_dead or not u.visible:
+		if u == null or u.is_dead or not u.visible or u.fog_hidden:
 			continue
 		var world := u.global_position + Vector3.UP * u.visual_height() * 0.5
 		if cam.is_position_behind(world):
@@ -242,6 +263,21 @@ func pick_unit(screen_pos: Vector2) -> Unit:
 			best_d = d
 			best = u
 	return best
+
+
+## A prayer altar under the cursor (its body on screen, or the ground right next to it).
+func altar_under_cursor(screen_pos: Vector2) -> PrayerAltar:
+	var cam := rig.camera
+	var ground: Variant = ground_point(screen_pos)
+	for a in PrayerAltar.active:
+		if not is_instance_valid(a):
+			continue
+		if ground != null and Unit.flat_distance(ground, a.global_position) <= a.radius + 0.6:
+			return a
+		var w: Vector3 = a.global_position + Vector3.UP * 1.0
+		if not cam.is_position_behind(w) and cam.unproject_position(w).distance_to(screen_pos) <= PICK_RADIUS_PX:
+			return a
+	return null
 
 
 func _click_marker(p: Vector3) -> void:

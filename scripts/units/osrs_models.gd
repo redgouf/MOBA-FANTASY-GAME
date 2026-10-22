@@ -177,7 +177,7 @@ static func build_clip_library(names: Array[String]) -> AnimationLibrary:
 static func required_clips() -> Array[String]:
 	var out: Array[String] = ["idle", "walk", "run"]
 	var cfg := config()
-	for k in ["default_cast_clip", "eat_clip", "death_clip"]:
+	for k in ["default_cast_clip", "eat_clip", "death_clip", "pray_clip"]:
 		out.append(str(cfg.get(k, "")))
 	var weapons: Array[int] = []
 	for id in cfg.get("champions", {}):

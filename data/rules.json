@@ -1,110 +1,341 @@
 {
-  "tick_seconds": 0.25,
+  "tick_seconds": 0.6,
+  "_attack_speed_note": "Attacks use OSRS weapon speeds: one game tick is 0.6s (a whip is 4 ticks, 2.4s). Units first balanced on LoL speeds (attack_speed) or 0.25s ticks hit harder per swing so their basic-attack damage per second ends up at basic_attack_dps_scale of what it was.",
+  "legacy_tick_seconds": 0.25,
+  "basic_attack_dps_scale": 0.7,
+  "hp_scale": 0.2,
+  "_hp_scale_note": "Every health pool and damage/heal amount in the data is multiplied by hp_scale when it loads, so hitsplats stay OSRS-sized while fights play the same. The data files keep League-sized numbers.",
   "lol_units_per_meter": 75,
   "triangle_bonus": 0.15,
   "protect_prayer_reduction": 0.4,
   "resist_constant": 100,
   "prayer_points_max": 99,
-  "protect_prayer_drain_per_sec": 1.0,
-  "offensive_prayer": {
-    "cost": 10,
-    "duration": 6,
-    "cooldown": 60
+  "skill_roll": [
+    20,
+    60
+  ],
+  "prayer_drain": {
+    "_formula": "OSRS: one point drains every 0.6s x (60 + 2 x prayer bonus) / total drain effect of active prayers; then divided by rate_mult (3x faster than OSRS in this version)",
+    "tick": 0.6,
+    "base_resistance": 60,
+    "per_bonus": 2,
+    "rate_mult": 3.0
   },
-  "offensive_prayers": {
-    "melee": [
-      {
-        "name": "Piety",
-        "level": 70,
-        "bonus": 0.12
-      },
-      {
-        "name": "Chivalry",
-        "level": 60,
-        "bonus": 0.09
-      },
-      {
-        "name": "Ultimate Strength",
-        "level": 31,
-        "bonus": 0.06
-      },
-      {
-        "name": "Superhuman Strength",
-        "level": 13,
-        "bonus": 0.04
-      },
-      {
-        "name": "Burst of Strength",
-        "level": 4,
-        "bonus": 0.02
-      },
-      {
-        "name": "Thick Skin",
-        "level": 1,
-        "kind": "damage_taken_mult",
-        "bonus": -0.05,
-        "text": "+5% Defence: take 5% less damage"
-      }
-    ],
-    "ranged": [
-      {
-        "name": "Rigour",
-        "level": 74,
-        "bonus": 0.12
-      },
-      {
-        "name": "Eagle Eye",
-        "level": 44,
-        "bonus": 0.08
-      },
-      {
-        "name": "Hawk Eye",
-        "level": 26,
-        "bonus": 0.05
-      },
-      {
-        "name": "Sharp Eye",
-        "level": 8,
-        "bonus": 0.02
-      },
-      {
-        "name": "Thick Skin",
-        "level": 1,
-        "kind": "damage_taken_mult",
-        "bonus": -0.05,
-        "text": "+5% Defence: take 5% less damage"
-      }
-    ],
-    "magic": [
-      {
-        "name": "Augury",
-        "level": 77,
-        "bonus": 0.12
-      },
-      {
-        "name": "Mystic Might",
-        "level": 45,
-        "bonus": 0.08
-      },
-      {
-        "name": "Mystic Lore",
-        "level": 27,
-        "bonus": 0.05
-      },
-      {
-        "name": "Mystic Will",
-        "level": 9,
-        "bonus": 0.02
-      },
-      {
-        "name": "Thick Skin",
-        "level": 1,
-        "kind": "damage_taken_mult",
-        "bonus": -0.05,
-        "text": "+5% Defence: take 5% less damage"
-      }
-    ]
+  "prayer_altar": {
+    "channel": 1.2,
+    "cooldown": 45,
+    "range": 2.6
   },
+  "prayers": [
+    {
+      "id": "thick_skin",
+      "name": "Thick Skin",
+      "level": 1,
+      "drain": 1,
+      "damage_taken": -0.03,
+      "osrs": "+5% Defence"
+    },
+    {
+      "id": "burst_of_strength",
+      "name": "Burst of Strength",
+      "level": 4,
+      "drain": 1,
+      "style": "melee",
+      "damage": 0.03,
+      "osrs": "+5% Strength"
+    },
+    {
+      "id": "clarity_of_thought",
+      "name": "Clarity of Thought",
+      "level": 7,
+      "drain": 1,
+      "style": "melee",
+      "attack_speed": 0.04,
+      "osrs": "+5% Attack"
+    },
+    {
+      "id": "sharp_eye",
+      "name": "Sharp Eye",
+      "level": 8,
+      "drain": 1,
+      "style": "ranged",
+      "damage": 0.03,
+      "osrs": "+5% Ranged attack and strength"
+    },
+    {
+      "id": "mystic_will",
+      "name": "Mystic Will",
+      "level": 9,
+      "drain": 1,
+      "style": "magic",
+      "damage": 0.03,
+      "osrs": "+5% Magic attack and defence"
+    },
+    {
+      "id": "rock_skin",
+      "name": "Rock Skin",
+      "level": 10,
+      "drain": 6,
+      "damage_taken": -0.06,
+      "osrs": "+10% Defence"
+    },
+    {
+      "id": "superhuman_strength",
+      "name": "Superhuman Strength",
+      "level": 13,
+      "drain": 6,
+      "style": "melee",
+      "damage": 0.06,
+      "osrs": "+10% Strength"
+    },
+    {
+      "id": "improved_reflexes",
+      "name": "Improved Reflexes",
+      "level": 16,
+      "drain": 6,
+      "style": "melee",
+      "attack_speed": 0.08,
+      "osrs": "+10% Attack"
+    },
+    {
+      "id": "rapid_restore",
+      "name": "Rapid Restore",
+      "level": 19,
+      "drain": 1,
+      "special": "rapid_restore",
+      "amount": 0.25,
+      "text": "Enemy slows, roots, stuns and other debuffs on you wear off 25% faster.",
+      "osrs": "Stats restore twice as fast"
+    },
+    {
+      "id": "rapid_heal",
+      "name": "Rapid Heal",
+      "level": 22,
+      "drain": 2,
+      "special": "rapid_heal",
+      "amount": 0.006,
+      "text": "Out of combat (4s without taking damage), regenerate 0.6% of max health per second.",
+      "osrs": "Hitpoints restore twice as fast"
+    },
+    {
+      "id": "protect_item",
+      "name": "Protect Item",
+      "level": 25,
+      "drain": 2,
+      "special": "protect_item",
+      "amount": 0.4,
+      "text": "If you die, your killer gets 40% less gold.",
+      "osrs": "Keep one extra item on death"
+    },
+    {
+      "id": "hawk_eye",
+      "name": "Hawk Eye",
+      "level": 26,
+      "drain": 6,
+      "style": "ranged",
+      "damage": 0.06,
+      "osrs": "+10% Ranged attack and strength"
+    },
+    {
+      "id": "mystic_lore",
+      "name": "Mystic Lore",
+      "level": 27,
+      "drain": 6,
+      "style": "magic",
+      "damage": 0.06,
+      "osrs": "+10% Magic attack and defence"
+    },
+    {
+      "id": "steel_skin",
+      "name": "Steel Skin",
+      "level": 28,
+      "drain": 12,
+      "damage_taken": -0.09,
+      "osrs": "+15% Defence"
+    },
+    {
+      "id": "ultimate_strength",
+      "name": "Ultimate Strength",
+      "level": 31,
+      "drain": 12,
+      "style": "melee",
+      "damage": 0.09,
+      "osrs": "+15% Strength"
+    },
+    {
+      "id": "incredible_reflexes",
+      "name": "Incredible Reflexes",
+      "level": 34,
+      "drain": 12,
+      "style": "melee",
+      "attack_speed": 0.12,
+      "osrs": "+15% Attack"
+    },
+    {
+      "id": "protect_from_magic",
+      "name": "Protect from Magic",
+      "level": 37,
+      "drain": 12,
+      "protect": "magic",
+      "osrs": "Blocks magic (40% against players)",
+      "overhead": true
+    },
+    {
+      "id": "protect_from_missiles",
+      "name": "Protect from Missiles",
+      "level": 40,
+      "drain": 12,
+      "protect": "ranged",
+      "osrs": "Blocks ranged (40% against players)",
+      "overhead": true
+    },
+    {
+      "id": "protect_from_melee",
+      "name": "Protect from Melee",
+      "level": 43,
+      "drain": 12,
+      "protect": "melee",
+      "osrs": "Blocks melee (40% against players)",
+      "overhead": true
+    },
+    {
+      "id": "eagle_eye",
+      "name": "Eagle Eye",
+      "level": 44,
+      "drain": 12,
+      "style": "ranged",
+      "damage": 0.09,
+      "osrs": "+15% Ranged attack and strength"
+    },
+    {
+      "id": "mystic_might",
+      "name": "Mystic Might",
+      "level": 45,
+      "drain": 12,
+      "style": "magic",
+      "damage": 0.09,
+      "osrs": "+15% Magic attack and defence"
+    },
+    {
+      "id": "retribution",
+      "name": "Retribution",
+      "level": 46,
+      "drain": 3,
+      "special": "retribution",
+      "amount": 60,
+      "per_level": 12,
+      "radius": 4,
+      "text": "When you die, you explode for {amount} (+{per_level} per level) true damage to enemies within 4m.",
+      "osrs": "On death, hits nearby foes for up to 25% of your Prayer level",
+      "overhead": true
+    },
+    {
+      "id": "redemption",
+      "name": "Redemption",
+      "level": 49,
+      "drain": 6,
+      "special": "redemption",
+      "threshold": 0.1,
+      "amount": 0.25,
+      "text": "When a hit leaves you under 10% health, heal 25% of your max health. This uses up all your prayer points.",
+      "osrs": "Heals you at low health, draining all prayer",
+      "overhead": true
+    },
+    {
+      "id": "smite",
+      "name": "Smite",
+      "level": 52,
+      "drain": 18,
+      "special": "smite",
+      "amount": 0.25,
+      "text": "Your hits drain enemy champions' prayer by 25% of the damage (a hit for 20% of their health drains 5% of their prayer).",
+      "osrs": "Drains the target's prayer by 25% of damage dealt",
+      "overhead": true
+    },
+    {
+      "id": "preserve",
+      "name": "Preserve",
+      "level": 55,
+      "drain": 2,
+      "special": "preserve",
+      "amount": 0.5,
+      "text": "Potion and food effects last 50% longer.",
+      "osrs": "Boosted stats last 50% longer"
+    },
+    {
+      "id": "chivalry",
+      "name": "Chivalry",
+      "level": 60,
+      "drain": 12,
+      "style": "melee",
+      "damage": 0.07,
+      "attack_speed": 0.06,
+      "damage_taken": -0.06,
+      "osrs": "+15% Attack, +18% Strength, +20% Defence"
+    },
+    {
+      "id": "deadeye",
+      "name": "Deadeye",
+      "level": 62,
+      "drain": 12,
+      "style": "ranged",
+      "damage": 0.11,
+      "damage_taken": -0.02,
+      "osrs": "+18% Ranged attack and strength, +5% Defence"
+    },
+    {
+      "id": "mystic_vigour",
+      "name": "Mystic Vigour",
+      "level": 63,
+      "drain": 12,
+      "style": "magic",
+      "damage": 0.11,
+      "damage_taken": -0.02,
+      "osrs": "+18% Magic attack and defence, +5% Defence, +3% magic damage"
+    },
+    {
+      "id": "piety",
+      "name": "Piety",
+      "level": 70,
+      "drain": 24,
+      "style": "melee",
+      "damage": 0.1,
+      "attack_speed": 0.08,
+      "damage_taken": -0.08,
+      "osrs": "+20% Attack, +23% Strength, +25% Defence"
+    },
+    {
+      "id": "rigour",
+      "name": "Rigour",
+      "level": 74,
+      "drain": 24,
+      "style": "ranged",
+      "damage": 0.13,
+      "damage_taken": -0.08,
+      "osrs": "+20% Ranged attack, +23% Ranged strength, +25% Defence"
+    },
+    {
+      "id": "augury",
+      "name": "Augury",
+      "level": 77,
+      "drain": 24,
+      "style": "magic",
+      "damage": 0.13,
+      "damage_taken": -0.08,
+      "osrs": "+25% Magic attack and defence, +25% Defence"
+    },
+    {
+      "id": "zeal",
+      "name": "Zeal",
+      "level": 84,
+      "drain": 24,
+      "style": "melee",
+      "damage": 0.12,
+      "attack_speed": 0.1,
+      "damage_taken": -0.08,
+      "osrs": "+25% Attack, +28% Strength, +25% Defence"
+    }
+  ],
   "spec_regen_per_sec": 1.0,
   "team_size": 5,
   "starting_gold": 500,

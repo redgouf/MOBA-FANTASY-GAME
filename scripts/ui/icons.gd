@@ -13,6 +13,16 @@ static func item(id: String) -> Texture2D:
 	return _load("res://assets/icons/items/%s.png" % id) if id != "" else null
 
 
+## Champion equipment (the gear each build wears), by slug: "dharoks_helm".
+static func gear(slug: String) -> Texture2D:
+	return _load("res://assets/icons/gear/%s.png" % slug) if slug != "" else null
+
+
+## OSRS overhead prayer icons (protect prayers, Smite, Redemption, Retribution), by prayer id.
+static func overhead(prayer_id: String) -> Texture2D:
+	return _load("res://assets/icons/overheads/%s.png" % prayer_id) if prayer_id != "" else null
+
+
 static func prayer(prayer_name: String) -> Texture2D:
 	return _load("res://assets/icons/prayers/%s.png" % prayer_name.to_lower().replace(" ", "_"))
 

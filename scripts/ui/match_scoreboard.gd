@@ -177,10 +177,12 @@ func refresh() -> void:
 		(row["name"] as Label).modulate = Color(1, 1, 1, 0.55) if ch.is_dead else Color.WHITE
 		(row["kda"] as Label).text = "%d / %d / %d" % [ch.kills, ch.deaths, ch.assists]
 		(row["cs"] as Label).text = str(ch.creep_score)
-		var p := ch.offensive_prayer()
+		var p := ch.chosen_prayer_data()
+		var on := ch.is_praying(ch.chosen_prayer)
 		(row["prayer_icon"] as TextureRect).texture = Icons.prayer(str(p.get("name", "")))
-		(row["prayer"] as Label).text = str(p.get("name", "None"))
-		(row["prayer"] as Label).tooltip_text = Champion.prayer_effect_text(p)
+		(row["prayer_icon"] as TextureRect).modulate = Color.WHITE if on else Color(0.55, 0.55, 0.55)
+		(row["prayer"] as Label).text = str(p.get("name", "None")) + ("  (on)" if on else "")
+		(row["prayer"] as Label).tooltip_text = PrayerBook.effect_text(p)
 		var items := shown_items(ch)
 		var icons: Array = row["items"]
 		for i in ITEM_SLOTS:

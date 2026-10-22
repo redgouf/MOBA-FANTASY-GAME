@@ -70,10 +70,18 @@ func _draw() -> void:
 	draw_circle(to_map(MapLayout.JAD_PIT), 7.0 * k, Color(0.4, 0.18, 0.08))
 	draw_circle(to_map(MapLayout.DRAGON_PIT), 7.0 * k, Color(0.4, 0.18, 0.08))
 
+	# Fog of war: darken what your team can't see.
+	if FogOfWar.current != null and FogOfWar.current.enabled:
+		draw_texture_rect(FogOfWar.current.minimap_texture, Rect2(Vector2.ZERO, size), false)
+	# Prayer altars: a small white-blue prayer star.
+	for a in PrayerAltar.active:
+		if is_instance_valid(a):
+			_draw_prayer_altar(to_map(a.global_position))
+
 	var champs: Array[Champion] = []
 	for n in get_tree().get_nodes_in_group("units"):
 		var u := n as Unit
-		if u == null or u.is_dead:
+		if u == null or u.is_dead or u.fog_hidden:
 			continue
 		var m := to_map(u.global_position)
 		if u is Champion:
@@ -120,6 +128,15 @@ func _draw_structure(s: Structure, m: Vector2) -> void:
 			draw_arc(m, 6.0, 0, TAU, 16, Color.WHITE, 1.5)
 
 
+func _draw_prayer_altar(m: Vector2) -> void:
+	var col := Color(0.8, 0.92, 1.0)
+	var up := PackedVector2Array([m + Vector2(0, -5), m + Vector2(4.4, 2.6), m + Vector2(-4.4, 2.6)])
+	var down := PackedVector2Array([m + Vector2(0, 5), m + Vector2(4.4, -2.6), m + Vector2(-4.4, -2.6)])
+	draw_circle(m, 6.0, Color(0.08, 0.1, 0.16, 0.85))
+	draw_colored_polygon(up, col)
+	draw_colored_polygon(down, col)
+
+
 func _draw_champion(c: Champion) -> void:
 	var m := to_map(c.global_position)
 	var is_player := c == player
@@ -140,7 +157,11 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			if controllable and is_instance_valid(player):
-				player.command_move(to_world(event.position))
+				var to := to_world(event.position)
+				var who := player
+				GameTick.queue_input(func() -> void:
+					if is_instance_valid(who):
+						who.command_move(to))
 			accept_event()
 	elif event is InputEventMouseMotion and _dragging:
 		_look_at(event.position)

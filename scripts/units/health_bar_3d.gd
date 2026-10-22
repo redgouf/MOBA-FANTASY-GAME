@@ -1,6 +1,11 @@
 class_name HealthBar3D
 extends Node3D
-## Billboarded health bar drawn with two quads (no textures needed).
+## Billboarded OSRS-style health bar: green for health left, red for health
+## missing, with a thin black outline. Champions' bars (and names) draw on
+## top of everyone else's (higher render priority, no depth test).
+
+const GREEN := Color(0.0, 0.82, 0.0)
+const RED := Color(0.78, 0.0, 0.0)
 
 var _width := 1.4
 var _height := 0.16
@@ -8,24 +13,26 @@ var _fill_mesh: QuadMesh
 var _ratio := -1.0
 
 
-func setup(color: Color, width: float) -> void:
+## `layer` lifts the draw order: champions use 2, everything else 0.
+func setup(_team_color: Color, width: float, layer: int = 0) -> void:
 	_width = width
-	var back := MeshInstance3D.new()
-	var back_mesh := QuadMesh.new()
-	back_mesh.size = Vector2(_width + 0.06, _height + 0.06)
-	back.mesh = back_mesh
-	back.material_override = _make_material(Color(0.05, 0.05, 0.05, 0.85), 0)
-	back.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(back)
-
-	var fill := MeshInstance3D.new()
-	_fill_mesh = QuadMesh.new()
-	_fill_mesh.size = Vector2(_width, _height)
-	fill.mesh = _fill_mesh
-	fill.material_override = _make_material(color, 1)
-	fill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(fill)
+	var base := layer * 10
+	_quad(Vector2(_width + 0.06, _height + 0.06), Color(0, 0, 0, 0.9), base)
+	_quad(Vector2(_width, _height), RED, base + 1)
+	var fill := _quad(Vector2(_width, _height), GREEN, base + 2)
+	_fill_mesh = fill.mesh as QuadMesh
 	set_ratio(1.0)
+
+
+func _quad(sz: Vector2, color: Color, priority: int) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = sz
+	mi.mesh = q
+	mi.material_override = _make_material(color, priority)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+	return mi
 
 
 func set_ratio(ratio: float) -> void:

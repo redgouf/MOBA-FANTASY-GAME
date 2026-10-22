@@ -76,6 +76,138 @@ static func _pct(x: float) -> String:
 
 
 ## Tooltip lines for an ability (kit slot or item spec) as `c` has it now.
+# --- Coloured tooltip (BBCode) ------------------------------------------------------
+## Text is white; your champion's own stats light blue; scaling stats in their
+## style colour (Attack/melee red, Magic blue, Ranged green); prayer white;
+## items gold; cooldowns italic grey.
+
+const C_TEXT := "#ffffff"
+const C_TITLE := "#ff981f"
+const C_STATS := "#8fd3ff"
+const C_MELEE := "#ff5a4a"
+const C_MAGIC := "#5f8dff"
+const C_RANGED := "#4fd65a"
+const C_PRAYER := "#ffffff"
+const C_ITEMS := "#ffd75e"
+const C_MUTED := "#a8a39a"
+const C_SPEC := "#ffe14d"
+
+
+static func style_color(style: String) -> String:
+	match style:
+		"magic":
+			return C_MAGIC
+		"ranged":
+			return C_RANGED
+	return C_MELEE
+
+
+static func _c(col: String, s: String) -> String:
+	return "[color=%s]%s[/color]" % [col, s]
+
+
+## The ability's tooltip with colours, for the hotbar (see AbilitySlot).
+static func tooltip_rich(c: Champion, key: String) -> String:
+	var ab := c.get_action(key)
+	var rank := c.ability_rank(key)
+	var is_item := key.begins_with("item:")
+	var shown := AbilityRunner.ranked(ab, maxi(rank, 1))
+	var lines: Array[String] = []
+	var title := _c(C_TITLE, "[b]%s[/b]" % ab.get("name", ""))
+	if not is_item:
+		title += "  " + _c(C_MUTED, "rank %d/%d" % [rank, c.max_rank(key)])
+	lines.append(title)
+	lines.append(_c(C_TEXT, str(ab.get("text", ""))))
+	var rows := breakdown(c, shown, rank)
+	var effects: Array = shown.get("effects", [])
+	for row in rows:
+		var heal: bool = row["kind"] == "heal"
+		var style := "melee"
+		for e in effects:
+			if str(e.get("type", "")) == row["kind"]:
+				style = str(e.get("style", Combat.style_name(c.attack_style)))
+				break
+		var col := C_RANGED if heal else style_color(style)
+		lines.append("")
+		var head := "Healing" if heal else "%s damage" % style.capitalize()
+		if not is_item and rank <= 0:
+			head += " at rank 1"
+		lines.append(_c(col, "[b]%s[/b]" % head))
+		var parts: Array[String] = [_c(C_TEXT, "%d spell" % roundi(row["spell"]))]
+		if str(row["ratio_text"]) != "":
+			parts.append(_c(C_STATS, "+%d your stats" % roundi(row["stats"])))
+			if roundi(row["items"]) != 0:
+				parts.append(_c(C_ITEMS, "+%d items" % roundi(row["items"])))
+		var total := "= [b]%d[/b]" % roundi(row["per_hit"])
+		if int(row["hits"]) > 1:
+			total += " × %d hits = [b]%d[/b]" % [int(row["hits"]), roundi(row["total"])]
+		elif int(row["ticks"]) > 1:
+			total += " × %d ticks = [b]%d[/b]" % [int(row["ticks"]), roundi(row["total"])]
+		lines.append("  " + "  ".join(parts) + "  " + _c(col, total))
+		if str(row["ratio_text"]) != "":
+			lines.append("  " + _c(C_MUTED, "scales with ") + _c(col, str(row["ratio_text"])))
+		for x in row["extra"]:
+			lines.append("  " + _c(C_TEXT, "• " + str(x)))
+	var per := per_rank_text(ab, key)
+	if not is_item and per != "":
+		lines.append("")
+		lines.append(_c(C_STATS, "Each rank: ") + _c(C_TEXT, per))
+	var foot: Array[String] = []
+	var total_cd := c.ability_cooldown(key, ab)
+	if total_cd > 0.0:
+		foot.append("[i]" + _c(C_MUTED, "Cooldown %.1fs" % total_cd) + "[/i]")
+	var cost := float(ab.get("spec_cost", 0.0))
+	if cost > 0.0:
+		foot.append(_c(C_SPEC, "%d%% special attack energy" % int(cost)))
+	if not foot.is_empty():
+		lines.append("")
+		lines.append("   ".join(foot))
+	if key == "r":
+		lines.append("[i]" + _c(C_MUTED, "Ranks unlock at levels 6, 11 and 16.") + "[/i]")
+	return "\n".join(lines)
+
+
+## What each rank adds, from the ability's *_per_rank values ("+40 damage,
+## +0.1s root, -6% cooldown").
+static func per_rank_text(ab: Dictionary, key: String = "") -> String:
+	var out: Array[String] = []
+	for e in ab.get("effects", []):
+		_collect_per_rank(e, str(e.get("kind", e.get("type", ""))), out)
+	for f in ab.get("forms", {}).values():
+		for e in f.get("effects", []):
+			_collect_per_rank(e, str(e.get("kind", e.get("type", ""))), out)
+	if key in ["q", "w", "e"] and float(ab.get("cooldown", 0.0)) > 0.0:
+		out.append("-%d%% cooldown" % roundi(float(GameData.rule("basic_cooldown_reduction_per_rank", 0.06)) * 100.0))
+	return ", ".join(out)
+
+
+static func _collect_per_rank(e: Dictionary, what: String, out: Array[String]) -> void:
+	for k in e:
+		var key := str(k)
+		if not key.ends_with("_per_rank"):
+			continue
+		var v := float(e[k])
+		var sign := "+" if v >= 0.0 else "-"
+		match key:
+			"base_per_rank":
+				out.append("%s%d %s" % [sign, roundi(absf(v)), "healing" if str(e.get("type", "")) == "heal" else "damage"])
+			"duration_per_rank":
+				out.append("%s%ss %s" % [sign, str(snappedf(absf(v), 0.01)).trim_suffix(".0"), what.replace("_", " ")])
+			"distance_per_rank":
+				out.append("%s%sm distance" % [sign, str(snappedf(absf(v), 0.01)).trim_suffix(".0")])
+			"chance_per_rank":
+				out.append("%s%d%% %s chance" % [sign, roundi(absf(v) * 100.0), what.replace("_", " ")])
+			_:
+				var base := key.trim_suffix("_per_rank")
+				var nice := what.replace("_", " ") if base == "amount" else base.replace("_", " ")
+				if absf(v) < 1.0:
+					out.append("%s%s%% %s" % [sign, str(snappedf(absf(v) * 100.0, 0.1)).trim_suffix(".0"), nice])
+				else:
+					out.append("%s%s %s" % [sign, str(snappedf(absf(v), 0.01)).trim_suffix(".0"), nice])
+	for st in e.get("target_statuses", []):
+		_collect_per_rank(st, str(st.get("kind", "")), out)
+
+
 static func tooltip(c: Champion, key: String) -> String:
 	var ab := c.get_action(key)
 	var rank := c.ability_rank(key)

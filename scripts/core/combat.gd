@@ -10,7 +10,11 @@ const STYLE_NAMES: Array[String] = ["melee", "ranged", "magic"]
 const TEAM_NAMES: Array[String] = ["Saradomin", "Zamorak", "Neutral"]
 
 ## Tunables, overwritten from data/rules.json by GameData.
-static var tick_seconds := 0.25
+static var tick_seconds := 0.6
+## Pre-OSRS-speed balance reference: the old tick length, and how much
+## basic-attack damage per second units keep after the switch.
+static var legacy_tick_seconds := 0.25
+static var basic_attack_dps_scale := 0.7
 static var triangle_bonus := 0.15
 static var protect_prayer_reduction := 0.40
 static var resist_constant := 100.0
@@ -20,6 +24,8 @@ static var clock := 0.0
 
 static func configure(rules: Dictionary) -> void:
 	tick_seconds = float(rules.get("tick_seconds", tick_seconds))
+	legacy_tick_seconds = float(rules.get("legacy_tick_seconds", legacy_tick_seconds))
+	basic_attack_dps_scale = float(rules.get("basic_attack_dps_scale", basic_attack_dps_scale))
 	triangle_bonus = float(rules.get("triangle_bonus", triangle_bonus))
 	protect_prayer_reduction = float(rules.get("protect_prayer_reduction", protect_prayer_reduction))
 	resist_constant = float(rules.get("resist_constant", resist_constant))
@@ -49,7 +55,7 @@ static func resist_multiplier(resist: float) -> float:
 	return 2.0 - resist_constant / (resist_constant - resist)
 
 
-## Converts game ticks into seconds (an OSRS whip is 4 ticks).
+## Converts game ticks into seconds (an OSRS whip is 4 ticks: 2.4s).
 static func ticks_to_seconds(ticks: float) -> float:
 	return ticks * tick_seconds
 

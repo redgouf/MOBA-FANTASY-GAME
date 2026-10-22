@@ -1,9 +1,8 @@
 class_name SkillsPanel
 extends Panel
-## An OSRS-style Skills tab for a build. Combat builds show the combat skills
-## where OSRS puts them (Attack, Strength, Defence, Ranged, Prayer, Magic down
-## the first column; Hitpoints top of the second) plus combat level. Builds
-## with skilling levels (the Skiller) get the full 24-skill OSRS grid.
+## An OSRS-style Skills tab for a build: the full 24-skill OSRS grid (every
+## build has every skill since v0.8; non-combat levels are rolled each game).
+## A definition with only combat skills gets the short combat-only layout.
 ## Levels show as "current / base" in yellow, with total level at the bottom. Hover a tile to see which shop items
 ## that level lets the build use, and which it's too low for.
 ## In a match, Hitpoints and Prayer show live values, like in OSRS.
@@ -61,7 +60,7 @@ func _build() -> void:
 	var sb := UiStyle.box(PANEL_BG, Color(0.07, 0.06, 0.05), 3, 4)
 	add_theme_stylebox_override("panel", sb)
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	_layout(false)
+	_layout(true)
 
 
 func _layout(p_full: bool) -> void:
@@ -134,6 +133,9 @@ func _add_tile(skill: String, pos: Vector2) -> void:
 
 ## Show a build's skills. Pass the champion in a match for live HP/Prayer.
 func show_build(def: Dictionary, p_champ: Champion = null) -> void:
+	if p_champ != null:
+		def = def.duplicate()
+		def["skills"] = p_champ.skills     # this game's rolled levels
 	build = def
 	champ = p_champ
 	if wants_full(def) != full:
@@ -194,14 +196,13 @@ static func skill_tooltip(def: Dictionary, skill: String) -> String:
 		"hitpoints":
 			lines.append("Shows your health as a Hitpoints level (current / base).")
 		"prayer":
-			var names: Array[String] = []
-			for style in ["melee", "ranged", "magic"]:
-				for p in GameData.rule("offensive_prayers", {}).get(style, []):
-					if lvl >= int(p.get("level", 99)):
-						names.append(str(p["name"]))
-						break
-			lines.append("Offensive prayers: %s" % (", ".join(names) if not names.is_empty() else "none"))
-			lines.append("Protection prayers: %s" % ("yes (Z/X/C)" if def.get("overheads", false) else "no (not this build)"))
+			var unlocked := 0
+			for p in PrayerBook.all():
+				if lvl >= int(p.get("level", 99)):
+					unlocked += 1
+			lines.append("Prayers unlocked: %d of %d (pick one at champion select)" % [unlocked, PrayerBook.all().size()])
+			lines.append("Default pick: %s" % PrayerBook.find(PrayerBook.default_for(def)).get("name", "none"))
+			lines.append("Protection prayers on Z/X/C: %s" % ("yes" if def.get("overheads", false) else "no (but can pick one as its prayer at 37+)"))
 	var usable: Array[String] = []
 	var locked: Array[String] = []
 	for id in GameData.item_order:

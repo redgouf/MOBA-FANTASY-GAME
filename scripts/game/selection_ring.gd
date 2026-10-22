@@ -24,7 +24,8 @@ func _ready() -> void:
 	_mat = StandardMaterial3D.new()
 	_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_mat.no_depth_test = true
+	# Depth-tested: the part of the ring behind the unit is hidden by its body.
+	_mat.no_depth_test = false
 	_mat.render_priority = 2
 	material_override = _mat
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -32,7 +33,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if not is_instance_valid(target) or target.is_dead or not target.visible:
+	if not is_instance_valid(target) or target.is_dead or not target.visible or target.fog_hidden:
 		visible = false
 		return
 	_time += delta

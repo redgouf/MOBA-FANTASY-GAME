@@ -83,10 +83,22 @@ func _on_damaged(_unit: Unit, _amount: float, source: Unit) -> void:
 		attack_target = source
 
 
-func _unit_process(delta: float) -> void:
+## Per frame: walk home while resetting, or toward the target.
+func _unit_process(_delta: float) -> void:
 	if _resetting:
 		move_directly_toward(home)
-		heal(max_health * 0.5 * delta)
+		return
+	if is_instance_valid(attack_target) and not attack_target.is_dead and not passive:
+		if in_attack_range(attack_target):
+			velocity = Vector3.ZERO
+		else:
+			move_directly_toward(attack_target.global_position)
+
+
+## Per tick: leash, reset healing, attacks.
+func _unit_tick(dt: float) -> void:
+	if _resetting:
+		heal(max_health * 0.5 * dt)
 		if flat_distance(global_position, home) < 0.8:
 			_resetting = false
 			health = max_health
@@ -98,11 +110,7 @@ func _unit_process(delta: float) -> void:
 			return
 		if passive:
 			return
-		if in_attack_range(attack_target):
-			velocity = Vector3.ZERO
-		else:
-			move_directly_toward(attack_target.global_position)
-		process_attack(delta)
+		process_attack(dt)
 	else:
 		attack_target = null
 		if flat_distance(global_position, home) > 0.8:

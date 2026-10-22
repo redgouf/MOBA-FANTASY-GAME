@@ -4,7 +4,7 @@ extends Node
 ## Exits with code 0 when every check passes, 1 otherwise.
 
 const KNOWN_EFFECTS := ["damage", "heal", "self_cost", "status", "dash", "knockback",
-	"spec_transfer", "summon", "toggle_form", "taunt", "pull", "prop"]
+	"spec_transfer", "summon", "toggle_form", "taunt", "pull", "prop", "max_stacks"]
 const KNOWN_CASTS := ["self", "target_unit", "point"]
 
 var _passed := 0
@@ -16,10 +16,18 @@ func _ready() -> void:
 	# Everything runs on the whitebox shapes first; test_osrs_models() then
 	# checks the private OSRS pack when it's installed.
 	OsrsModels.enabled = false
+	# Most tests check League-sized numbers; test_hp_scale() checks the
+	# shrunk, OSRS-sized ones the game actually plays with.
+	GameData.load_all(1.0)
 	test_data_integrity()
 	test_combat_math()
 	test_requirements()
 	test_prayers()
+	test_game_tick()
+	test_signature_specs()
+	test_v07_feedback()
+	test_skill_rolls()
+	await test_champion_select()
 	test_item_build_paths()
 	test_skill_leveling()
 	test_lol_minions_and_waves()
@@ -33,6 +41,7 @@ func _ready() -> void:
 	await test_every_ability()
 	await test_osrs_models()
 	await test_combat_fx()
+	await test_v09()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
 
@@ -89,7 +98,7 @@ func test_combat_math() -> void:
 	check(Combat.counters(Combat.Style.MAGIC, Combat.Style.MELEE), "magic beats melee")
 	check(not Combat.counters(Combat.Style.MELEE, Combat.Style.MAGIC), "melee does not beat magic")
 	check(is_equal_approx(Combat.resist_multiplier(100.0), 0.5), "100 resist halves damage")
-	check(is_equal_approx(Combat.ticks_to_seconds(4), 1.0), "4 ticks is 1 second")
+	check(is_equal_approx(Combat.ticks_to_seconds(4), 2.4), "4 ticks is 2.4 seconds (an OSRS whip)")
 	var plain := Combat.mitigate(100.0, Combat.Style.MELEE, Combat.Style.MELEE, 0.0, 0.0, -1, false, false)
 	check(is_equal_approx(plain, 100.0), "no resist, no prayer: full damage")
 	var triangle := Combat.mitigate(100.0, Combat.Style.MELEE, Combat.Style.RANGED, 0.0, 0.0, -1, false, false)
@@ -138,21 +147,570 @@ func test_prayers() -> void:
 	var tank := _make("justiciar", Combat.Team.SARADOMIN, Vector3.ZERO)
 	var mage := _make("ancient_mage", Combat.Team.SARADOMIN, Vector3.ZERO)
 	var pipe := _make("blowpiper", Combat.Team.SARADOMIN, Vector3.ZERO)
+	var foe := _make("dharok", Combat.Team.ZAMORAK, Vector3(3, 0, 0))
+	# The book: 32 OSRS prayers, each with an icon.
+	check(PrayerBook.all().size() == 32, "the prayer book has all 32 prayers (got %d)" % PrayerBook.all().size())
+	var no_icon: Array[String] = []
+	for p in PrayerBook.all():
+		if Icons.prayer(str(p["name"])) == null:
+			no_icon.append(str(p["name"]))
+	check(no_icon.is_empty(), "every prayer has an icon (missing: %s)" % ", ".join(no_icon))
+	# OSRS drain: 0.6s x (60 + 2 x bonus) / drain effect.
+	# (rules.prayer_drain.rate_mult: 3x the OSRS rate in this version)
+	check(is_equal_approx(PrayerBook.seconds_per_point(24.0), 0.5), "Piety drains a point every 0.5s (OSRS 1.5s, 3x)")
+	check(is_equal_approx(PrayerBook.seconds_per_point(1.0), 12.0), "Thick Skin drains a point every 12s (OSRS 36s, 3x)")
+	check(is_equal_approx(PrayerBook.seconds_per_point(12.0, 10.0), 4.0 / 3.0), "+10 prayer bonus: drain 12 takes 4/3s a point")
+	check(is_equal_approx(PrayerBook.seconds_per_point(36.0), 1.0 / 3.0), "drains add up (Piety + a protect prayer)")
+	# Default picks by level and style.
+	check(pure.chosen_prayer == "ultimate_strength", "52 Prayer Pure defaults to Ultimate Strength (got %s)" % pure.chosen_prayer)
+	check(tank.chosen_prayer == "zeal", "99 Prayer tank defaults to Zeal (got %s)" % tank.chosen_prayer)
+	check(mage.chosen_prayer == "augury", "77 Prayer mage defaults to Augury")
+	check(pipe.chosen_prayer == "eagle_eye", "52 Prayer ranger defaults to Eagle Eye")
+	# Picking: level-gated; overhead builds don't get protect prayers as their pick.
+	check(not PrayerBook.can_pick(pure.def, "piety"), "a 52 Prayer Pure can't pick Piety")
+	check(PrayerBook.can_pick(pure.def, "smite") and PrayerBook.can_pick(pure.def, "protect_from_melee"), "the Pure can pick Smite or Protect from Melee")
+	check(not PrayerBook.can_pick(tank.def, "protect_from_melee"), "overhead builds don't pick protect prayers")
+	pure.set_chosen_prayer("piety")
+	check(pure.chosen_prayer == "ultimate_strength", "an illegal pick falls back to the default")
+	# Overheads.
 	pure.toggle_protect(Combat.Style.MELEE)
 	check(pure.protect_style == -1, "Pure has no overheads")
 	tank.toggle_protect(Combat.Style.MAGIC)
-	check(tank.protect_style == Combat.Style.MAGIC, "Justiciar Tank can pray magic")
-	check(tank.get_protected_style() == Combat.Style.MAGIC, "protected style is reported")
+	check(tank.protect_style == Combat.Style.MAGIC and tank.get_protected_style() == Combat.Style.MAGIC, "Justiciar Tank can pray magic")
+	tank.toggle_protect(Combat.Style.MELEE)
+	check(tank.protect_style == Combat.Style.MELEE and tank.active_prayers.size() == 1, "one protection prayer at a time")
+	check(tank.toggle_chosen_prayer() and tank.active_prayers.size() == 2, "overhead + own prayer together")
+	var p0 := tank.prayer
+	tank._tick_prayer(3.0)
+	check(tank.prayer == p0, "prayers don't drain on the tick they come on")
+	GameTick.current_tick += 1
+	tank._tick_prayer(3.0)
+	check(is_equal_approx(p0 - tank.prayer, 3.0 / PrayerBook.seconds_per_point(36.0, tank.prayer_bonus())), "both prayers drain together")
 	tank.add_status("sever", "disable_prayer", 0.0, 5.0)
-	check(tank.get_protected_style() == -1, "Sever disables overheads")
-	check(pure.offensive_prayer_name() == "Ultimate Strength", "52 Prayer Pure gets Ultimate Strength (got %s)" % pure.offensive_prayer_name())
-	check(tank.offensive_prayer_name() == "Piety", "99 Prayer tank gets Piety")
-	check(mage.offensive_prayer_name() == "Augury", "77 Prayer mage gets Augury")
-	check(pipe.offensive_prayer_name() == "Eagle Eye", "52 Prayer ranger gets Eagle Eye")
-	check(pure.activate_offensive_prayer() and pure.status_sum("damage_mult") > 0.0, "offensive prayer boosts damage")
-	check(not tank.activate_offensive_prayer(), "Sever also blocks offensive prayers")
-	for c in [pure, tank, mage, pipe]:
+	tank._tick_prayer(0.1)
+	check(tank.get_protected_style() == -1 and tank.active_prayers.is_empty(), "Sever switches prayers off")
+	check(not tank.toggle_chosen_prayer(), "Sever blocks prayers")
+	# A pure picking Protect from Melee can use it with V.
+	pure.set_chosen_prayer("protect_from_melee")
+	check(pure.toggle_chosen_prayer() and pure.get_protected_style() == Combat.Style.MELEE, "a picked protect prayer works")
+	pure.deactivate_prayers()
+	# Effects.
+	pure.set_chosen_prayer("ultimate_strength")
+	var info := DamageInfo.make(100.0, Combat.Style.MELEE, pure)
+	pure.modify_outgoing(info, foe)
+	var base := info.amount
+	pure.toggle_chosen_prayer()
+	info = DamageInfo.make(100.0, Combat.Style.MELEE, pure)
+	pure.modify_outgoing(info, foe)
+	check(is_equal_approx(info.amount, base * 1.09), "Ultimate Strength: +9% melee damage")
+	info = DamageInfo.make(100.0, Combat.Style.MAGIC, pure)
+	pure.modify_outgoing(info, foe)
+	check(info.amount < base * 1.05, "Ultimate Strength doesn't boost magic")
+	pure.prayer = 0.01
+	GameTick.current_tick += 1
+	pure._tick_prayer(1.0)
+	check(pure.prayer == 0.0 and pure.active_prayers.is_empty(), "prayers switch off at 0 points")
+	# Smite drains the target's prayer.
+	pure.prayer = 99.0
+	pure.set_chosen_prayer("smite")
+	pure.toggle_chosen_prayer()
+	foe.prayer = 99.0
+	pure.on_damage_dealt(foe, foe.max_health * 0.2, DamageInfo.make(1.0, Combat.Style.MELEE, pure))
+	check(absf(foe.prayer - 99.0 * 0.95) < 0.01, "Smite: a hit for 20%% health drains 5%% prayer (got %.2f)" % foe.prayer)
+	# Redemption heals once under 10% and empties prayer.
+	mage.set_chosen_prayer("redemption")
+	mage.toggle_chosen_prayer()
+	mage.health = mage.max_health * 0.05
+	mage._on_damaged(mage, 10.0, null)
+	check(mage.health > mage.max_health * 0.25 and mage.prayer == 0.0, "Redemption heals 25% and drains prayer")
+	# Tele Block is halved by Protect from Magic.
+	tank.remove_status("sever")
+	tank.toggle_protect(Combat.Style.MAGIC)
+	tank.add_status("tb", "tele_block", 0.0, 4.0, foe)
+	check(is_equal_approx(float(tank.statuses["tb"]["remaining"]), 2.0), "Protect from Magic halves Tele Block")
+	# Rapid Restore: enemy debuffs fade faster.
+	pipe.set_chosen_prayer("hawk_eye")
+	check(is_equal_approx(pipe.debuff_decay_mult(), 1.0), "no Rapid Restore: normal debuffs")
+	pipe.chosen_prayer = "rapid_restore"
+	pipe.toggle_chosen_prayer()
+	check(pipe.debuff_decay_mult() > 1.2, "Rapid Restore speeds up debuff decay")
+	for c in [pure, tank, mage, pipe, foe]:
 		c.queue_free()
+
+
+## Champion abilities built on a shop spec weapon must beat the item (option A)
+## or do something different (option B), so buying the item never matches them.
+# --- Game tick ---------------------------------------------------------------
+
+## Logs its own game ticks (an NPC: not a Champion).
+class TickProbeNpc extends Unit:
+	var log: Array = []
+	func _unit_tick(_dt: float) -> void:
+		log.append("npc")
+
+
+## Logs its own game ticks (a champion).
+class TickProbeChampion extends Champion:
+	var log: Array = []
+	func _unit_tick(dt: float) -> void:
+		log.append("champion")
+		super(dt)
+
+
+func _tick_dummy(team: int, pos: Vector3) -> Champion:
+	var d := _make("justiciar", team, pos)
+	d.spawn_point = Vector3(500, 0, 500)
+	d.max_health = 1.0e6
+	d.health = 1.0e6
+	return d
+
+
+func _ticks(n: int) -> void:
+	for i in n:
+		GameTick.run_tick()
+
+
+func test_game_tick() -> void:
+	# Drive the clock by hand so every check lands on an exact tick.
+	GameTick.set_physics_process(false)
+	GameTick.reset()
+	check(is_equal_approx(GameTick.length(), 0.6), "a game tick is 0.6 s")
+	check(GameTick.seconds_to_ticks(1.2) == 2 and GameTick.seconds_to_ticks(45.0) == 75 \
+		and GameTick.seconds_to_ticks(5.0) == 9 and GameTick.seconds_to_ticks(4.0) == 7, "durations round up to whole ticks")
+	check(GameTick.nearest_ticks(0.1) == 0 and GameTick.nearest_ticks(0.3) == 1 and GameTick.nearest_ticks(0.8) == 1,
+		"short delays round to the nearest tick")
+	var order: Array = []
+	GameTick.queue_input(func() -> void: order.append("a"))
+	GameTick.queue_input(func() -> void:
+		order.append("b")
+		GameTick.queue_input(func() -> void: order.append("late")))
+	check(order.is_empty(), "input waits for the next tick")
+	_ticks(1)
+	check(order == ["a", "b"], "input runs in click order on the tick (got %s)" % str(order))
+	_ticks(1)
+	check(order == ["a", "b", "late"], "input given during a tick waits for the next one")
+	var fired: Array = []
+	var t0 := GameTick.current_tick
+	GameTick.schedule(2, func() -> void: fired.append(GameTick.current_tick))
+	GameTick.schedule_seconds(1.2, func() -> void: fired.append(GameTick.current_tick))
+	_ticks(3)
+	check(fired == [t0 + 2, t0 + 2], "scheduled actions run on their tick (got %s)" % str(fired))
+	var seen: Array = []
+	GameTick.queue_input(func() -> void: seen.append("input"))
+	GameTick.schedule(1, func() -> void: seen.append("scheduled"))
+	_ticks(1)
+	check(seen == ["input", "scheduled"], "input runs before scheduled actions")
+
+	# NPCs act before champions.
+	var champ := TickProbeChampion.new()
+	champ.setup("pure", Combat.Team.SARADOMIN, Vector3(300, 0, 300), false)
+	add_child(champ)
+	var npc := TickProbeNpc.new()
+	add_child(npc)
+	_ticks(1)
+	check(npc.log == ["npc"] and champ.log == ["champion"], "NPCs and champions tick once each")
+	var both: Array = []
+	npc.log = both
+	champ.log = both
+	_ticks(1)
+	check(both == ["npc", "champion"], "NPCs tick before champions (got %s)" % str(both))
+	champ.queue_free()
+	npc.queue_free()
+
+	# Attacks land on ticks: a 4-tick weapon hits on ticks 1, 5, 9.
+	var a := _tick_dummy(Combat.Team.SARADOMIN, Vector3(200, 0, 200))
+	var b := _tick_dummy(Combat.Team.ZAMORAK, Vector3(201.2, 0, 200))
+	a.attack_style = Combat.Style.MELEE
+	a.base_attack_range = 1.5
+	a.attack_ticks = 4.0
+	a.bonus_attack_speed = 0.0
+	var hits: Array = []
+	b.damaged.connect(func(_u: Unit, _amt: float, _src: Unit) -> void: hits.append(GameTick.current_tick))
+	var start := GameTick.current_tick
+	a.command_attack(b)
+	_ticks(9)
+	var rel: Array = []
+	for h in hits:
+		rel.append(int(h) - start)
+	check(rel == [1, 5, 9], "a 4-tick weapon hits on ticks 1, 5, 9 (got %s)" % str(rel))
+	# +25% attack speed: the leftover carries over, 3.2 ticks on average.
+	a.attack_target = null
+	_ticks(6)
+	hits.clear()
+	a.bonus_attack_speed = 0.25
+	start = GameTick.current_tick
+	a.command_attack(b)
+	_ticks(17)
+	rel.clear()
+	for h in hits:
+		rel.append(int(h) - start)
+	check(rel == [1, 5, 8, 11, 14, 17], "+25%% speed on 4 ticks: swings 3.2 ticks apart on average (got %s)" % str(rel))
+	a.attack_target = null
+	a.bonus_attack_speed = 0.0
+
+	# Ranged: the hit lands projectile_hit_ticks() after the swing.
+	_ticks(6)
+	hits.clear()
+	a.attack_style = Combat.Style.RANGED
+	a.base_attack_range = 12.0
+	a.global_position = b.global_position + Vector3(-11.0, 0, 0)
+	var delay := a.projectile_hit_ticks(b)
+	start = GameTick.current_tick
+	a.command_attack(b)
+	_ticks(delay + 1)
+	check(delay >= 1 and hits.size() == 1 and int(hits[0]) - start == 1 + delay,
+		"a ranged hit lands %d tick(s) after the swing (got %s)" % [delay, str(hits)])
+	a.attack_target = null
+	a.attack_style = Combat.Style.MELEE
+	a.global_position = Vector3(200, 0, 200)
+
+	# Multi-hits 0.15 s apart land two per tick, like Dragon claws.
+	_ticks(8)
+	hits.clear()
+	var claws := {"effects": [{"type": "damage", "base": 5.0, "hits": 4, "hit_interval": 0.15}]}
+	GameTick.queue_input(func() -> void: AbilityRunner.execute(a, claws, b, b.global_position, 1))
+	start = GameTick.current_tick
+	_ticks(3)
+	rel.clear()
+	for h in hits:
+		rel.append(int(h) - start)
+	check(rel == [1, 1, 2, 2], "claws-style hits land two per tick (got %s)" % str(rel))
+
+	# Casting is an order: it goes off on the next tick; a 5 s cooldown is 9 ticks.
+	_ticks(2)
+	var ready_ticks: Array = []     # (lambdas capture locals by value)
+	GameTick.queue_input(func() -> void: a.cooldowns["q"] = 5.0)
+	start = GameTick.current_tick + 1
+	for k in 12:
+		var probe_tick := GameTick.current_tick + 1
+		GameTick.queue_input(func() -> void:
+			if a.cooldowns["q"] <= 0.0:
+				ready_ticks.append(probe_tick))
+		_ticks(1)
+	var ready_at: int = ready_ticks[0] if not ready_ticks.is_empty() else -1
+	check(ready_at - start == 9, "a 5 s cooldown is ready 9 ticks after the cast (got %d)" % (ready_at - start))
+	# Statuses end on the first tick at or after their time.
+	var gone_at := -1
+	GameTick.queue_input(func() -> void: b.add_status("probe", "slow", 0.1, 5.0))
+	start = GameTick.current_tick + 1
+	for k in 12:
+		_ticks(1)
+		if gone_at < 0 and not b.statuses.has("probe"):
+			gone_at = GameTick.current_tick
+	check(gone_at - start == 9, "a 5 s status lasts 9 ticks (got %d)" % (gone_at - start))
+	# Recall: 4 s = 7 ticks.
+	a.spawn_point = Vector3(260, 0, 200)
+	GameTick.queue_input(func() -> void: a.start_recall())
+	start = GameTick.current_tick + 1
+	var home_at := -1
+	for k in 10:
+		_ticks(1)
+		if home_at < 0 and a.global_position.distance_to(a.spawn_point) < 0.1:
+			home_at = GameTick.current_tick
+	check(home_at - start == 7, "recall takes 7 ticks (got %d)" % (home_at - start))
+	a.global_position = Vector3(200, 0, 200)
+	a.spawn_point = Vector3(500, 0, 500)
+
+	# Prayer: clicks take effect on the next tick; no drain on the tick it
+	# comes on, so flicking every tick is free.
+	a.set_chosen_prayer("piety")
+	a.prayer = 50.0
+	GameTick.queue_input(func() -> void: a.toggle_chosen_prayer())
+	check(not a.is_praying(a.chosen_prayer), "a prayer click waits for the tick")
+	_ticks(1)
+	check(a.is_praying(a.chosen_prayer) and a.prayer == 50.0, "the prayer comes on next tick without draining")
+	_ticks(1)
+	check(a.prayer < 50.0, "and drains from the tick after")
+	GameTick.queue_input(func() -> void: a.toggle_chosen_prayer())
+	_ticks(1)
+	var flick_from := a.prayer
+	for k in 10:
+		GameTick.queue_input(func() -> void: a.toggle_chosen_prayer())
+		_ticks(1)
+	check(a.prayer == flick_from, "flicking every tick costs no prayer")
+	a.deactivate_prayers()
+	b.has_overheads = true
+	GameTick.queue_input(func() -> void: b.toggle_protect(Combat.Style.MAGIC))
+	check(b.get_protected_style() == -1, "an overhead clicked between ticks isn't up yet")
+	_ticks(1)
+	check(b.get_protected_style() == Combat.Style.MAGIC, "it's up on the next tick")
+	a.queue_free()
+	b.queue_free()
+	GameTick.reset()
+	GameTick.set_physics_process(true)
+
+
+func test_signature_specs() -> void:
+	for pair in [["pure", "r", "dragon_dagger"], ["zerker", "r", "dragon_claws"], ["slayer", "r", "dragon_warhammer"],
+			["ancient_mage", "r", "volatile_nightmare_staff"], ["hybrid", "r", "armadyl_crossbow"]]:
+		var ab: Dictionary = GameData.champion(pair[0])["abilities"][pair[1]]
+		var it: Dictionary = GameData.item(pair[2])["spec_active"]
+		var a: Dictionary = ab["effects"].filter(func(e: Dictionary) -> bool: return e.get("type") == "damage")[0]
+		var b: Dictionary = it["effects"].filter(func(e: Dictionary) -> bool: return e.get("type") == "damage")[0]
+		var ratio_a := 0.0
+		var ratio_b := 0.0
+		for k in a.get("ratio", {}):
+			ratio_a += float(a["ratio"][k])
+		for k in b.get("ratio", {}):
+			ratio_b += float(b["ratio"][k])
+		check(float(a.get("base", 0)) >= float(b.get("base", 0)) and ratio_a >= ratio_b and a.has("base_per_rank"),
+			"%s %s hits at least as hard as the %s spec and scales with rank" % [pair[0], pair[1], pair[2]])
+		check(float(ab.get("cooldown", 0)) < float(it.get("cooldown", 0)), "%s %s has a shorter cooldown than the item" % [pair[0], pair[1]])
+	# Option B: retooled, so not the same move as the item.
+	check(GameData.champion("dharok")["abilities"]["r"]["name"] != GameData.item("granite_maul")["spec_active"]["name"], "Dharok's R is no longer the granite maul spec")
+	check(GameData.champion("justiciar")["abilities"]["r"]["name"] != GameData.item("bandos_godsword")["spec_active"]["name"], "Justiciar's R is no longer the BGS spec")
+	# Slayer's smashes stack (OSRS DWH), the item's don't.
+	var sl := _make("slayer", Combat.Team.SARADOMIN, Vector3(50, 0, 50))
+	var dummy := _make("dharok", Combat.Team.ZAMORAK, Vector3(51.5, 0, 50))
+	sl.ranks["r"] = 1
+	for k in 2:
+		AbilityRunner.execute(sl, sl.get_ability("r"), dummy, dummy.global_position, 1)
+	check(dummy.status_sum("armor_mult") < -0.45, "two DWH smashes stack (%.2f)" % dummy.status_sum("armor_mult"))
+	var zk := _make("zerker", Combat.Team.SARADOMIN, Vector3(50, 0, 52))
+	AbilityRunner.execute(zk, zk.get_ability("r"), dummy, dummy.global_position, 1)
+	check(zk.passive_stacks() == 5, "Zerker's claws fill the Berserker Necklace")
+	for c in [sl, dummy, zk]:
+		c.queue_free()
+
+
+## v0.7 feedback: OSRS hitsplats, unit spacing, the cannon model, prayer altars.
+func test_v07_feedback() -> void:
+	# Hitsplats: kinds and tints.
+	var hit := DamageInfo.make(50.0, Combat.Style.MELEE, null)
+	check(Hitsplat.kind_for(0.0, hit) == "zero" and Hitsplat.kind_for(12.0, hit) == "damage", "blue 0, red damage")
+	var crit := DamageInfo.make(50.0, Combat.Style.RANGED, null)
+	crit.crit_mult = 1.5
+	check(Hitsplat.kind_for(40.0, crit) == "max", "critical hits use the max-hit splat")
+	var pois := DamageInfo.make(8.0, Combat.Style.MAGIC, null)
+	pois.label = "poison"
+	check(Hitsplat.kind_for(8.0, pois) == "poison", "poison has its own splat")
+	for k in ["damage", "zero", "max", "poison", "venom", "burn"]:
+		check(Hitsplat.texture(k, false) != null and Hitsplat.texture(k, true) != null, "%s splat (and tinted) loads" % k)
+	var me := _make("pure", Combat.Team.SARADOMIN, Vector3(60, 0, -60))
+	var other := _make("dharok", Combat.Team.ZAMORAK, Vector3(62, 0, -60))
+	var third := _make("lunar", Combat.Team.ZAMORAK, Vector3(64, 0, -60))
+	Hitsplat.viewer = me
+	check(not Hitsplat.is_tinted(other, DamageInfo.make(1.0, Combat.Style.MELEE, me)), "your hits are bright")
+	check(not Hitsplat.is_tinted(me, DamageInfo.make(1.0, Combat.Style.MELEE, other)), "hits on you are bright")
+	check(Hitsplat.is_tinted(other, DamageInfo.make(1.0, Combat.Style.MAGIC, third)), "everyone else's hits are tinted")
+	for n in 6:
+		other._spawn_hitsplat(10.0, DamageInfo.make(10.0, Combat.Style.MELEE, me))
+	var live := 0
+	for h in other._splats:
+		if h != null and is_instance_valid(h) and not (h as Node).is_queued_for_deletion():
+			live += 1
+	check(live == 4, "at most four splats on a unit at once (got %d)" % live)
+	Hitsplat.viewer = null
+	# Crowd: overlapping units are pushed apart; minions give way to champions.
+	var mn := Minion.new()
+	mn.init_minion("goblin", GameData.unit_def("minions", "goblin"), Combat.Team.SARADOMIN, "mid", MapLayout.lane_path("mid", 0), 1)
+	add_child(mn)
+	mn.global_position = me.global_position + Vector3(0.2, 0, 0)
+	await get_tree().physics_frame
+	Crowd.solve(get_tree(), 1.0 / 60.0)
+	check(mn.crowd_push.length() > 0.0 and mn.crowd_push.length() > me.crowd_push.length() * 2.0, "a minion overlapping a champion is pushed (more than the champion)")
+	check(mn.crowd_push.x > 0.0, "...away from the champion")
+	var start := Unit.flat_distance(mn.global_position, me.global_position)
+	for f in 40:
+		Crowd.solve(get_tree(), 1.0 / 60.0)
+		await get_tree().physics_frame
+	check(Unit.flat_distance(mn.global_position, me.global_position) > start + 0.3, "they separate over a few frames")
+	# Cannon: a built model, not a block.
+	var cannon := CannonModel.build(Color.BLUE)
+	check(cannon.head != null and cannon.barrel != null and cannon.find_children("*", "MeshInstance3D", true, false).size() > 12, "the multicannon is a built model")
+	cannon.free()
+	# Prayer altars: four, one beside each buff camp.
+	check(MapLayout.all_prayer_altars().size() == 4, "four prayer altars (one per buff camp)")
+	for c in [me, other, third, mn]:
+		c.queue_free()
+
+
+## v0.8: every build has all 24 skills; non-combat ones roll 20-60 each game
+## (the Skiller keeps 99s), and skilling-gated items follow them.
+func test_skill_rolls() -> void:
+	GameData.roll_skills()
+	var ok := true
+	for id in GameData.champion_order:
+		var sk := GameData.skills_for(id)
+		if sk.size() != 24:
+			ok = false
+		for s in GameData.ALL_SKILLS:
+			if GameData.COMBAT_SKILLS.has(s):
+				continue
+			var lvl := int(sk[s])
+			if id == "skiller":
+				if s != "slayer" and lvl != 99:
+					ok = false
+			elif lvl < 20 or lvl > 60:
+				ok = false
+	check(ok, "every build has 24 skills; non-combat 20-60, the Skiller 99")
+	check(int(GameData.skills_for("slayer")["slayer"]) >= 55, "the Slayer always rolls 55+ Slayer")
+	check(int(GameData.skills_for("dharok")["strength"]) == 99, "combat levels stay fixed")
+	var first := GameData.skills_for("pure").duplicate()
+	check(GameData.skills_for("pure") == first, "rolls hold for the whole game")
+	GameData.roll_skills(true)
+	var shown := GameData.skills_for("pure").duplicate()
+	GameData.ensure_match_rolls()
+	check(GameData.skills_for("pure") == shown, "the match keeps the levels champion select showed")
+	# Over-60 skilling items: Skiller only.
+	var over60: Array[String] = []
+	for id in GameData.item_order:
+		var reqs: Dictionary = GameData.item(id).get("requirements", {})
+		for s in reqs:
+			if not GameData.COMBAT_SKILLS.has(str(s)) and int(reqs[s]) > 60:
+				over60.append(id)
+				break
+	var sk := _make("skiller", Combat.Team.SARADOMIN, Vector3(70, 0, -70))
+	var pu := _make("pure", Combat.Team.SARADOMIN, Vector3(72, 0, -70))
+	var skiller_all := true
+	var others_none := true
+	for id in over60:
+		var reqs: Dictionary = GameData.item(id).get("requirements", {})
+		var combat_req := false
+		for s in reqs:
+			combat_req = combat_req or GameData.COMBAT_SKILLS.has(str(s))
+		if not combat_req and not sk.meets_requirements(id):
+			skiller_all = false
+		if pu.meets_requirements(id):
+			others_none = false
+	check(over60.size() >= 10 and skiller_all and others_none, "%d items need a skill above 60: only the Skiller can use them" % over60.size())
+	pu.gold = 5000
+	check(pu.best_food() != "" and pu.best_food() != "shark", "bots buy the best food they can cook (%s)" % pu.best_food())
+	# New item effects.
+	pu.gold = 99999
+	pu.skills["slayer"] = 60
+	pu.skills["firemaking"] = 60
+	check(pu.buy_item("leaf_bladed_sword"), "Slayer 55 buys a leaf-bladed sword")
+	var crab := Monster.new()
+	crab.init_monster("rock_crab", GameData.unit_def("monsters", "rock_crab"), Vector3(74, 0, -70), "test", 1)
+	add_child(crab)
+	var to_monster := DamageInfo.make(100.0, Combat.Style.MELEE, pu)
+	pu.modify_outgoing(to_monster, crab)
+	var to_champ := DamageInfo.make(100.0, Combat.Style.MELEE, pu)
+	pu.modify_outgoing(to_champ, sk)
+	check(to_monster.amount > to_champ.amount * 1.1, "leaf-bladed sword hits monsters harder")
+	check(pu.buy_item("bruma_torch"), "Firemaking 50 buys a bruma torch")
+	pu.on_attack_landed(crab, 10.0)
+	check(crab.has_status("burn"), "bruma torch attacks burn")
+	pu.skills["herblore"] = 60
+	pu.add_status("p", "poison", 5.0, 5.0, crab)
+	check(pu.buy_item("superantipoison") and pu.use_consumable(pu.consumables.find("superantipoison")) and not pu.has_status("poison"), "superantipoison cures poison")
+	pu.add_status("p2", "venom", 5.0, 5.0, crab)
+	check(not pu.has_status("venom"), "...and blocks venom for a while")
+	pu.skills["thieving"] = 60
+	pu.skills["agility"] = 60
+	check(pu.buy_item("rogue_outfit") and is_equal_approx(pu.gold_bonus(), 0.25), "rogue outfit: +25% last-hit gold")
+	for n in [sk, pu, crab]:
+		n.queue_free()
+
+
+## v0.8 champion select: portrait cards, Equipment view, tabs, LOCK IN countdown.
+func test_champion_select() -> void:
+	var sel := ChampionSelect.new()
+	add_child(sel)
+	await get_tree().process_frame
+	check(sel._cards.size() == GameData.champion_order.size(), "a portrait card for every build")
+	sel.select_build("hybrid")
+	check(sel.selected_id == "hybrid" and (sel._cards["hybrid"] as Button).button_pressed, "clicking a card selects it")
+	check((sel._slots["weapon"]["icon"] as TextureRect).texture != null and (sel._slots["shield"]["icon"] as TextureRect).texture != null,
+		"the Equipment view shows the build's gear")
+	check(sel._figure.figure != null and sel._figure.figure.champion_id == "hybrid", "the figure shows the selected build")
+	var pos := sel._skills.position
+	sel.select_build("skiller")
+	check(sel._skills.position == pos and sel._skills.size == SkillsPanel.panel_size(true), "the Skills tab stays put between builds")
+	check(sel._skills._tiles.size() == 24, "every build shows all 24 skills")
+	sel.show_tab("prayer")
+	check(sel._prayers.visible and not sel._skills.visible, "Prayer tab")
+	var started := []
+	sel.champion_selected.connect(func(id: String, prayer_id: String) -> void: started.append([id, prayer_id]))
+	sel.lock_in()
+	sel.select_build("dharok")
+	check(sel.locked and sel.selected_id == "skiller", "after LOCK IN the build can't change")
+	sel._process(2.0)
+	check(started.is_empty() and sel._lock.text.ends_with("3"), "countdown runs (%s)" % sel._lock.text)
+	sel._process(3.1)
+	check(started.size() == 1 and started[0][0] == "skiller" and started[0][1] == "thick_skin", "the match starts after 5 seconds")
+	sel.queue_free()
+	await get_tree().process_frame
+
+
+## v0.9 feedback: OSRS-sized numbers, overkill, prayer, casting, ranks,
+## tooltips, Grand Exchange, buffs, fog of war, Skiller gems, cannon carts.
+func test_v09() -> void:
+	# Smaller (OSRS-sized) health and damage: everything scaled by rules.hp_scale.
+	GameData.load_all()
+	var hs := float(GameData.rule("hp_scale", 1.0))
+	check(hs < 0.5, "health and damage are scaled down (hp_scale %.2f)" % hs)
+	check(is_equal_approx(float(GameData.champion("dharok")["base"]["max_health"]), 680.0 * hs), "champion health scales")
+	check(is_equal_approx(float(GameData.unit_def("structures", "tower_outer")["max_health"]), 9000.0 * hs), "turret health scales")
+	check(is_equal_approx(float(GameData.item("shark")["use"]["heal_over_time"]), 200.0 * hs), "food heals scale")
+	var dk := _make("dharok", Combat.Team.SARADOMIN, Vector3(40, 0, -40))
+	var foe := _make("pure", Combat.Team.ZAMORAK, Vector3(41.5, 0, -40))
+	await get_tree().physics_frame
+	check(dk.max_health < 200.0, "a level-1 champion has OSRS-sized health (%d)" % int(dk.max_health))
+	# Overkill: the killing blow takes exactly the health left, and the bar shows 0.
+	foe.health = 7.0
+	var dealt := foe.take_damage(DamageInfo.make(500.0, Combat.Style.MELEE, dk))
+	check(is_equal_approx(dealt, 7.0) and foe.is_dead and foe.health == 0.0, "overkill is capped at the health left (%.1f)" % dealt)
+	check(is_equal_approx(foe._health_bar._ratio, 0.0), "the health bar empties on death")
+	# Prayer: overhead icons and 3x drain.
+	var tank := _make("justiciar", Combat.Team.SARADOMIN, Vector3(44, 0, -40))
+	await get_tree().physics_frame
+	tank.toggle_protect(Combat.Style.MELEE)
+	check(tank._overhead != null and tank._overhead.visible and tank._overhead.texture != null, "Protect from Melee shows its overhead icon")
+	tank.toggle_protect(Combat.Style.MELEE)
+	check(not tank._overhead.visible, "and hides it when switched off")
+	# Ranks: every basic ability improves per rank.
+	var flat: Array[String] = []
+	for id in GameData.champion_order:
+		for slot in ["q", "w", "e"]:
+			var ab: Dictionary = GameData.champion(id)["abilities"][slot]
+			if AbilityInfo.per_rank_text(ab, slot).replace("-6% cooldown", "").strip_edges(true, true).trim_suffix(",") == "":
+				flat.append("%s %s" % [id, slot])
+	check(flat.is_empty(), "every Q/W/E has a per-rank upgrade beyond cooldown (missing: %s)" % ", ".join(flat))
+	var tb: Dictionary = GameData.champion("hybrid")["abilities"]["w"]
+	check(is_equal_approx(float(AbilityRunner.ranked(tb, 3)["effects"][0]["duration"]), 5.0), "Tele Block lasts longer at rank 3 (4s + 2 x 0.5s)")
+	# Coloured tooltips.
+	var rich := AbilityInfo.tooltip_rich(dk, "q")
+	check(rich.contains(AbilityInfo.C_MELEE) and rich.contains("[i]") and rich.contains(AbilityInfo.C_STATS), "ability tooltips are coloured (melee red, your stats light blue, italic cooldown)")
+	# Normal cast is the default.
+	check(Settings.cast_mode == Settings.CAST_NORMAL or Settings.CAST_MODE_NAMES.size() == 3, "normal cast (press, then left-click) is the default")
+	# Grand Exchange tabs.
+	var cats := {}
+	for id in GameData.item_order:
+		cats[GrandExchange.category(GameData.item(id))] = true
+	check(cats.size() == 5 and cats.has("Consumables") and cats.has("Skilling"), "the Grand Exchange sorts items into 5 tabs (%s)" % str(cats.keys()))
+	check(GrandExchange.category(GameData.item("shark")) == "Consumables" and GrandExchange.category(GameData.item("dragon_boots")) == "Boots"
+		and GrandExchange.category(GameData.item("abyssal_whip")) == "Weapons" and GrandExchange.category(GameData.item("bandos_chestplate")) == "Armour", "items land in the right tab")
+	# Buff icons.
+	check(BuffBar.describe({"kind": "root", "amount": 0.0})["debuff"] and not BuffBar.describe({"kind": "haste", "amount": 0.2})["debuff"], "roots are debuffs, haste a buff")
+	check(BuffBar.describe({"kind": "tele_block"})["title"] == "Teleblocked", "teleblock has its own icon and name")
+	# Fog of war.
+	var fog := FogOfWar.new()
+	add_child(fog)
+	fog.set_team(Combat.Team.SARADOMIN)
+	var far := _make("lunar", Combat.Team.ZAMORAK, Vector3(-60, 0, 60))
+	await get_tree().physics_frame
+	fog.update_vision()
+	check(far.fog_hidden, "an enemy far from your team is hidden by the fog")
+	far.global_position = dk.global_position + Vector3(6, 0, 0)
+	fog.update_vision()
+	check(not far.fog_hidden, "...and seen once an ally is near")
+	fog.set_enabled(false)
+	far.global_position = Vector3(-60, 0, 60)
+	check(not far.fog_hidden, "spectators can switch the fog off")
+	fog.queue_free()
+	# Skiller gems, cannon carts.
+	var gem := Projectile.launch(dk, tank, {"kind": "projectile", "shape": "gem"}, Callable())
+	check(str(gem.fx.get("gem", "")) != "", "the Skiller throws gems (%s)" % gem.fx.get("gem", ""))
+	gem.queue_free()
+	var cart := CannonModel.build(Color.RED, true)
+	check(is_equal_approx(cart.rotation.y, PI), "a cannon cart's barrel points the way it travels")
+	cart.free()
+	for n in [dk, foe, tank, far]:
+		if is_instance_valid(n):
+			n.queue_free()
+	GameData.load_all(1.0)
 
 
 func test_item_build_paths() -> void:
@@ -165,9 +723,10 @@ func test_item_build_paths() -> void:
 	var before := pure.base_damage
 	check(pure.buy_item("abyssal_whip"), "upgrade to abyssal whip")
 	check(pure.base_damage > before, "whip raises damage")
-	check(pure.buy_item("shark") and pure.consumables == ["shark"], "food goes on the belt")
+	check(not pure.can_buy("shark"), "only a Skiller can cook sharks (Cooking 80)")
+	check(pure.buy_item("shrimps") and pure.consumables == ["shrimps"], "food goes on the belt")
 	pure.health = 100.0
-	check(pure.use_consumable(0) and pure.consumables.is_empty(), "eating removes the shark")
+	check(pure.use_consumable(0) and pure.consumables.is_empty(), "eating removes the shrimps")
 	pure.queue_free()
 
 
@@ -218,7 +777,7 @@ func test_lol_minions_and_waves() -> void:
 	check(is_equal_approx(Minion.scaled(siege["damage"], 99), 126.0), "siege damage caps at 126")
 	var m := Minion.new()
 	m.init_minion("goblin", melee, Combat.Team.SARADOMIN, "mid", MapLayout.lane_path("mid", 0), 1)
-	check(is_equal_approx(1.0 / m.get_attack_interval(), 1.25), "melee minions attack 1.25 times per second")
+	check(is_equal_approx(m.get_attack_interval(), 2.4) and is_equal_approx(m.basic_hit_scale, 0.7 * 2.4 * 1.25), "melee minions swing every 4 ticks, harder per hit (70% of the LoL DPS)")
 	check(is_equal_approx(m.get_attack_range(), 110.0 / 75.0), "melee minion range is 110 LoL units")
 	m.free()
 	check(WaveSpawner.upgrades_at(29.0) == 0 and WaveSpawner.upgrades_at(30.0) == 1, "first upgrade at 0:30")
@@ -253,7 +812,7 @@ func test_lol_turrets() -> void:
 	tower.init_structure("tower", GameData.unit_def("structures", "tower_outer"), Combat.Team.ZAMORAK, "Test tower", "tower_outer")
 	add_child(tower)
 	check(is_equal_approx(tower.max_health, 9000.0) and is_equal_approx(tower.get_defence(0), 60.0), "outer turret: 9000 health, 60 armor")
-	check(is_equal_approx(1.0 / tower.get_attack_interval(), 0.833), "turrets attack 0.833 times per second")
+	check(is_equal_approx(tower.get_attack_interval(), 2.4), "turrets fire every 4 ticks")
 	check(is_equal_approx(tower.get_attack_range(), 10.0), "turret range is 750 LoL units (10 m)")
 	check(is_equal_approx(tower.get_damage(), 182.0), "outer turret starts at 182 damage")
 	Combat.clock = 7 * 60.0
@@ -285,7 +844,7 @@ func test_lol_turrets() -> void:
 	check(is_equal_approx(amounts[1] / amounts[0], 1.5) and is_equal_approx(amounts[3] / amounts[0], 2.5) \
 		and is_equal_approx(amounts[4] / amounts[0], 2.5), "Warming Up: +50% per shot on champions, up to +150%")
 	Combat.clock = 10.0
-	check(is_equal_approx(tower.build_attack_damage(champ).amount, tower.get_damage()), "Warming Up resets 5 s after the last champion hit")
+	check(is_equal_approx(tower.build_attack_damage(champ).amount, tower.get_damage() * tower.basic_hit_scale), "Warming Up resets 5 s after the last champion hit")
 	Combat.clock = 0.0
 	var hit := DamageInfo.make(100.0, Combat.Style.MELEE, champ)
 	hit.is_attack = true
@@ -304,7 +863,7 @@ func test_lol_turrets() -> void:
 	altar.die(null)
 	await get_tree().physics_frame
 	check(altar.is_dead and is_equal_approx(altar.respawn_timer, 300.0), "altars respawn after 5 minutes")
-	altar._dead_process(300.0)
+	altar._dead_tick(300.0)
 	check(not altar.is_dead and is_equal_approx(altar.health, 4000.0), "a respawned altar comes back at full health")
 	for n in [tower, champ, altar]:
 		n.queue_free()
@@ -317,7 +876,7 @@ func test_lol_monsters() -> void:
 	var blue := Monster.new()
 	blue.init_monster("abyssal_demon", GameData.unit_def("monsters", "abyssal_demon"), Vector3.ZERO, "test", 1)
 	check(is_equal_approx(blue.max_health, 2300.0) and is_equal_approx(blue.get_defence(2), 42.0), "abyssal demon = Blue Sentinel (2300 HP, 42 MR)")
-	check(is_equal_approx(1.0 / blue.get_attack_interval(), 0.493), "Blue Sentinel attacks 0.493 times per second")
+	check(is_equal_approx(blue.get_attack_interval(), 2.4), "abyssal demon attacks every 4 ticks, as in OSRS")
 	blue.free()
 	var drake := Monster.new()
 	drake.init_monster("chromatic_dragon", GameData.unit_def("monsters", "chromatic_dragon"), Vector3.ZERO, "test", 1)
@@ -487,7 +1046,7 @@ func test_timber() -> void:
 	c.try_cast("q", null, p + Vector3(0, 0, 3))
 	var short := c.standing_trees()[0]
 	short.lifetime = 0.05
-	await get_tree().create_timer(0.2).timeout
+	await get_tree().create_timer(0.7).timeout   # the next game tick
 	check(not is_instance_valid(short) or not short.is_standing(), "yews wither when their lifetime ends")
 	for u in [c, walker, ahead, behind]:
 		u.queue_free()
@@ -547,9 +1106,9 @@ func test_v05_ui() -> void:
 	for slot in Champion.SLOTS:
 		check(AbilityInfo.tooltip(dh, slot) != "", "Dharok %s tooltip builds" % slot)
 
-	check(c.offensive_prayer_name() == "Thick Skin", "the Skiller's special prayer is Thick Skin (Prayer 1)")
-	check(c.activate_offensive_prayer() and c.has_status("damage_taken_mult"), "Thick Skin reduces damage taken")
-	check(Champion.prayer_effect_text(dh.offensive_prayer()).begins_with("+"), "prayer effect text")
+	check(c.chosen_prayer == "thick_skin", "the Skiller's prayer is Thick Skin (Prayer 1)")
+	check(c.toggle_chosen_prayer() and c.prayer_effect("damage_taken") < 0.0, "Thick Skin reduces damage taken")
+	check(PrayerBook.effect_text(dh.chosen_prayer_data()).begins_with("+"), "prayer effect text")
 	var chest := c.find_child("ChestTag", true, false) as Label3D
 	check(chest != null and chest.text == "SK" and c.find_child("BackTag", true, false) != null, "two-letter tag on chest and back")
 	var missing: Array[String] = []
@@ -674,6 +1233,16 @@ func test_osrs_models() -> void:
 	jad.init_monster("tztok_jad", GameData.unit_def("monsters", "tztok_jad"), Vector3(70, 0, 70), "test", 12)
 	add_child(jad)
 	check(jad.osrs != null and jad.osrs.has_clip("attack_magic"), "TzTok-Jad uses his OSRS model and clips")
+	var dk := _make("dharok", Combat.Team.SARADOMIN, Vector3(72, 0, 64))
+	await get_tree().physics_frame
+	dk.osrs.moving = true
+	dk.osrs._update_locomotion(true)
+	var cur := dk.osrs.anim.current_animation
+	check(cur.ends_with("dharok_axe_run_11466") and dk.osrs.anim.get_animation(cur).loop_mode != Animation.LOOP_NONE, "Dharok's greataxe run loops (got %s)" % cur)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	check(not dk.osrs.moving, "a unit standing still goes back to idle")
+	dk.queue_free()
 	OsrsModels.enabled = false
 	var plain := _make("dharok", Combat.Team.SARADOMIN, Vector3(70, 0, 60))
 	check(plain.osrs == null and plain._model.visible, "without the pack champions keep the whitebox shape")

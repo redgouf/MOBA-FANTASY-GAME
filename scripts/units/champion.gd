@@ -38,8 +38,17 @@ var assists := 0
 
 var prayer := 99.0
 var prayer_max := 99.0
+## The one prayer picked at champion select (toggled with V); see PrayerBook.
+var chosen_prayer := ""
+## Prayers switched on right now (ids). Each drains prayer points, OSRS-style.
+var active_prayers: Array[String] = []
+## The active protection prayer's style (Combat.Style), or -1.
 var protect_style := -1
-var offensive_prayer_cd := 0.0
+## Praying at a prayer altar: the altar we're walking to or praying at, the
+## channel left (-1 = not praying) and the personal cooldown before the next.
+var pray_altar: PrayerAltar
+var pray_timer := -1.0
+var altar_cooldown := 0.0
 var spec := 100.0
 ## Skill power: what skilling actions (the Skiller's kit) scale with, like magic power for mages.
 var skill_power := 0.0
@@ -75,10 +84,18 @@ var _move_point := Vector3.ZERO
 var _queued_cast: Dictionary = {}
 var _repath_timer := 0.0
 var _path_iteration := -1       # navigation map iteration our current path was computed on
-var _bot_think := 0.0
+var _recall_started := -1          # GameTick tick the recall began (timers count from the next tick)
+var _pray_started := -1
+var _died_tick := -1
+## Prayer id -> tick it was switched on (it starts draining on the next tick).
+var _prayer_since: Dictionary = {}
 var _last_cmd_point := Vector3(INF, 0.0, INF)
 var _bot_waypoint := 1
 var _skill_casts := 0
+var _prayer_fx: Dictionary = {}     # summed effects of the active prayers
+## Who landed the killing blow last time (shown on the death screen).
+var last_killer_name := ""
+var _last_hurt := -100.0            # Combat.clock when last damaged (Rapid Heal)
 ## Timber! yews this champion has standing, oldest first.
 var planted_trees: Array[PlantedTree] = []
 
@@ -93,7 +110,7 @@ func setup(id: String, p_team: int, spawn: Vector3, bot: bool) -> void:
 	is_bot = bot
 	spawn_point = spawn
 	passive = def.get("passive", {})
-	skills = def.get("skills", {})
+	skills = GameData.skills_for(id)
 	has_overheads = bool(def.get("overheads", false))
 	forms = def.get("forms", [])
 	configure_from_def(def.get("base", {}))
@@ -103,6 +120,7 @@ func setup(id: String, p_team: int, spawn: Vector3, bot: bool) -> void:
 	gold = float(GameData.rule("starting_gold", 500))
 	prayer_max = float(GameData.rule("prayer_points_max", 99))
 	prayer = prayer_max
+	set_chosen_prayer("")
 	if not forms.is_empty():
 		_apply_form(0)
 		_switch_bonus_ready = false
@@ -259,29 +277,6 @@ func skill(name: String) -> int:
 
 func get_skill_power() -> float:
 	return skill_power * maxf(0.0, 1.0 + status_sum("skill_power_mult"))
-
-
-## The strongest offensive prayer this build's Prayer level unlocks for its
-## current style, e.g. Piety at 70, Chivalry at 60. Empty if none qualifies.
-func offensive_prayer() -> Dictionary:
-	var table: Dictionary = GameData.rule("offensive_prayers", {})
-	for p in table.get(Combat.style_name(attack_style), []):
-		if skill("prayer") >= int(p.get("level", 99)):
-			return p
-	return {}
-
-
-func offensive_prayer_name() -> String:
-	return str(offensive_prayer().get("name", "None"))
-
-
-## What the prayer does, for tooltips and the scoreboard ("+12% damage").
-static func prayer_effect_text(p: Dictionary) -> String:
-	if p.is_empty():
-		return "no prayer"
-	if p.has("text"):
-		return str(p["text"])
-	return "+%d%% damage" % int(round(float(p.get("bonus", 0.0)) * 100.0))
 
 
 ## Item requirements use real OSRS levels: a 1 Defence Pure can't wear Bandos.
@@ -445,15 +440,22 @@ func use_consumable(index: int) -> bool:
 		heal(float(use["heal"]))
 	if use.has("heal_pct_max"):
 		heal(max_health * float(use["heal_pct_max"]))
+	# Preserve: potion and food effects last longer (the heal-over-time total grows too).
+	var keep := 1.0 + float(prayer_special("preserve").get("amount", 0.0))
 	if use.has("heal_over_time"):
 		var dur := float(use.get("duration", 5.0))
-		add_status("food:" + item_id, "heal_over_time", float(use["heal_over_time"]) / dur, dur, self)
+		add_status("food:" + item_id, "heal_over_time", float(use["heal_over_time"]) / dur, dur * keep, self)
 	if use.has("prayer"):
 		prayer = minf(prayer_max, prayer + float(use["prayer"]))
 	if use.has("spec"):
 		spec = minf(100.0, spec + float(use["spec"]))
+	for kind in use.get("cleanse", []):
+		for id in statuses.keys():
+			if statuses[id]["kind"] == kind:
+				statuses.erase(id)
 	for st in use.get("statuses", []):
-		add_status("item:%s:%s" % [item_id, st["kind"]], st["kind"], float(st.get("amount", 0.0)), float(st.get("duration", 5.0)), self)
+		add_status("item:%s:%s" % [item_id, st["kind"]], st["kind"], float(st.get("amount", 0.0)), float(st.get("duration", 5.0)) * keep, self,
+			st.get("data", {}))
 	consumables.remove_at(index)
 	return true
 
@@ -463,34 +465,287 @@ func in_shop_range() -> bool:
 
 
 # --- Prayer ------------------------------------------------------------------
+## Every build picks one prayer at champion select (PrayerBook, by Prayer
+## level) and toggles it with V. Builds with overheads also have the three
+## protection prayers on Z/X/C. Active prayers drain points at OSRS rates;
+## the fountain, prayer altars and potions restore them.
 
-func toggle_protect(style: int) -> void:
-	if not has_overheads:
-		return
-	if protect_style == style:
-		protect_style = -1
-	elif prayer > 0.0 and not is_dead:
-		protect_style = style
+## Picks this build's prayer; an empty or not-allowed id falls back to the default.
+func set_chosen_prayer(id: String) -> void:
+	deactivate_prayers()
+	chosen_prayer = id if id != "" and PrayerBook.can_pick(def, id) else PrayerBook.default_for(def)
 
 
-func activate_offensive_prayer() -> bool:
-	var cfg: Dictionary = GameData.rule("offensive_prayer", {})
-	var cost := float(cfg.get("cost", 10))
-	var p := offensive_prayer()
-	if p.is_empty() or is_dead or has_status("disable_prayer") or offensive_prayer_cd > 0.0 or prayer < cost:
+func chosen_prayer_data() -> Dictionary:
+	return PrayerBook.find(chosen_prayer)
+
+
+func is_praying(id: String) -> bool:
+	return active_prayers.has(id)
+
+
+## OSRS prayer bonus from items (drain resistance = 60 + 2 x bonus).
+func prayer_bonus() -> float:
+	return _item_stat("prayer_bonus")
+
+
+func prayer_drain_total() -> float:
+	var total := 0.0
+	for id in active_prayers:
+		total += float(PrayerBook.find(id).get("drain", 0))
+	return total
+
+
+## Drain of the prayers that were already on before this tick: a prayer
+## doesn't drain on the tick it comes on, so flicking every tick is free.
+func _draining_total() -> float:
+	var total := 0.0
+	for id in active_prayers:
+		if int(_prayer_since.get(id, -1)) < GameTick.current_tick:
+			total += float(PrayerBook.find(id).get("drain", 0))
+	return total
+
+
+## Seconds until the active prayers run dry (INF when none are on).
+func prayer_time_left() -> float:
+	return PrayerBook.seconds_per_point(prayer_drain_total(), prayer_bonus()) * prayer
+
+
+func can_use_prayer(id: String) -> bool:
+	if id == "" or is_dead or prayer <= 0.0 or has_status("disable_prayer"):
 		return false
-	prayer -= cost
-	offensive_prayer_cd = float(cfg.get("cooldown", 60))
-	# Most are damage boosts; low-level ones like Thick Skin (the Skiller's,
-	# Prayer 1) set their own "kind" (Thick Skin: take 5% less damage).
-	add_status("offensive_prayer", str(p.get("kind", "damage_mult")), float(p.get("bonus", 0.1)), float(cfg.get("duration", 6)), self)
+	return id == chosen_prayer or (has_overheads and PrayerBook.is_protect(id))
+
+
+## Switches a prayer on or off. Only one protection prayer can be on at once.
+func toggle_prayer(id: String) -> bool:
+	if active_prayers.has(id):
+		active_prayers.erase(id)
+		_prayer_since.erase(id)
+		_refresh_prayers()
+		return true
+	if not can_use_prayer(id):
+		return false
+	if PrayerBook.is_protect(id):
+		for other in active_prayers.duplicate():
+			if PrayerBook.is_protect(other):
+				active_prayers.erase(other)
+				_prayer_since.erase(other)
+	active_prayers.append(id)
+	_prayer_since[id] = GameTick.current_tick
+	_refresh_prayers()
 	return true
+
+
+## V: the build's own prayer.
+func toggle_chosen_prayer() -> bool:
+	return toggle_prayer(chosen_prayer)
+
+
+## Z/X/C: protection prayers (builds with overheads only).
+func toggle_protect(style: int) -> void:
+	if has_overheads:
+		toggle_prayer(PrayerBook.protect_id(style))
+
+
+func deactivate_prayers() -> void:
+	active_prayers.clear()
+	_prayer_since.clear()
+	_refresh_prayers()
+
+
+func _refresh_prayers() -> void:
+	_prayer_fx = {}
+	protect_style = -1
+	_update_overhead()
+	for id in active_prayers:
+		var p := PrayerBook.find(id)
+		if p.has("protect"):
+			protect_style = Combat.style_from_string(str(p["protect"]))
+		var style := str(p.get("style", ""))
+		if p.has("damage"):
+			_prayer_fx["damage_" + style] = float(_prayer_fx.get("damage_" + style, 0.0)) + float(p["damage"])
+		if p.has("attack_speed"):
+			_prayer_fx["attack_speed_" + style] = float(_prayer_fx.get("attack_speed_" + style, 0.0)) + float(p["attack_speed"])
+		if p.has("damage_taken"):
+			_prayer_fx["damage_taken"] = float(_prayer_fx.get("damage_taken", 0.0)) + float(p["damage_taken"])
+		if p.has("special"):
+			_prayer_fx[str(p["special"])] = p
+
+
+## The OSRS overhead icon above the head for an active overhead prayer
+## (a protection prayer wins over Smite / Redemption / Retribution).
+var _overhead: Sprite3D
+
+
+func overhead_prayer() -> String:
+	var best := ""
+	for id in active_prayers:
+		var p := PrayerBook.find(id)
+		if bool(p.get("overhead", false)) and (best == "" or p.has("protect")):
+			best = id
+	return best
+
+
+func _update_overhead() -> void:
+	var id := overhead_prayer()
+	if id == "":
+		if _overhead != null:
+			_overhead.visible = false
+		return
+	if _overhead == null:
+		_overhead = Sprite3D.new()
+		_overhead.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_overhead.pixel_size = 0.0075
+		_overhead.no_depth_test = true
+		_overhead.render_priority = 24
+		_overhead.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		add_child(_overhead)
+	_overhead.position = Vector3(0, visual_height() + 1.55, 0)
+	_overhead.texture = Icons.overhead(id)
+	_overhead.visible = true
+
+
+## A summed prayer effect: "damage_melee", "attack_speed_melee", "damage_taken".
+func prayer_effect(key: String) -> float:
+	return float(_prayer_fx.get(key, 0.0))
+
+
+## The data of an active special prayer ("smite", "redemption", ...), or {}.
+func prayer_special(kind: String) -> Dictionary:
+	return _prayer_fx.get(kind, {})
+
+
+func extra_attack_speed() -> float:
+	return prayer_effect("attack_speed_" + Combat.style_name(attack_style))
+
+
+func debuff_decay_mult() -> float:
+	return 1.0 + float(prayer_special("rapid_restore").get("amount", 0.0))
+
+
+## Once per game tick: drains prayer points for the prayers that were on.
+func _tick_prayer(delta: float) -> void:
+	altar_cooldown = _count_down(altar_cooldown, delta)
+	if active_prayers.is_empty():
+		return
+	if has_status("disable_prayer"):
+		deactivate_prayers()
+		return
+	var draining := _draining_total()
+	if draining > 0.0:
+		prayer -= delta / PrayerBook.seconds_per_point(draining, prayer_bonus())
+	if prayer <= 0.0:
+		prayer = 0.0
+		deactivate_prayers()
+		return
+	var heal_fx := prayer_special("rapid_heal")
+	if not heal_fx.is_empty() and Combat.clock - _last_hurt >= 4.0:
+		heal(max_health * float(heal_fx.get("amount", 0.006)) * delta)
+
+
+## Tele Block: Protect from Magic halves it, as in OSRS.
+func add_status(id: String, kind: String, amount: float, duration: float,
+		source: Unit = null, data: Dictionary = {}) -> void:
+	if kind == "tele_block" and get_protected_style() == Combat.Style.MAGIC:
+		duration *= 0.5
+	super(id, kind, amount, duration, source, data)
+
+
+func on_damage_dealt(target: Unit, amount: float, _info: DamageInfo) -> void:
+	var smite := prayer_special("smite")
+	if smite.is_empty() or not (target is Champion) or amount <= 0.0:
+		return
+	# OSRS Smite drains 25% of the damage in prayer points; scaled here as a
+	# share of the target's health, so a hit for 20% of it drains 5% of their prayer.
+	var foe := target as Champion
+	foe.prayer = maxf(0.0, foe.prayer - float(smite.get("amount", 0.25)) * amount / maxf(foe.max_health, 1.0) * foe.prayer_max)
+	if foe.prayer <= 0.0:
+		foe.deactivate_prayers()
+
+
+## Retribution: explode on death.
+func _retribution() -> void:
+	var r := prayer_special("retribution")
+	if r.is_empty() or not is_inside_tree():
+		return
+	var dmg := float(r.get("amount", 60)) + float(r.get("per_level", 12)) * level
+	var radius := float(r.get("radius", 4.0))
+	CombatFx.ring(get_parent(), global_position, radius, CombatFx.color("#f2e48a"), 0.5)
+	for n in get_tree().get_nodes_in_group("units"):
+		var u := n as Unit
+		if u == null or u.is_dead or u.team == team or not u.is_damageable():
+			continue
+		if flat_distance_to(u) <= radius + u.radius:
+			var info := DamageInfo.make(dmg, Combat.Style.MAGIC, self)
+			info.is_true = true
+			info.label = "retribution"
+			u.take_damage(info)
+
+
+## Redemption: survive a hit below 10% health, heal 25% and lose all prayer.
+func _redemption() -> void:
+	var r := prayer_special("redemption")
+	if r.is_empty() or is_dead or health <= 0.0 or health >= max_health * float(r.get("threshold", 0.1)):
+		return
+	heal(max_health * float(r.get("amount", 0.25)))
+	prayer = 0.0
+	deactivate_prayers()
+	if is_inside_tree():
+		CombatFx.glow(self, CombatFx.color("#fff3b0"), 0.8)
+
+
+# --- Prayer altars -------------------------------------------------------------
+
+## Walk to a prayer altar and pray there (restores prayer to full).
+func command_pray(altar: PrayerAltar) -> void:
+	if altar == null or is_dead:
+		return
+	command_move(altar.global_position)
+	pray_altar = altar
+
+
+func is_praying_at_altar() -> bool:
+	return pray_timer >= 0.0
+
+
+func _cancel_altar() -> void:
+	pray_altar = null
+	pray_timer = -1.0
+
+
+func _process_altar(delta: float) -> void:
+	if pray_altar == null or not is_instance_valid(pray_altar):
+		pray_altar = null
+		return
+	var cfg: Dictionary = GameData.rule("prayer_altar", {})
+	if pray_timer < 0.0:
+		if flat_distance(global_position, pray_altar.global_position) <= float(cfg.get("range", 2.6)) + pray_altar.radius:
+			if altar_cooldown > 0.0:
+				_cancel_altar()
+				return
+			pray_timer = float(cfg.get("channel", 1.2))
+			_pray_started = GameTick.current_tick
+			command_stop()
+			face_toward(pray_altar.global_position)
+			if osrs != null:
+				osrs.play(str(OsrsModels.config().get("pray_clip", "")), pray_timer)
+		return
+	if GameTick.current_tick == _pray_started:
+		return
+	pray_timer -= delta
+	if pray_timer <= 0.001:
+		prayer = prayer_max
+		altar_cooldown = float(cfg.get("cooldown", 45))
+		pray_altar.on_prayed(self)
+		_cancel_altar()
 
 
 # --- Commands ----------------------------------------------------------------
 
 func command_move(point: Vector3) -> void:
 	_cancel_recall()
+	_cancel_altar()
 	attack_target = null
 	_queued_cast = {}
 	_set_move_target(point)
@@ -503,6 +758,7 @@ func command_attack(target: Unit) -> void:
 	if target == null or target.team == team:
 		return
 	_cancel_recall()
+	_cancel_altar()
 	_queued_cast = {}
 	if attack_target != target:
 		_last_cmd_point = target.global_position
@@ -511,6 +767,8 @@ func command_attack(target: Unit) -> void:
 
 
 func command_stop() -> void:
+	if pray_timer < 0.0:
+		pray_altar = null
 	attack_target = null
 	_queued_cast = {}
 	_has_move_target = false
@@ -520,8 +778,10 @@ func command_stop() -> void:
 func start_recall() -> void:
 	if is_dead or recall_timer >= 0.0 or has_status("tele_block"):
 		return
+	_cancel_altar()
 	command_stop()
 	recall_timer = float(GameData.rule("recall_channel_sec", 4.0))
+	_recall_started = GameTick.current_tick
 
 
 func is_recalling() -> bool:
@@ -849,6 +1109,10 @@ func skilling_casts_until_level_up() -> int:
 
 func modify_outgoing(info: DamageInfo, target: Unit) -> void:
 	super(info, target)
+	if not info.is_true:
+		info.amount *= 1.0 + prayer_effect("damage_" + Combat.style_name(info.style))
+	if target != null and target.team == Combat.Team.NEUTRAL:
+		info.amount *= 1.0 + _item_stat("monster_damage")   # Black mask, leaf-bladed weapons
 	match str(passive.get("type", "")):
 		"missing_health_damage":
 			info.amount *= 1.0 + (1.0 - health_ratio()) * float(passive.get("pct_per_pct", 1.0))
@@ -880,6 +1144,12 @@ func modify_outgoing(info: DamageInfo, target: Unit) -> void:
 
 
 func modify_incoming(amount: float, info: DamageInfo) -> float:
+	if not info.is_true:
+		amount *= maxf(0.0, 1.0 + prayer_effect("damage_taken"))
+		# Elysian spirit shield (item): 70% chance to shave each hit.
+		var ely := _item_stat("elysian")
+		if ely > 0.0 and randf() < 0.7:
+			amount *= 1.0 - ely
 	match str(passive.get("type", "")):
 		"glass_cannon":
 			amount *= 1.0 + float(passive.get("damage_taken", 0.15))
@@ -892,6 +1162,9 @@ func modify_incoming(amount: float, info: DamageInfo) -> float:
 
 func on_attack_landed(target: Unit, dealt: float) -> void:
 	super(target, dealt)
+	var burn := _item_stat("burn_on_hit")
+	if burn > 0.0 and is_instance_valid(target) and not target.is_dead:
+		target.add_status("bruma:%d" % get_instance_id(), "burn", burn, 2.0, self)   # Bruma torch
 	match str(passive.get("type", "")):
 		"venom":
 			if is_instance_valid(target) and not target.is_dead:
@@ -902,28 +1175,60 @@ func on_attack_landed(target: Unit, dealt: float) -> void:
 			_stack_timer = float(passive.get("window", 3.0))
 
 
+func is_class_champion() -> bool:
+	return true
+
+
+## Extra share of last-hit gold (Rogue outfit).
+func gold_bonus() -> float:
+	return _item_stat("gold_bonus")
+
+
 func passive_stacks() -> int:
 	return _stacks
+
+
+## Fills a stacking passive (Zerker's Dragon claws fill the Berserker Necklace).
+func fill_passive_stacks() -> void:
+	if str(passive.get("type", "")) == "stacking_damage":
+		_stacks = int(passive.get("max_stacks", 5))
+		_stack_timer = float(passive.get("window", 3.0))
 
 
 func _on_damaged(_unit: Unit, amount: float, source: Unit) -> void:
 	if amount > 0.0:
 		_cancel_recall()
+		_last_hurt = Combat.clock
+		if pray_timer >= 0.0:
+			_cancel_altar()
+		_redemption()
 	if source is Champion and source.team != team:
 		source.last_champion_aggro = Combat.clock
 		source.last_aggro_victim_pos = global_position
 
 
-# --- Frame update ------------------------------------------------------------
+# --- Game tick and frame update ----------------------------------------------
+# Every decision happens on a game tick (_unit_tick, 0.6 s): casts, attacks,
+# prayer, timers, bots. The frame update only walks toward what was decided.
 
-func _unit_process(delta: float) -> void:
-	_tick_resources(delta)
+func _unit_tick(dt: float) -> void:
+	_tick_resources(dt)
 	if is_dead:
 		return
 	if is_bot:
-		_bot_update(delta)
+		_bot_update(dt)
+	if pray_altar != null:
+		_process_altar(dt)
 	if not _queued_cast.is_empty():
 		_process_queued_cast()
+	process_attack(dt)
+
+
+## Per frame: walk to the queued cast's target, the attack target or the
+## move point.
+func _unit_process(_delta: float) -> void:
+	if not _queued_cast.is_empty():
+		_approach_queued_cast()
 	elif is_instance_valid(attack_target) and not attack_target.is_dead:
 		if in_attack_range(attack_target):
 			_has_move_target = false
@@ -932,27 +1237,48 @@ func _unit_process(delta: float) -> void:
 			_chase(attack_target.global_position)
 	if _has_move_target:
 		_follow_path()
-	process_attack(delta)
+
+
+## Walks toward a queued cast's target, stopping once in range (the cast
+## itself goes off on the next tick).
+func _approach_queued_cast() -> void:
+	var slot := str(_queued_cast.get("slot", ""))
+	var t: Variant = _queued_cast.get("tree", _queued_cast.get("target"))
+	if not is_instance_valid(t):
+		return
+	var reach := 0.0
+	if _queued_cast.has("tree"):
+		reach = chop_range(get_action(slot).get("planter", {}))
+	else:
+		if (t as Unit).is_dead:
+			return
+		reach = ability_range(get_action(slot)) + radius + (t as Unit).radius
+	if flat_distance_to(t) <= reach:
+		_has_move_target = false
+		velocity = Vector3.ZERO
+	else:
+		_chase((t as Node3D).global_position)
+
+
+## Counts a timer down by one tick; values within a hair of 0 snap to 0 so
+## durations end on whole ticks (4.8 s = exactly 8 ticks).
+static func _count_down(value: float, dt: float) -> float:
+	var v := value - dt
+	return 0.0 if v < 0.001 else v
 
 
 func _tick_resources(delta: float) -> void:
 	for k in cooldowns:
-		cooldowns[k] = maxf(0.0, cooldowns[k] - delta)
-	offensive_prayer_cd = maxf(0.0, offensive_prayer_cd - delta)
-	if protect_style >= 0:
-		var drain := float(GameData.rule("protect_prayer_drain_per_sec", 1.0)) * maxf(0.0, 1.0 - _item_stat("prayer_bonus"))
-		prayer -= drain * delta
-		if prayer <= 0.0:
-			prayer = 0.0
-			protect_style = -1
+		cooldowns[k] = _count_down(cooldowns[k], delta)
+	_tick_prayer(delta)
 	spec = minf(100.0, spec + float(GameData.rule("spec_regen_per_sec", 1.0)) * spec_regen_mult() * delta)
 	if _stack_timer > 0.0:
-		_stack_timer -= delta
+		_stack_timer = _count_down(_stack_timer, delta)
 		if _stack_timer <= 0.0:
 			_stacks = 0
-	if recall_timer >= 0.0:
+	if recall_timer >= 0.0 and GameTick.current_tick != _recall_started:
 		recall_timer -= delta
-		if recall_timer <= 0.0:
+		if recall_timer <= 0.001:
 			recall_timer = -1.0
 			global_position = spawn_point
 			_has_move_target = false
@@ -1011,12 +1337,15 @@ func _follow_path() -> void:
 
 func _on_death(_killer: Unit) -> void:
 	deaths += 1
-	protect_style = -1
+	_retribution()
+	deactivate_prayers()
+	_cancel_altar()
 	_queued_cast = {}
 	_has_move_target = false
 	recall_timer = -1.0
 	_stacks = 0
 	respawn_timer = float(GameData.rule("respawn_base_sec", 6)) + float(GameData.rule("respawn_per_level", 2)) * level
+	_died_tick = GameTick.current_tick
 	collision_layer = 0
 	if osrs != null and is_inside_tree():
 		# Play the death animation, then vanish until respawn.
@@ -1028,11 +1357,13 @@ func _on_death(_killer: Unit) -> void:
 		visible = false
 
 
-func _dead_process(delta: float) -> void:
+func _dead_tick(delta: float) -> void:
 	for k in cooldowns:
-		cooldowns[k] = maxf(0.0, cooldowns[k] - delta)
+		cooldowns[k] = _count_down(cooldowns[k], delta)
+	if GameTick.current_tick == _died_tick:
+		return
 	respawn_timer -= delta
-	if respawn_timer <= 0.0:
+	if respawn_timer <= 0.001:
 		respawn()
 
 
@@ -1052,11 +1383,10 @@ func respawn() -> void:
 # --- Bot AI --------------------------------------------------------------------
 ## A deliberately simple lane bot so the prototype has someone to fight.
 
-func _bot_update(delta: float) -> void:
-	_bot_think -= delta
-	if _bot_think > 0.0 or is_recalling():
+## Bots decide once per game tick (every 0.6 s), like a player clicking.
+func _bot_update(_dt: float) -> void:
+	if is_recalling() or is_praying_at_altar():
 		return
-	_bot_think = 0.25
 	var home_d := flat_distance(global_position, spawn_point)
 
 	if health_ratio() < 0.3 and home_d > 12.0:
@@ -1071,6 +1401,16 @@ func _bot_update(delta: float) -> void:
 			and not has_status("tele_block") and _next_affordable_item() != "":
 		start_recall()   # go home to spend gold, like a real player would
 		return
+	if pray_altar != null:
+		if _nearest_enemy_champion(12.0) == null:
+			return   # walking to a prayer altar
+		_cancel_altar()
+	elif prayer < prayer_max * 0.5 and altar_cooldown <= 0.0 and home_d > 40.0 \
+			and _nearest_enemy_champion(16.0) == null:
+		var altar := PrayerAltar.nearest(global_position, 40.0)
+		if altar != null:
+			command_pray(altar)
+			return
 	if home_d < 12.0 and health_ratio() < 0.95:
 		command_stop()
 		return
@@ -1078,11 +1418,13 @@ func _bot_update(delta: float) -> void:
 		use_consumable(0)
 
 	var foe := _nearest_enemy_champion(12.0)
-	if foe != null and prayer > 15.0:
-		if protect_style != foe.attack_style:
-			toggle_protect(foe.attack_style)
-	elif foe == null and protect_style >= 0:
-		toggle_protect(protect_style)
+	if has_overheads:
+		if foe != null and prayer > 15.0:
+			if protect_style != foe.attack_style:
+				toggle_protect(foe.attack_style)
+		elif foe == null and protect_style >= 0:
+			toggle_protect(protect_style)
+	_bot_prayer(foe)
 
 	_bot_support_allies()
 
@@ -1090,8 +1432,6 @@ func _bot_update(delta: float) -> void:
 	if target == null:
 		target = find_nearest_enemy(9.0, _allied_minions_near(10.0) >= 2, false)
 	if target != null:
-		if target == foe:
-			activate_offensive_prayer()
 		var acted := false
 		for slot in ["r", "q", "w", "e"]:
 			if _bot_try_ability(slot, target):
@@ -1117,6 +1457,20 @@ func _bot_update(delta: float) -> void:
 			command_move(hold)
 
 
+## Bots keep cheap prayers (drain 1-2) on all the time and switch the rest
+## on only while an enemy champion or an epic monster is close.
+func _bot_prayer(foe: Champion) -> void:
+	var p := chosen_prayer_data()
+	if p.is_empty():
+		return
+	var fighting := foe != null or (is_instance_valid(attack_target) and attack_target.is_epic)
+	if p.has("protect"):
+		fighting = foe != null and foe.attack_style == Combat.style_from_string(str(p["protect"]))
+	var want := prayer > 0.0 and (float(p.get("drain", 0)) <= 2.0 or fighting)
+	if want != is_praying(chosen_prayer):
+		toggle_chosen_prayer()
+
+
 ## Bots follow the build's recommended item path, skipping items they can't
 ## wear (requirements) and components they've already upgraded.
 func _bot_shop() -> void:
@@ -1125,8 +1479,25 @@ func _bot_shop() -> void:
 			continue
 		if can_buy(str(id)):
 			buy_item(str(id))
-	while consumables.size() < 2 and can_buy("shark"):
-		buy_item("shark")
+	var food := best_food()
+	while food != "" and consumables.size() < 2 and can_buy(food):
+		buy_item(food)
+
+
+## The best food this build can cook (Cooking level) and afford: the bots' pick.
+func best_food() -> String:
+	var best := ""
+	var best_heal := 0.0
+	for id in GameData.item_order:
+		var it := GameData.item(id)
+		var use: Dictionary = it.get("use", {})
+		if not it.get("consumable", false) or not meets_requirements(id):
+			continue
+		var heal := float(use.get("heal", 0.0)) + float(use.get("heal_over_time", 0.0)) + float(use.get("heal_pct_max", 0.0)) * max_health
+		if heal > best_heal and gold >= item_cost(id):
+			best_heal = heal
+			best = id
+	return best
 
 
 ## First item on the build path this bot could buy right now (ignoring shop range).

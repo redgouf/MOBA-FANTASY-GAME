@@ -51,6 +51,8 @@ static func player(cfg: Dictionary) -> OsrsActor:
 		mi.skeleton = NodePath("..")
 		if str(it.get("slot", "")) == "shield":
 			a._shield = mi
+	for prop in cfg.get("props", []):
+		a._attach_prop(str(prop.get("bone", "")), str(prop.get("prop", "")), prop.get("offset", [0, 0, 0]), prop.get("rotation", [0, 0, 0]))
 	a._cast_clip = str(OsrsModels.config().get("default_cast_clip", "magic_cast_1162"))
 	a.set_base_weapon(int(cfg.get("weapon", 0)), str(cfg.get("attack", "slash")))
 	return a
@@ -75,6 +77,55 @@ static func creature(model: String, width: float) -> OsrsActor:
 	var footprint := maxf(float(size[0]), float(size[2]))
 	a.scale = Vector3.ONE * (width / maxf(footprint, 0.1))
 	return a
+
+
+## Tools held in a hand that the asset pack has no model for (the Skiller's
+## chisel and Imcando hammer), built from shapes and pinned to a bone.
+func _attach_prop(bone: String, prop: String, offset: Array, rot: Array) -> void:
+	if skeleton == null or skeleton.find_bone(bone) < 0:
+		return
+	var att := BoneAttachment3D.new()
+	att.bone_name = bone
+	skeleton.add_child(att)
+	var holder := Node3D.new()
+	holder.position = Vector3(float(offset[0]), float(offset[1]), float(offset[2]))
+	holder.rotation_degrees = Vector3(float(rot[0]), float(rot[1]), float(rot[2]))
+	att.add_child(holder)
+	match prop:
+		"imcando_hammer":
+			_prop_part(holder, _prop_cyl(0.015, 0.26), Color(0.38, 0.25, 0.14), Vector3(0, 0.1, 0))
+			_prop_part(holder, _prop_box(Vector3(0.065, 0.065, 0.14)), Color(0.42, 0.3, 0.2), Vector3(0, 0.23, 0))
+			_prop_part(holder, _prop_box(Vector3(0.07, 0.02, 0.1)), Color(0.85, 0.55, 0.2), Vector3(0, 0.23, 0))
+		"chisel":
+			_prop_part(holder, _prop_cyl(0.018, 0.09), Color(0.42, 0.28, 0.15), Vector3(0, 0.0, 0))
+			_prop_part(holder, _prop_box(Vector3(0.016, 0.14, 0.03)), Color(0.72, 0.74, 0.78), Vector3(0, 0.11, 0))
+
+
+func _prop_part(parent: Node3D, mesh: Mesh, c: Color, pos: Vector3) -> void:
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.position = pos
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.roughness = 0.8
+	mi.material_override = m
+	parent.add_child(mi)
+
+
+func _prop_cyl(r: float, h: float) -> CylinderMesh:
+	var m := CylinderMesh.new()
+	m.top_radius = r
+	m.bottom_radius = r
+	m.height = h
+	m.radial_segments = 8
+	m.rings = 1
+	return m
+
+
+func _prop_box(s: Vector3) -> BoxMesh:
+	var m := BoxMesh.new()
+	m.size = s
+	return m
 
 
 func _ready() -> void:
@@ -210,4 +261,9 @@ func _update_locomotion(force: bool) -> void:
 	if want == "" or (want == _loco and not force):
 		return
 	_loco = want
+	# Locomotion always loops (the pack marks some weapon stand/run clips,
+	# like Dharok's greataxe ones, as one-shots, which froze them mid-stride).
+	var a := anim.get_animation(_full(want))
+	if a.loop_mode == Animation.LOOP_NONE:
+		a.loop_mode = Animation.LOOP_LINEAR
 	anim.play(_full(want), 0.15)

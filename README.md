@@ -6,7 +6,7 @@ A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School Run
 
 Built with **Godot 4.7.2** (GDScript, Forward+).
 
-## Status: whitebox prototype (v0.6)
+## Status: whitebox prototype (v0.9.1)
 
 ![Playing the Pure: stats and items bottom-left, abilities centre, minimap bottom-right, inspected target top-left](docs/screenshots/play.png)
 
@@ -15,18 +15,30 @@ Playable today, with primitive shapes standing in for art:
 - **5v5**: play one champion with 4 bot allies, or **watch NPC vs NPC** in spectator mode.
 - **League-style HUD**: portrait, stats, 6 item slots and food belt bottom-left; passive, Q/W/E/R with ranks and cooldowns, prayers and bars in the centre; minimap bottom-right; left-click any unit to inspect it top-left (with a ring under its feet).
 - **League of Legends mob and structure stats**: minions, turrets, altars (inhibitors), the standard (nexus) and every jungle camp use Summoner's Rift numbers, wave timings and turret rules. See [docs/LOL_VALUES.md](docs/LOL_VALUES.md).
-- **OSRS Skills tab** ([screenshot](docs/screenshots/champion_select.png); the Skiller gets the [full 24-skill tab](docs/screenshots/skiller_skills.png)) for every build (Attack, Hitpoints, Strength, Defence, Ranged, Prayer, Magic, total and combat level) on champion select, and on hover over your portrait or the inspect panel's portrait in-game. Hover a skill to see which items that level unlocks.
+- **Champion select in the OSRS interface style** ([screenshot](docs/screenshots/champion_select.png)): portrait cards for every build; click one for its **Equipment Stats** view (gear slots, the figure slowly turning left and right, and its bonuses) and its abilities; **Skills** and **Prayer** tabs on the side; **LOCK IN** starts the game after a 5 second countdown. Nothing on the screen moves when you switch builds. With the private OSRS pack the portraits and figure are the real models; without it, a stand-in figure coloured from the build's gear.
+- **All 24 OSRS skills for every build**: combat levels are fixed per build; every non-combat skill is **rolled 20–60 each game** (the Skiller is always 99, the Slayer always rolls 55+ Slayer). Hover a skill (champion select, or your portrait in-game) to see which items that level unlocks.
+- **Skilling-gated items**: food by Cooking (shrimps to manta rays), potions by Herblore, and gear gated by Crafting, Smithing, Fletching, Slayer, Hunter, Thieving and Firemaking (leaf-bladed weapons hit monsters harder, chinchompas explode, the rogue outfit boosts last-hit gold, the bruma torch burns). Anything needing a skill above 60 is Skiller-only.
 - **League-style leveling**: start with nothing learned and one point; one point per level; basic abilities rank up to 5 (rank n at level 2n−1), R unlocks at 6/11/16.
 
 - **The Wilderness Rift**: three lanes, the Ditch (visual only), four jungle quadrants, Jad and dragon pits, towers, altars and team flags with LoL-style destruction order, and a runtime-baked navmesh.
 - **11 champions** with full data-driven kits (passive + Q/W/E/R), OSRS skill levels, and lane bots, including the **level-3 Skiller** ([in action](docs/screenshots/skiller_kit.png)), who never swings a weapon: Timber! plants up to three solid yews that block movement, then chops one so it falls away from where the Skiller stands ([fall-path indicator](docs/screenshots/timber_chop.png)); Bonfire, Harpoon and Anvil Drop do the rest, and every 4th ability sets off level-up fireworks.
 - **League-style casting**: hold an ability key to see its indicator (range, line, cone, circle, dash), release to cast. Normal cast and quick cast are in Settings.
-- **Tab scoreboard** ([screenshot](docs/screenshots/scoreboard.png)): every champion's level, K/D/A, CS, special prayer and items (enemies' as your team last saw them).
+- **Tab scoreboard** ([screenshot](docs/screenshots/scoreboard.png)): every champion's level, K/D/A, CS, prayer (and whether it's on) and items (enemies' as your team last saw them).
+- **The OSRS prayer book**: pick one of all 32 prayers at champion select (by Prayer level), switch it on with V, and watch it drain at real OSRS rates. Pray at the four **prayer altars** beside the red and blue buffs to refill. See [docs/PRAYER.md](docs/PRAYER.md).
+- **The OSRS game tick**: all gameplay runs on 0.6s ticks. A click between ticks happens on the next one; NPCs act before champions; attacks, casts, prayers, statuses and respawns all land on ticks; ranged hits land a tick or more after the swing; flicking prayers every tick costs nothing. See [Game ticks](docs/ARCHITECTURE.md#game-ticks).
+- **OSRS attack speeds**: every weapon swings at its OSRS speed in 0.6s ticks (whip 2.4s, Dharok's greataxe 4.2s, blowpipe 1.2s), with bigger hits to match.
+- **OSRS hitsplats**: red for damage, blue for 0, a gold-trimmed max-hit splat for critical hits, green/teal/orange for poison/venom/burn; up to four per unit, and hits that aren't yours (not dealt by you or to you) are tinted darker.
+- **Unit spacing**: champions, minions and monsters never stand inside each other; minions shuffle aside for champions, and nobody is pushed through a wall.
+- **OSRS-sized numbers**: every health pool and damage/heal amount is scaled down (`rules.hp_scale`, 0.2) so hitsplats read like OSRS (a 25-minute bot match's biggest hit was 203). Killing blows take exactly the health left, and the bar empties.
+- **Fog of war**: League sight ranges (champions and super minions 18 m, other minions 16 m, structures 18 m), shared by the whole team and blocked by walls. Enemies outside it vanish from the world and the minimap; the ground beyond your sight is darkened. Spectators press **F** to switch it off or on (for the watched champion's team); players can't.
+- **Buffs and debuffs** show as icons with clock-wipe timers above the hotbar (and under the inspect panel for allies), with a short explanation on hover. Enemies' are never shown.
+- **Grand Exchange** shop with Weapons, Armour, Boots, Consumables and Skilling tabs, an item grid with prices (red when you can't afford it, dimmed when your levels are too low) and a detail panel with a Buy button.
 - **Tooltips** with solid backgrounds; ability tooltips show the damage they'd do right now: spell (by rank) + your stats + items = total ([screenshot](docs/screenshots/ability_tooltip.png)).
 - **OSRS item and prayer icons**, and a two-letter tag on every champion's chest and back.
+- **Ability tooltips** in colour: plain text white, your champion's stats light blue, scaling by style (melee red, magic blue, ranged green), items gold, cooldowns italic grey, plus what each rank adds. Every ability improves with rank (damage, durations, slows, ranges or amounts).
 - **Attack and ability effects**: melee swipes (slash, overhead crush, thrust), weapon-matched projectiles (arrows, bolts, darts, thrown rocks, cannonballs, spell orbs and fireballs with trails), and per-ability effects (ice barrage shards, blood and shadow bursts, slams, multi-hit claw slashes, heal and buff glows, freezes, chinchompa explosions, arrow volleys).
 - **Optional real OSRS models** from a private asset pack (personal builds only, never committed): fixed gear per champion, real OSRS animations, weapon swaps on item specs, TzTok-Jad and the Giant Mole. Without the pack the game uses its whitebox shapes. See [docs/OSRS_MODELS.md](docs/OSRS_MODELS.md).
-- **Combat**: melee/ranged/magic triangle, three resists, tick-based attack speed, special attack energy powering ultimates *and* spec-weapon items, overheads only on tank/main builds, offensive prayers set by Prayer level (Piety at 70, Chivalry at 60, ...).
+- **Combat**: melee/ranged/magic triangle, three resists, OSRS tick attack speeds, special attack energy powering ultimates *and* spec-weapon items, overheads only on tank/main builds, one picked prayer per build. Champion ultimates built on a shop spec weapon are always better than the item or do something different ([why](docs/PRAYER.md#champion-abilities-vs-shop-spec-weapons)).
 - **Shop**: 70+ OSRS items with real requirements (a 1 Defence Pure can't wear Bandos), build paths, spec actives (Dragon claws, AGS, Voidwaker...), and a food/potion belt.
 - **Minion waves** (goblins, dark wizards, dwarf cannon carts), jungle camps with buffs, TzTok-Jad (telegraphs his next style), and the Giant Mole before 14:00.
 
@@ -52,14 +64,15 @@ godot --path . -- --champion=pure
 | --- | --- |
 | Right-click | Move, or attack the unit under the cursor |
 | Left-click | Select a unit to inspect it (top-left panel + ring under its feet) |
-| Q W E R | Abilities (R is your special attack). Hold to aim with an indicator, release to cast; right-click cancels. Settings > Ability casting switches to normal cast (press, then left-click) or quick cast |
+| Q W E R | Abilities (R is your special attack). Press to show the indicator, left-click to cast. The indicator stays up while you right-click to walk, so you can line a cast up on the move; Esc cancels. Settings > Ability casting also offers quick cast with indicator (hold, release) and quick cast |
 | Q (Skiller) | On open ground: plant a yew. On one of your yews: chop it; it falls away from you |
 | Tab (hold) | Scoreboard |
 | Ctrl + Q W E R / the + buttons | Spend a skill point |
 | 1 – 6 | Item spec actives (Dragon claws, AGS, ...) |
 | 7 8 9 0 | Food and potions |
+| V | Your prayer on/off (picked at champion select; drains prayer points) |
 | Z X C | Protect from Melee / Missiles / Magic (tank and main builds only) |
-| V | Best offensive prayer your Prayer level allows |
+| Right-click a prayer altar | Walk there and pray: prayer back to full (beside each red and blue buff) |
 | B | Teleport home |
 | P | Grand Exchange (shop; buy at base) |
 | S | Stop |
@@ -112,7 +125,7 @@ The preset in `export_presets.cfg` embeds the game into the .exe, packs `data/*.
 data/            All tunable game data (JSON) — champions, items, units, rules
 scenes/          main.tscn (everything else is built in code for now)
 scripts/
-  autoload/      GameData (loads JSON), Controls (input map)
+  autoload/      GameData (loads JSON), Controls (input map), Settings, GameTick (the 0.6s game tick)
   core/          Combat math, DamageInfo
   units/         Unit base class, Champion, Minion, Structure, Monster, visuals
   abilities/     AbilityRunner: executes data-driven ability effects
@@ -130,6 +143,7 @@ docs/            Design and developer docs
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the code fits together, and the roadmap
 - [docs/LOL_VALUES.md](docs/LOL_VALUES.md): the League of Legends numbers used for minions, turrets and jungle, with sources
 - [docs/OSRS_MODELS.md](docs/OSRS_MODELS.md): the private OSRS model pack: installing it, keeping it out of git, the personal build
+- [docs/PRAYER.md](docs/PRAYER.md): the prayer book, OSRS drain rates, prayer altars, and how champion ultimates stay better than shop spec weapons
 
 ## Credits
 

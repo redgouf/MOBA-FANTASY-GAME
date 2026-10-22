@@ -132,6 +132,23 @@ static func saradomin_camps() -> Array[Dictionary]:
 	]
 
 
+## Neutral prayer altars, one beside each buff camp (Saradomin's two here;
+## Zamorak's are mirrored). [{side, pos}]
+static func saradomin_prayer_altars() -> Array[Dictionary]:
+	return [
+		{"side": "blue", "pos": Vector3(-52.0, 0.0, 5.0)},
+		{"side": "red", "pos": Vector3(-1.0, 0.0, 58.0)},
+	]
+
+
+static func all_prayer_altars() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for a in saradomin_prayer_altars():
+		out.append(a)
+		out.append({"side": a["side"], "pos": mirror(a["pos"])})
+	return out
+
+
 ## Every neutral spawn on the map: mirrored jungle camps, river crabs, and the
 ## two epic pits. Optional keys: "once" (never respawns), "despawn" (removed at
 ## this game time if still alive).

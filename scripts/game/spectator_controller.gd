@@ -30,6 +30,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event is InputEventKey and event.pressed and not event.echo:
 		var key: int = event.physical_keycode
+		if key == KEY_F and FogOfWar.current != null:
+			# Spectators only: fog of war for the watched champion's team, or none.
+			FogOfWar.current.set_enabled(not FogOfWar.current.enabled)
+			get_viewport().set_input_as_handled()
+			return
 		var idx := TEAM_KEYS.find(key)
 		var team := Combat.Team.SARADOMIN
 		if idx < 0:
@@ -48,7 +53,7 @@ func pick_unit(screen_pos: Vector2) -> Unit:
 	var best_d := PICK_RADIUS_PX
 	for n in get_tree().get_nodes_in_group("units"):
 		var u := n as Unit
-		if u == null or u.is_dead or not u.visible:
+		if u == null or u.is_dead or not u.visible or u.fog_hidden:
 			continue
 		var world := u.global_position + Vector3.UP * u.visual_height() * 0.5
 		if cam.is_position_behind(world):

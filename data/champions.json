@@ -5,7 +5,41 @@
       "name": "Dharok",
       "tag": "DH",
       "title": "the Barrows Brute",
-      "build": "Full Dharok's + granite maul",
+      "build": "Full Dharok's",
+      "equipment": {
+        "head": {
+          "name": "Dharok's helm",
+          "icon": "dharoks_helm"
+        },
+        "cape": {
+          "name": "Fire cape",
+          "icon": "fire_cape"
+        },
+        "neck": {
+          "name": "Amulet of fury",
+          "icon": "amulet_of_fury"
+        },
+        "weapon": {
+          "name": "Dharok's greataxe",
+          "icon": "dharoks_greataxe"
+        },
+        "body": {
+          "name": "Dharok's platebody",
+          "icon": "dharoks_platebody"
+        },
+        "legs": {
+          "name": "Dharok's platelegs",
+          "icon": "dharoks_platelegs"
+        },
+        "hands": {
+          "name": "Barrows gloves",
+          "icon": "barrows_gloves"
+        },
+        "feet": {
+          "name": "Dragon boots",
+          "icon": "dragon_boots"
+        }
+      },
       "role": "Top · juggernaut",
       "style": "melee",
       "skills": {
@@ -106,7 +140,8 @@
               "on": "self",
               "kind": "haste",
               "amount": 0.2,
-              "duration": 3
+              "duration": 3,
+              "amount_per_rank": 0.03
             }
           ],
           "fx": [
@@ -127,14 +162,16 @@
             {
               "type": "heal",
               "pct_missing": 0.25,
-              "over_time": 2
+              "over_time": 2,
+              "pct_missing_per_rank": 0.03
             },
             {
               "type": "status",
               "on": "self",
               "kind": "armor_mult",
               "amount": 0.25,
-              "duration": 2
+              "duration": 2,
+              "amount_per_rank": 0.03
             },
             {
               "type": "status",
@@ -153,34 +190,39 @@
           ]
         },
         "r": {
-          "name": "Granite Maul Combo",
+          "name": "Wretched Smash",
           "cast": "target_unit",
           "range": 2.6,
-          "cooldown": 0.6,
+          "cooldown": 1,
           "spec_cost": 50,
-          "text": "An instant extra hit with no wind-up. Castable twice in a row with a full bar.",
+          "text": "A two-handed greataxe smash on the target. The set effect counts twice for this swing (+2% damage per 1% missing health), and below 25% health it hits every enemy within 3m of the target.",
           "effects": [
             {
               "type": "damage",
               "base": 90,
-              "base_per_rank": 80,
+              "base_per_rank": 85,
               "ratio": {
                 "damage": 1.1
               },
-              "style": "melee"
+              "style": "melee",
+              "missing_health_bonus": 1.0,
+              "low_health_area": {
+                "threshold": 0.25,
+                "radius": 3.0
+              }
             }
           ],
           "fx": [
             {
               "kind": "slam",
               "color": "#a09a90",
-              "radius": 1.6
+              "radius": 1.8
             },
             {
-              "kind": "slam",
-              "color": "#a09a90",
-              "radius": 1.6,
-              "delay": 0.25
+              "kind": "ring",
+              "color": "blood",
+              "radius": 3.0,
+              "delay": 0.1
             }
           ]
         }
@@ -198,6 +240,40 @@
       "tag": "PU",
       "title": "1 Defence PKer",
       "build": "1 Def: DDS + whip / dragon scimitar",
+      "equipment": {
+        "head": {
+          "name": "Coif",
+          "icon": "coif"
+        },
+        "cape": {
+          "name": "Fire cape",
+          "icon": "fire_cape"
+        },
+        "neck": {
+          "name": "Amulet of strength",
+          "icon": "amulet_of_strength"
+        },
+        "weapon": {
+          "name": "Dragon scimitar",
+          "icon": "dragon_scimitar"
+        },
+        "body": {
+          "name": "Monk's robe top",
+          "icon": "monks_robe_top"
+        },
+        "legs": {
+          "name": "Black d'hide chaps",
+          "icon": "black_dhide_chaps"
+        },
+        "hands": {
+          "name": "Black d'hide vambraces",
+          "icon": "black_dhide_vambraces"
+        },
+        "feet": {
+          "name": "Climbing boots",
+          "icon": "climbing_boots"
+        }
+      },
       "role": "Jungle · assassin",
       "style": "melee",
       "skills": {
@@ -271,7 +347,8 @@
                 {
                   "kind": "slow",
                   "amount": 0.3,
-                  "duration": 2
+                  "duration": 2,
+                  "amount_per_rank": 0.03
                 }
               ]
             },
@@ -309,7 +386,8 @@
               "target_statuses": [
                 {
                   "kind": "disable_prayer",
-                  "duration": 5
+                  "duration": 5,
+                  "duration_per_rank": 0.25
                 }
               ]
             }
@@ -341,7 +419,8 @@
               "type": "status",
               "on": "self",
               "kind": "melee_immune",
-              "duration": 0.75
+              "duration": 0.75,
+              "duration_per_rank": 0.1
             }
           ],
           "fx": [
@@ -353,12 +432,12 @@
           ]
         },
         "r": {
-          "name": "Puncture",
+          "name": "Puncture (p++)",
           "cast": "target_unit",
           "range": 2.4,
           "cooldown": 0.5,
           "spec_cost": 25,
-          "text": "Two rapid dragon dagger stabs. A full bar is four specs.",
+          "text": "Two rapid stabs with a poisoned dragon dagger (p++). A full bar is four specs. Unlike the shop DDS: scales with rank, almost no cooldown, and each stab poisons the target (2 true damage a second for 4s).",
           "effects": [
             {
               "type": "damage",
@@ -369,7 +448,15 @@
               "ratio": {
                 "damage": 0.6
               },
-              "style": "melee"
+              "style": "melee",
+              "target_statuses": [
+                {
+                  "kind": "poison",
+                  "amount": 8,
+                  "duration": 4,
+                  "amount_per_rank": 2
+                }
+              ]
             }
           ],
           "fx": [
@@ -398,6 +485,44 @@
       "tag": "AM",
       "title": "Full Ahrim's + Ancients",
       "build": "Full Ahrim's + Ancient Magicks",
+      "equipment": {
+        "head": {
+          "name": "Ahrim's hood",
+          "icon": "ahrims_hood"
+        },
+        "cape": {
+          "name": "Zamorak cape",
+          "icon": "zamorak_cape"
+        },
+        "neck": {
+          "name": "Occult necklace",
+          "icon": "occult_necklace"
+        },
+        "weapon": {
+          "name": "Ancient staff",
+          "icon": "ancient_staff"
+        },
+        "body": {
+          "name": "Ahrim's robetop",
+          "icon": "ahrims_robetop"
+        },
+        "shield": {
+          "name": "Unholy book",
+          "icon": "unholy_book"
+        },
+        "legs": {
+          "name": "Ahrim's robeskirt",
+          "icon": "ahrims_robeskirt"
+        },
+        "hands": {
+          "name": "Barrows gloves",
+          "icon": "barrows_gloves"
+        },
+        "feet": {
+          "name": "Mystic boots",
+          "icon": "mystic_boots"
+        }
+      },
       "role": "Mid · control mage",
       "style": "magic",
       "skills": {
@@ -473,7 +598,8 @@
               "target_statuses": [
                 {
                   "kind": "root",
-                  "duration": 1.5
+                  "duration": 1.5,
+                  "duration_per_rank": 0.1
                 }
               ]
             }
@@ -510,7 +636,8 @@
                 "magic_power": 0.5
               },
               "style": "magic",
-              "lifesteal": 0.25
+              "lifesteal": 0.25,
+              "lifesteal_per_rank": 0.03
             }
           ],
           "fx": [
@@ -544,7 +671,8 @@
                 {
                   "kind": "damage_mult",
                   "amount": -0.15,
-                  "duration": 3
+                  "duration": 3,
+                  "amount_per_rank": -0.02
                 }
               ]
             }
@@ -559,10 +687,10 @@
         "r": {
           "name": "Immolate",
           "cast": "target_unit",
-          "range": 12,
+          "range": 14,
           "cooldown": 1,
           "spec_cost": 55,
-          "text": "Volatile nightmare staff: a long-range bolt, +50% against targets below 30% health.",
+          "text": "Volatile nightmare staff: a long-range bolt, +50% against targets below 30% health. Unlike the shop staff: scales with rank, reaches further (14 vs 12) and has the execute bonus.",
           "effects": [
             {
               "type": "damage",
@@ -607,6 +735,44 @@
       "tag": "HY",
       "title": "Range + Mage PKer",
       "build": "Armadyl crossbow + ancient staff switcher",
+      "equipment": {
+        "head": {
+          "name": "Mystic hat",
+          "icon": "mystic_hat"
+        },
+        "cape": {
+          "name": "Zamorak cape",
+          "icon": "zamorak_cape"
+        },
+        "neck": {
+          "name": "Amulet of glory",
+          "icon": "amulet_of_glory"
+        },
+        "weapon": {
+          "name": "Dragon crossbow",
+          "icon": "dragon_crossbow"
+        },
+        "body": {
+          "name": "Mystic robe top",
+          "icon": "mystic_robe_top"
+        },
+        "shield": {
+          "name": "Unholy book",
+          "icon": "unholy_book"
+        },
+        "legs": {
+          "name": "Rune platelegs",
+          "icon": "rune_platelegs"
+        },
+        "hands": {
+          "name": "Barrows gloves",
+          "icon": "barrows_gloves"
+        },
+        "feet": {
+          "name": "Mystic boots",
+          "icon": "mystic_boots"
+        }
+      },
       "role": "Bot or Mid · skirmisher",
       "style": "ranged",
       "skills": {
@@ -698,7 +864,8 @@
                   "base": 20,
                   "pct_current_health": 0.2,
                   "cap": 300,
-                  "style": "ranged"
+                  "style": "ranged",
+                  "pct_current_health_per_rank": 0.01
                 },
                 {
                   "type": "self_cost",
@@ -737,7 +904,8 @@
                   "target_statuses": [
                     {
                       "kind": "root",
-                      "duration": 1.5
+                      "duration": 1.5,
+                      "duration_per_rank": 0.1
                     }
                   ]
                 }
@@ -763,13 +931,14 @@
           "cast": "target_unit",
           "range": 9,
           "cooldown": 20,
-          "text": "The target can't teleport, recall or dash for 4s.",
+          "text": "The target can't teleport, recall or dash for 4s (2s if it is praying Protect from Magic, as in OSRS).",
           "effects": [
             {
               "type": "status",
               "on": "target",
               "kind": "tele_block",
-              "duration": 4
+              "duration": 4,
+              "duration_per_rank": 0.5
             }
           ],
           "fx": [
@@ -801,7 +970,8 @@
               "on": "self",
               "kind": "haste",
               "amount": 0.15,
-              "duration": 0.75
+              "duration": 0.75,
+              "amount_per_rank": 0.03
             }
           ],
           "fx": [
@@ -825,7 +995,8 @@
               "type": "status",
               "on": "target",
               "kind": "root",
-              "duration": 1.5
+              "duration": 1.5,
+              "duration_per_rank": 0.25
             },
             {
               "type": "damage",
@@ -867,6 +1038,40 @@
       "tag": "MR",
       "title": "Twisted bow main",
       "build": "Twisted bow + Masori",
+      "equipment": {
+        "head": {
+          "name": "Karil's coif",
+          "icon": "karils_coif"
+        },
+        "cape": {
+          "name": "Saradomin cape",
+          "icon": "saradomin_cape"
+        },
+        "neck": {
+          "name": "Amulet of fury",
+          "icon": "amulet_of_fury"
+        },
+        "weapon": {
+          "name": "Magic shortbow",
+          "icon": "magic_shortbow"
+        },
+        "body": {
+          "name": "Karil's leathertop",
+          "icon": "karils_leathertop"
+        },
+        "legs": {
+          "name": "Karil's leatherskirt",
+          "icon": "karils_leatherskirt"
+        },
+        "hands": {
+          "name": "Barrows gloves",
+          "icon": "barrows_gloves"
+        },
+        "feet": {
+          "name": "Rune boots",
+          "icon": "rune_boots"
+        }
+      },
       "role": "Bot · marksman",
       "style": "ranged",
       "skills": {
@@ -924,14 +1129,15 @@
           "name": "Rapid",
           "cast": "self",
           "cooldown": 10,
-          "text": "Switch to the Rapid attack style: +30% attack speed for 4s.",
+          "text": "Switch to the Rapid attack style: +30% attack speed for 8s.",
           "effects": [
             {
               "type": "status",
               "on": "self",
               "kind": "attack_speed",
               "amount": 0.3,
-              "duration": 4
+              "duration": 8,
+              "amount_per_rank": 0.05
             }
           ],
           "fx": [
@@ -992,14 +1198,16 @@
               "on": "self",
               "kind": "range_bonus",
               "amount": 2,
-              "duration": 4
+              "duration": 4,
+              "amount_per_rank": 0.25
             },
             {
               "type": "status",
               "on": "self",
               "kind": "armor_mult",
               "amount": 0.15,
-              "duration": 4
+              "duration": 4,
+              "amount_per_rank": 0.02
             },
             {
               "type": "status",
@@ -1065,6 +1273,40 @@
       "tag": "BP",
       "title": "Toxic blowpipe ranger",
       "build": "Toxic blowpipe + venom",
+      "equipment": {
+        "head": {
+          "name": "Coif",
+          "icon": "coif"
+        },
+        "cape": {
+          "name": "Zamorak cape",
+          "icon": "zamorak_cape"
+        },
+        "neck": {
+          "name": "Amulet of glory",
+          "icon": "amulet_of_glory"
+        },
+        "weapon": {
+          "name": "Magic shortbow",
+          "icon": "magic_shortbow"
+        },
+        "body": {
+          "name": "Black d'hide body",
+          "icon": "black_dhide_body"
+        },
+        "legs": {
+          "name": "Black d'hide chaps",
+          "icon": "black_dhide_chaps"
+        },
+        "hands": {
+          "name": "Black d'hide vambraces",
+          "icon": "black_dhide_vambraces"
+        },
+        "feet": {
+          "name": "Climbing boots",
+          "icon": "climbing_boots"
+        }
+      },
       "role": "Bot · hyper-carry",
       "style": "ranged",
       "skills": {
@@ -1128,7 +1370,8 @@
               "on": "self",
               "kind": "damage_mult",
               "amount": 0.25,
-              "duration": 5
+              "duration": 5,
+              "amount_per_rank": 0.04
             }
           ],
           "fx": [
@@ -1163,7 +1406,8 @@
                 {
                   "kind": "slow",
                   "amount": 0.25,
-                  "duration": 2
+                  "duration": 2,
+                  "amount_per_rank": 0.03
                 },
                 {
                   "id": "venom",
@@ -1197,21 +1441,23 @@
           "name": "Stamina",
           "cast": "self",
           "cooldown": 14,
-          "text": "A burst of move speed and attack speed for 2s.",
+          "text": "A burst of move speed and attack speed for 4s.",
           "effects": [
             {
               "type": "status",
               "on": "self",
               "kind": "haste",
               "amount": 0.35,
-              "duration": 2
+              "duration": 4,
+              "amount_per_rank": 0.03
             },
             {
               "type": "status",
               "on": "self",
               "kind": "attack_speed",
               "amount": 0.4,
-              "duration": 2
+              "duration": 4,
+              "amount_per_rank": 0.05
             }
           ],
           "fx": [
@@ -1238,7 +1484,8 @@
                 "damage": 1.5
               },
               "style": "ranged",
-              "lifesteal": 0.5
+              "lifesteal": 0.5,
+              "lifesteal_per_rank": 0.05
             }
           ],
           "fx": [
@@ -1270,6 +1517,44 @@
       "tag": "SL",
       "title": "the Jungler",
       "build": "Slayer helm + abyssal tentacle + dwarf multicannon",
+      "equipment": {
+        "head": {
+          "name": "Helm of neitiznot",
+          "icon": "helm_of_neitiznot"
+        },
+        "cape": {
+          "name": "Imbued guthix cape",
+          "icon": "imbued_guthix_cape"
+        },
+        "neck": {
+          "name": "Amulet of glory",
+          "icon": "amulet_of_glory"
+        },
+        "weapon": {
+          "name": "Abyssal whip",
+          "icon": "abyssal_whip"
+        },
+        "body": {
+          "name": "Karil's leathertop",
+          "icon": "karils_leathertop"
+        },
+        "shield": {
+          "name": "Dragon defender",
+          "icon": "dragon_defender"
+        },
+        "legs": {
+          "name": "Torag's platelegs",
+          "icon": "torags_platelegs"
+        },
+        "hands": {
+          "name": "Barrows gloves",
+          "icon": "barrows_gloves"
+        },
+        "feet": {
+          "name": "Avernic treads",
+          "icon": "avernic_treads"
+        }
+      },
       "role": "Jungle · bruiser",
       "style": "melee",
       "skills": {
@@ -1341,7 +1626,8 @@
                 {
                   "kind": "root",
                   "duration": 1,
-                  "chance": 0.25
+                  "chance": 0.25,
+                  "chance_per_rank": 0.05
                 }
               ]
             }
@@ -1366,7 +1652,8 @@
             {
               "type": "summon",
               "unit": "dwarf_multicannon",
-              "duration": 8
+              "duration": 8,
+              "duration_per_rank": 1
             }
           ],
           "fx": [
@@ -1390,7 +1677,8 @@
               "to": "point",
               "distance": 7,
               "speed": 22,
-              "ignore_walls": true
+              "ignore_walls": true,
+              "distance_per_rank": 0.5
             }
           ],
           "fx": [
@@ -1407,7 +1695,7 @@
           "range": 2.6,
           "cooldown": 1,
           "spec_cost": 50,
-          "text": "Dragon warhammer: a crushing hit that lowers the target's defence by 30% for 6s.",
+          "text": "Dragon warhammer: a crushing hit that lowers the target's defence by 30% for 6s. Unlike the shop DWH: scales with rank, and the drops stack as in OSRS (a second smash takes 30% of what is left, up to 3 smashes); against monsters each drop is 1.5x.",
           "effects": [
             {
               "type": "damage",
@@ -1421,7 +1709,10 @@
                 {
                   "kind": "armor_mult",
                   "amount": -0.3,
-                  "duration": 6
+                  "duration": 6,
+                  "stack": 3,
+                  "monster_mult": 1.5,
+                  "duration_per_rank": 1
                 }
               ]
             }
@@ -1441,6 +1732,12 @@
         "color": "#c9d0d8",
         "size": 1.3,
         "duration": 0.18
+      },
+      "roll_ranges": {
+        "slayer": [
+          55,
+          60
+        ]
       }
     },
     {
@@ -1449,6 +1746,40 @@
       "tag": "ZK",
       "title": "Berserker build",
       "build": "Berserker helm + Tzhaar weapons + berserker necklace",
+      "equipment": {
+        "head": {
+          "name": "Berserker helm",
+          "icon": "berserker_helm"
+        },
+        "cape": {
+          "name": "Imbued guthix cape",
+          "icon": "imbued_guthix_cape"
+        },
+        "neck": {
+          "name": "Berserker necklace",
+          "icon": "berserker_necklace"
+        },
+        "weapon": {
+          "name": "Tzhaar-ket-om",
+          "icon": "tzhaar_ket_om"
+        },
+        "body": {
+          "name": "Black d'hide body",
+          "icon": "black_dhide_body"
+        },
+        "legs": {
+          "name": "Rune platelegs",
+          "icon": "rune_platelegs"
+        },
+        "hands": {
+          "name": "Barrows gloves",
+          "icon": "barrows_gloves"
+        },
+        "feet": {
+          "name": "Climbing boots",
+          "icon": "climbing_boots"
+        }
+      },
       "role": "Top or Jungle · diver",
       "style": "melee",
       "skills": {
@@ -1497,8 +1828,8 @@
         "type": "stacking_damage",
         "per_stack": 0.03,
         "max_stacks": 5,
-        "window": 3,
-        "text": "Each attack within 3s stacks +3% damage, up to 5 stacks."
+        "window": 5,
+        "text": "Each attack within 5s of the last stacks +3% damage, up to 5 stacks."
       },
       "abilities": {
         "q": {
@@ -1525,7 +1856,8 @@
               "target_statuses": [
                 {
                   "kind": "stun",
-                  "duration": 0.75
+                  "duration": 0.75,
+                  "duration_per_rank": 0.1
                 }
               ]
             }
@@ -1550,21 +1882,23 @@
           "name": "Super Combat Potion",
           "cast": "self",
           "cooldown": 20,
-          "text": "+15% damage and attack speed for 5s.",
+          "text": "+15% damage and attack speed for 8s.",
           "effects": [
             {
               "type": "status",
               "on": "self",
               "kind": "damage_mult",
               "amount": 0.15,
-              "duration": 5
+              "duration": 8,
+              "amount_per_rank": 0.02
             },
             {
               "type": "status",
               "on": "self",
               "kind": "attack_speed",
               "amount": 0.15,
-              "duration": 5
+              "duration": 8,
+              "amount_per_rank": 0.02
             }
           ],
           "fx": [
@@ -1587,7 +1921,8 @@
               "to": "point",
               "distance": 8,
               "teleport": true,
-              "delay": 0.5
+              "delay": 0.5,
+              "distance_per_rank": 0.5
             }
           ],
           "fx": [
@@ -1610,8 +1945,11 @@
           "range": 2.6,
           "cooldown": 1,
           "spec_cost": 50,
-          "text": "Four rapid hits; if early hits miss, later hits deal more, as in OSRS.",
+          "text": "Four rapid hits; if early hits miss, later hits deal more, as in OSRS. Unlike the shop claws: scales with rank, almost no cooldown, and it fills the Berserker Necklace to 5 stacks.",
           "effects": [
+            {
+              "type": "max_stacks"
+            },
             {
               "type": "damage",
               "hits": 4,
@@ -1647,6 +1985,40 @@
       "tag": "JT",
       "title": "the Main Account",
       "build": "Justiciar + Elysian + Dinh's bulwark",
+      "equipment": {
+        "head": {
+          "name": "Torag's helm",
+          "icon": "torags_helm"
+        },
+        "neck": {
+          "name": "Amulet of fury",
+          "icon": "amulet_of_fury"
+        },
+        "weapon": {
+          "name": "Rune scimitar",
+          "icon": "rune_scimitar"
+        },
+        "body": {
+          "name": "Torag's platebody",
+          "icon": "torags_platebody"
+        },
+        "shield": {
+          "name": "Spirit shield",
+          "icon": "spirit_shield"
+        },
+        "legs": {
+          "name": "Torag's platelegs",
+          "icon": "torags_platelegs"
+        },
+        "hands": {
+          "name": "Barrows gloves",
+          "icon": "barrows_gloves"
+        },
+        "feet": {
+          "name": "Dragon boots",
+          "icon": "dragon_boots"
+        }
+      },
       "role": "Support or Top · tank",
       "style": "melee",
       "skills": {
@@ -1714,13 +2086,15 @@
             },
             {
               "type": "knockback",
-              "distance": 4
+              "distance": 4,
+              "distance_per_rank": 0.25
             },
             {
               "type": "status",
               "on": "target",
               "kind": "stun",
-              "duration": 0.75
+              "duration": 0.75,
+              "duration_per_rank": 0.1
             }
           ],
           "fx": [
@@ -1754,7 +2128,9 @@
               "duration": 4,
               "data": {
                 "chance": 0.7
-              }
+              },
+              "amount_per_rank": 0.02,
+              "duration_per_rank": 0.25
             }
           ],
           "fx": [
@@ -1777,20 +2153,24 @@
                 "radius": 5,
                 "center": "self"
               },
-              "duration": 1.5
+              "duration": 1.5,
+              "duration_per_rank": 0.15
             },
             {
               "type": "status",
               "on": "self",
               "kind": "damage_taken_mult",
               "amount": -0.2,
-              "duration": 1.5
+              "duration": 1.5,
+              "amount_per_rank": -0.02,
+              "duration_per_rank": 0.15
             },
             {
               "type": "status",
               "on": "self",
               "kind": "planted",
-              "duration": 1.5
+              "duration": 1.5,
+              "duration_per_rank": 0.15
             }
           ],
           "fx": [
@@ -1804,12 +2184,12 @@
           ]
         },
         "r": {
-          "name": "Warstrike",
+          "name": "Bandos Rally",
           "cast": "target_unit",
           "range": 7,
           "cooldown": 1,
           "spec_cost": 50,
-          "text": "Bandos godsword: charge and slam; damage dealt is also stripped from the target's armour for 6s.",
+          "text": "Bandos godsword: charge the target and slam the ground. Every enemy within 3.5m takes damage and loses armour equal to 10% of it for 6s, and Justiciar and allies within 6m gain 15% armour for 6s.",
           "effects": [
             {
               "type": "dash",
@@ -1819,14 +2199,34 @@
             {
               "type": "damage",
               "delay": 0.25,
-              "base": 100,
-              "base_per_rank": 112,
+              "base": 90,
+              "base_per_rank": 100,
               "ratio": {
-                "damage": 1.0
+                "damage": 0.9
               },
               "style": "melee",
               "shred_ratio": 0.1,
-              "shred_duration": 6
+              "shred_duration": 6,
+              "area": {
+                "shape": "circle",
+                "center": "target",
+                "radius": 3.5
+              }
+            },
+            {
+              "type": "status",
+              "delay": 0.25,
+              "on": "area_allies",
+              "area": {
+                "shape": "circle",
+                "center": "self",
+                "radius": 6.0
+              },
+              "kind": "armor_mult",
+              "amount": 0.15,
+              "duration": 6,
+              "status_id": "bandos_rally",
+              "amount_per_rank": 0.05
             }
           ],
           "fx": [
@@ -1838,8 +2238,14 @@
             {
               "kind": "slam",
               "color": "gold",
-              "radius": 2.0,
-              "delay": 0.15
+              "radius": 3.5,
+              "delay": 0.25
+            },
+            {
+              "kind": "ring",
+              "color": "gold",
+              "radius": 6.0,
+              "delay": 0.3
             }
           ]
         }
@@ -1856,6 +2262,40 @@
       "tag": "LU",
       "title": "the Support",
       "build": "Lunar spellbook",
+      "equipment": {
+        "head": {
+          "name": "Mystic hat",
+          "icon": "mystic_hat"
+        },
+        "cape": {
+          "name": "Saradomin cape",
+          "icon": "saradomin_cape"
+        },
+        "weapon": {
+          "name": "Ancient staff",
+          "icon": "ancient_staff"
+        },
+        "body": {
+          "name": "Mystic robe top",
+          "icon": "mystic_robe_top"
+        },
+        "shield": {
+          "name": "Mage's book",
+          "icon": "mages_book"
+        },
+        "legs": {
+          "name": "Monk's robe",
+          "icon": "monks_robe"
+        },
+        "hands": {
+          "name": "Barrows gloves",
+          "icon": "barrows_gloves"
+        },
+        "feet": {
+          "name": "Mystic boots",
+          "icon": "mystic_boots"
+        }
+      },
       "role": "Support · enchanter",
       "style": "magic",
       "skills": {
@@ -1949,7 +2389,8 @@
               "on": "target",
               "kind": "vengeance",
               "amount": 0.75,
-              "duration": 5
+              "duration": 5,
+              "amount_per_rank": 0.05
             }
           ],
           "fx": [
@@ -1973,7 +2414,8 @@
             },
             {
               "type": "spec_transfer",
-              "amount": 25
+              "amount": 25,
+              "amount_per_rank": 3
             }
           ],
           "fx": [
@@ -2019,7 +2461,8 @@
                 "center": "self"
               },
               "kind": "negate_hit",
-              "duration": 3
+              "duration": 3,
+              "duration_per_rank": 0.5
             }
           ],
           "fx": [
@@ -2051,7 +2494,37 @@
       "name": "Skiller",
       "tag": "SK",
       "title": "the Level-3",
-      "build": "Level-3 skiller: 1 combat, 99 skilling",
+      "build": "Level-3 skiller: 1 combat, 99 skilling. Chisel and Imcando hammer in hand",
+      "equipment": {
+        "head": {
+          "name": "Lumberjack hat",
+          "icon": "lumberjack_hat"
+        },
+        "cape": {
+          "name": "Woodcutting cape",
+          "icon": "woodcutting_cape"
+        },
+        "weapon": {
+          "name": "Imcando hammer",
+          "icon": "imcando_hammer"
+        },
+        "body": {
+          "name": "Lumberjack top",
+          "icon": "lumberjack_top"
+        },
+        "legs": {
+          "name": "Lumberjack legs",
+          "icon": "lumberjack_legs"
+        },
+        "feet": {
+          "name": "Lumberjack boots",
+          "icon": "lumberjack_boots"
+        },
+        "shield": {
+          "name": "Chisel",
+          "icon": "chisel"
+        }
+      },
       "role": "Mid or Support · zone control",
       "style": "ranged",
       "skills": {
@@ -2078,7 +2551,7 @@
         "farming": 99,
         "construction": 99,
         "hunter": 99,
-        "sailing": 1
+        "sailing": 99
       },
       "overheads": false,
       "recommended_items": [
@@ -2121,7 +2594,7 @@
         "type": "skilling_level_up",
         "every": 4,
         "attack_skill_ratio": 0.3,
-        "text": "Never fights with weapons. Basic attacks toss freshly mined ore (+30% skill power). Every 4th ability sets off OSRS level-up fireworks that damage nearby enemies and heal 5% max health.",
+        "text": "Never fights with weapons. Basic attacks toss a random gem, cut or uncut, from opal to zenyte (+30% skill power). Every 4th ability sets off OSRS level-up fireworks that damage nearby enemies and heal 5% max health.",
         "effects": [
           {
             "type": "prop",
@@ -2185,7 +2658,8 @@
                 {
                   "kind": "slow",
                   "amount": 0.3,
-                  "duration": 1.5
+                  "duration": 1.5,
+                  "duration_per_rank": 0.1
                 }
               ]
             }
@@ -2278,7 +2752,8 @@
               "on": "target",
               "kind": "root",
               "duration": 0.5,
-              "delay": 0.2
+              "delay": 0.2,
+              "duration_per_rank": 0.1
             }
           ]
         },
@@ -2314,7 +2789,8 @@
               "target_statuses": [
                 {
                   "kind": "stun",
-                  "duration": 1.0
+                  "duration": 1.0,
+                  "duration_per_rank": 0.15
                 }
               ]
             }
@@ -2332,9 +2808,8 @@
       },
       "attack_fx": {
         "kind": "projectile",
-        "shape": "rock",
-        "color": "#8a7f72",
-        "impact": "dust"
+        "shape": "gem",
+        "impact": "splash"
       }
     }
   ]

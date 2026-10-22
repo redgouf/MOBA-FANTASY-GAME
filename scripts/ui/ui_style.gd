@@ -150,3 +150,19 @@ static func wrap(text: String, width: int = TOOLTIP_WIDTH) -> String:
 ## A solid panel style for custom hover popups (Skills tab, scoreboard rows).
 static func solid_box() -> StyleBoxFlat:
 	return box(TOOLTIP_BG, BORDER_HI, 2, 4)
+
+
+## A coloured tooltip body (BBCode), sized to fit, on the solid tooltip panel.
+static func rich_tooltip(bbcode: String, width: float = 380.0) -> RichTextLabel:
+	var r := RichTextLabel.new()
+	r.bbcode_enabled = true
+	r.fit_content = true
+	r.scroll_active = false
+	r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	r.custom_minimum_size = Vector2(width, 0)
+	r.add_theme_font_size_override("normal_font_size", 14)
+	r.add_theme_font_size_override("bold_font_size", 14)
+	r.add_theme_font_size_override("italics_font_size", 13)
+	r.add_theme_color_override("default_color", Color.WHITE)
+	r.text = bbcode
+	return r

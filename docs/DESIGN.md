@@ -12,12 +12,19 @@ The living design doc (full kits, item tables, map breakdown, open questions) is
 | System | Decision |
 | --- | --- |
 | Combat triangle | Melee > Ranged > Magic > Melee. Countering style deals +15%. Three resists: melee, ranged, magic defence. |
-| Ticks | 1 tick = 0.25s. Attack speed is defined in ticks (whip 4, godsword 6, Dharok's greataxe 7). |
+| Ticks | 1 tick = 0.6s, as in OSRS. Attack speed is defined in ticks (whip 4 = 2.4s, godsword 6, Dharok's greataxe 7 = 4.2s). Units balanced on LoL attack speeds hit harder per swing so their basic-attack damage per second is 70% of what it was (`basic_attack_dps_scale`). |
 | Special attack energy | One 0–100% bar, +1%/s. Pays for every ultimate **and** every spec-weapon item active. |
-| Skill levels | Each champion has OSRS levels (Attack, Hitpoints, Strength, Defence, Ranged, Prayer, Magic), shown in an OSRS-style Skills tab. Items keep real OSRS requirements. Name tags show the build's real OSRS combat level. |
+| Skill levels | Every build has all 24 OSRS skills. Combat skills (Attack, Hitpoints, Strength, Defence, Ranged, Prayer, Magic) are fixed per build; every other skill is rolled 20–60 each game (`rules.skill_roll`; the Skiller's 99s are fixed, and a build can set its own range in `roll_ranges`, like the Slayer's 55–60 Slayer). Items keep real OSRS requirements, so the rolls decide which skilling items a build can buy this game; anything above 60 is Skiller-only. Name tags show the build's real OSRS combat level. |
+| Champion select | Fixed 1600x900 layout in the OSRS interface style: portrait cards, Equipment Stats (gear slots, turning figure, bonuses), abilities, Skills/Prayer tabs, LOCK IN with a 5 s countdown. |
 | Mobs and structures | League of Legends Summoner's Rift values for minions, turrets, inhibitors, nexus and jungle (see LOL_VALUES.md). |
-| Protection prayers | **Not universal.** Only tank and main-account builds (currently Justiciar Tank and Slayer) have overheads: −40% from one style, drains prayer. |
-| Offensive prayers | Every build gets the best its Prayer level allows: Piety 70 / Chivalry 60 / Ultimate Strength 31 (melee), Rigour 74 / Eagle Eye 44 (ranged), Augury 77 / Mystic Might 45 (magic), down to Thick Skin at Prayer 1 (the Skiller's: take 5% less damage). |
+| Protection prayers | Overheads on Z/X/C only for tank and main-account builds (Justiciar Tank and Slayer): −40% from one style, switchable at will. Other builds with 37+ Prayer may pick one protection prayer as their prayer. |
+| Prayers | Every build picks one of the 32 OSRS prayers at champion select (by Prayer level) and toggles it with V. Prayers drain at OSRS rates (0.6s × (60 + 2 × prayer bonus) ÷ drain per point); refill at the fountain, with potions, or at the four prayer altars beside the buff camps. See PRAYER.md. |
+| Signature specs | A champion ability built on a shop spec weapon must beat the item at every rank (option A) or be retooled into a different move (option B). See PRAYER.md. |
+| Health and damage scale | `rules.hp_scale` (0.2) multiplies every health pool, damage and healing amount as the data loads (data files keep League-sized numbers). Percentages, defences and durations are untouched. Overkill is capped. |
+| Fog of war | Team-shared vision with League sight radii (75 units = 1 m), blocked by walls; enemy structures always visible. Spectators toggle it with F; players can't. |
+| Ability ranks | Basic abilities lose 6% cooldown per rank and every ability has at least one other per-rank gain (`*_per_rank` keys in the data). |
+| Hitsplats | OSRS style: red damage, blue 0, gold-trimmed max hit for crits, green/teal/orange poison/venom/burn. Up to 4 per unit, ~2 ticks each, no drifting. Hits not dealt by or to you are tinted darker, smaller and see-through; yours are bigger. |
+| Unit spacing | Units never overlap. Each frame `Crowd` eases overlapping pairs apart, lighter units giving way (minion 1, champion 4, monster 6; structures, summons and epics never move), using `move_and_collide` so walls still block. |
 | Casting | League-style: quick cast with indicator by default (hold to aim, release to cast), or normal cast / quick cast in Settings. |
 | Scoreboard | Hold Tab. Enemy items are the last ones your team saw. |
 | Visuals | Whitebox shapes by default; real OSRS models from a private pack in personal builds only (fixed look per champion, weapon swaps on specs, Hybrid's form shows its weapon). Melee swipes, weapon-matched projectiles and per-ability effects in both. |

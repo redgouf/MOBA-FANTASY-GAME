@@ -58,7 +58,12 @@ static func siege_every_at(t: float) -> int:
 	return 3
 
 
-func _physics_process(delta: float) -> void:
+func _ready() -> void:
+	GameTick.register_world(self)
+
+
+## Waves come due and minions spawn on game ticks.
+func game_tick(delta: float) -> void:
 	if not running:
 		return
 	_timer -= delta

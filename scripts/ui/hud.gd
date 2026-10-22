@@ -27,7 +27,11 @@ var _feed_entries: Array[Dictionary] = []
 var _message: Label
 var _channel: Label
 var _hint: Label
-var _status: Label
+var _buffs: BuffBar
+var _death: ColorRect
+var _death_title: Label
+var _death_by: Label
+var _death_timer: Label
 
 # bottom-left
 var _portrait_style: StyleBoxFlat
@@ -63,10 +67,7 @@ var _hp: StatBar
 var _prayer: StatBar
 var _spec: StatBar
 
-var _shop: Panel
-var _shop_list: VBoxContainer
-var _shop_gold: Label
-var _shop_refresh := 0.0
+var _shop: GrandExchange
 var _game_over: Label
 var _message_timer := 0.0
 
@@ -110,6 +111,8 @@ func _ready() -> void:
 	UiStyle.place(_message, Control.PRESET_CENTER_TOP, Vector2(-450, 64 if not spectator else 52), Vector2(900, 40))
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
+	_build_death_screen(root)
+
 	_game_over = UiStyle.label(root, "", 56, UiStyle.TITLE)
 	UiStyle.place(_game_over, Control.PRESET_CENTER, Vector2(-500, -60), Vector2(1000, 80))
 	_game_over.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -117,7 +120,7 @@ func _ready() -> void:
 	if spectator:
 		_build_spectator(root)
 	# OSRS Skills tab popups: hover your portrait, or the inspect panel's portrait.
-	var sz := SkillsPanel.panel_size()
+	var sz := SkillsPanel.panel_size(true)
 	_skills_popup = SkillsPanel.create(root)
 	UiStyle.place(_skills_popup, Control.PRESET_BOTTOM_LEFT, Vector2(8, -206 - sz.y), sz)
 	_skills_popup.visible = false
@@ -127,6 +130,49 @@ func _ready() -> void:
 
 
 # --- Layout ------------------------------------------------------------------
+
+## While the champion you're playing (or watching) is dead: the world goes
+## grey, with "Oh dear, you are dead!", who killed you and the respawn timer
+## centred on the screen.
+func _build_death_screen(root: Control) -> void:
+	_death = ColorRect.new()
+	UiStyle.fill(_death)
+	_death.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sh := Shader.new()
+	sh.code = """shader_type canvas_item;
+uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
+void fragment() {
+	vec3 c = texture(screen_tex, SCREEN_UV).rgb;
+	float g = dot(c, vec3(0.299, 0.587, 0.114));
+	COLOR = vec4(vec3(g) * 0.75, 1.0);
+}"""
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	_death.material = mat
+	_death.visible = false
+	root.add_child(_death)
+	root.move_child(_death, 0)        # under every HUD panel
+	var col := VBoxContainer.new()
+	UiStyle.place(col, Control.PRESET_CENTER, Vector2(-450, -120), Vector2(900, 160))
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_death.add_child(col)
+	_death_title = OsrsUi.text(col, "Oh dear, you are dead!", 44, OsrsUi.ORANGE)
+	_death_by = OsrsUi.text(col, "", 22, OsrsUi.WHITE)
+	_death_timer = OsrsUi.text(col, "", 18, OsrsUi.YELLOW)
+	for l in [_death_title, _death_by, _death_timer]:
+		(l as Label).horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+
+func _update_death_screen() -> void:
+	var dead := champ != null and champ.is_dead
+	_death.visible = dead
+	if not dead:
+		return
+	var you: bool = main != null and main.get("player") == champ
+	_death_title.text = "Oh dear, you are dead!" if you else "%s is dead" % champ.display_name
+	_death_by.text = ("Killed by %s" % champ.last_killer_name) if champ.last_killer_name != "" else ""
+	_death_timer.text = "Respawning in %d" % ceili(champ.respawn_timer)
 
 func _build_scoreboard(root: Control) -> void:
 	var p := UiStyle.panel(root, Control.PRESET_TOP_RIGHT, Vector2(-448, 8), Vector2(440, 36))
@@ -234,7 +280,7 @@ func _build_bottom_center(root: Control) -> void:
 	for slot in Champion.SLOTS:
 		var a := AbilitySlot.create(p, slot, 72)
 		a.position = Vector2(x, 10)
-		a.level_up_pressed.connect(func(s: String) -> void: champ.rank_up(s))
+		a.level_up_pressed.connect(func(s: String) -> void: GameTick.queue_input(func() -> void: champ.rank_up(s)))
 		_ability_slots[slot] = a
 		x += 80.0
 
@@ -245,18 +291,22 @@ func _build_bottom_center(root: Control) -> void:
 	p.add_child(_offensive)
 	var vkey := UiStyle.label(_offensive, "V", 12, UiStyle.TITLE)
 	vkey.position = Vector2(4, 1)
-	_offensive_icon = Icons.rect(_offensive, null, Vector2(30, 30))
-	_offensive_icon.position = Vector2(15, 6)
-	_offensive_icon.size = Vector2(30, 30)
+	_offensive_icon = Icons.rect(_offensive, null, Vector2(40, 40))
+	_offensive_icon.position = Vector2(10, 12)
+	_offensive_icon.size = Vector2(40, 40)
 	_offensive_name = UiStyle.label(_offensive, "", 9)
 	UiStyle.fill(_offensive_name, 0, 36)
 	_offensive_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_offensive_name.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_offensive_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_offensive_shade = ColorRect.new()
-	_offensive_shade.color = Color(0, 0, 0, 0.6)
+	_offensive_shade.color = Color(0, 0, 0, 0.45)
 	_offensive_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_offensive.add_child(_offensive_shade)
+	if not spectator:
+		_offensive.gui_input.connect(func(e: InputEvent) -> void:
+			if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+				GameTick.queue_input(func() -> void: champ.toggle_chosen_prayer()))
 	x += 68.0
 
 	_overhead_col = VBoxContainer.new()
@@ -272,7 +322,7 @@ func _build_bottom_center(root: Control) -> void:
 		b.toggle_mode = true
 		b.disabled = spectator
 		b.tooltip_text = "Protect from %s" % ["Melee", "Missiles", "Magic"][i]
-		b.pressed.connect(func() -> void: champ.toggle_protect(i))
+		b.pressed.connect(func() -> void: GameTick.queue_input(func() -> void: champ.toggle_protect(i)))
 		_overheads.append(b)
 
 	_hp = StatBar.create(p, UiStyle.HP, Vector2(600, 18), 13)
@@ -288,9 +338,13 @@ func _build_bottom_center(root: Control) -> void:
 	_channel = UiStyle.label(root, "", 20, UiStyle.TEXT)
 	UiStyle.place(_channel, Control.PRESET_CENTER_BOTTOM, Vector2(-310, -256), Vector2(620, 26))
 	_channel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status = UiStyle.label(root, "", 13, UiStyle.MUTED)
-	UiStyle.place(_status, Control.PRESET_CENTER_BOTTOM, Vector2(-310, -186), Vector2(620, 18))
-	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Buffs and debuffs, just above the hotbar (icons with clock-wipe timers).
+	var holder := Control.new()
+	UiStyle.place(holder, Control.PRESET_CENTER_BOTTOM, Vector2(-310, -204), Vector2(620, 34))
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(holder)
+	_buffs = BuffBar.create(holder, Rect2(0, 0, 620, 34))
+	_buffs.unit = champ
 
 
 func _build_minimap(root: Control) -> void:
@@ -305,7 +359,7 @@ func _build_minimap(root: Control) -> void:
 
 
 func _build_spectator(root: Control) -> void:
-	var bp := UiStyle.panel(root, Control.PRESET_CENTER_TOP, Vector2(-300, 8), Vector2(600, 34))
+	var bp := UiStyle.panel(root, Control.PRESET_CENTER_TOP, Vector2(-420, 8), Vector2(840, 34))
 	_banner = UiStyle.label(bp, "", 14, UiStyle.TEXT)
 	UiStyle.fill(_banner)
 	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -344,22 +398,13 @@ func _build_spectator(root: Control) -> void:
 
 
 func _build_shop(root: Control) -> void:
-	_shop = UiStyle.panel(root, Control.PRESET_TOP_RIGHT, Vector2(-568, 56), Vector2(560, 560))
+	# The Grand Exchange window, centred on the screen.
+	var holder := Control.new()
+	UiStyle.place(holder, Control.PRESET_CENTER, -GrandExchange.SIZE * 0.5 + Vector2(0, -40), GrandExchange.SIZE)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(holder)
+	_shop = GrandExchange.create(holder, champ)
 	_shop.visible = false
-	_shop.mouse_filter = Control.MOUSE_FILTER_STOP
-	var col := VBoxContainer.new()
-	col.position = Vector2(12, 10)
-	col.size = Vector2(536, 540)
-	_shop.add_child(col)
-	UiStyle.label(col, "Grand Exchange   (P or Esc to close)", 20, UiStyle.TITLE)
-	_shop_gold = UiStyle.label(col, "", 15, UiStyle.GOLD)
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(536, 480)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	col.add_child(scroll)
-	_shop_list = VBoxContainer.new()
-	_shop_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(_shop_list)
 
 
 # --- Shop --------------------------------------------------------------------
@@ -373,31 +418,8 @@ func toggle_shop() -> void:
 		return
 	_shop.visible = not _shop.visible
 	if _shop.visible:
-		_rebuild_shop()
-
-
-func _rebuild_shop() -> void:
-	for c in _shop_list.get_children():
-		c.queue_free()
-	for id in GameData.item_order:
-		var it := GameData.item(id)
-		var missing := champ.missing_requirements(id)
-		var line := "%s  —  %d GP" % [it.get("name", id), champ.item_cost(id)]
-		if not missing.is_empty():
-			line += "   [requires %s]" % ", ".join(missing)
-		var b := UiStyle.button(_shop_list, line, 14)
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.icon = Icons.item(id)
-		b.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-		b.add_theme_constant_override("icon_max_width", 32)
-		b.tooltip_text = UiStyle.wrap(ItemSlot._tooltip(it))
-		b.disabled = not champ.in_shop_range() or not champ.can_buy(id)
-		b.pressed.connect(_on_buy.bind(id))
-
-
-func _on_buy(id: String) -> void:
-	if champ.in_shop_range() and champ.buy_item(id):
-		_rebuild_shop()
+		_shop.champ = champ
+		_shop.refresh()
 
 
 # --- Messages ----------------------------------------------------------------
@@ -453,12 +475,7 @@ func _process(delta: float) -> void:
 		_update_spectator()
 	_update_skills_popups()
 
-	if _shop.visible:
-		_shop_gold.text = "Gold: %d GP%s" % [int(champ.gold), "" if champ.in_shop_range() else "   (return to base to buy)"]
-		_shop_refresh -= delta
-		if _shop_refresh <= 0.0:
-			_shop_refresh = 1.0
-			_rebuild_shop()
+
 
 
 func _update_bottom_left() -> void:
@@ -472,7 +489,7 @@ func _update_bottom_left() -> void:
 		_xp.set_values(champ.xp, champ.xp_to_next(), "XP")
 	_stats["damage"].text = "Dmg %d" % int(champ.get_damage())
 	_stats["magic"].text = "Magic %d" % int(champ.get_magic_power())
-	_stats["attack_speed"].text = "Atk/s %.2f" % (1.0 / champ.get_attack_interval())
+	_stats["attack_speed"].text = "Atk %.1fs" % champ.get_attack_interval()
 	_stats["range"].text = "Range %.1f" % champ.get_attack_range()
 	_stats["move"].text = "Move %.1f" % champ.get_move_speed()
 	_stats["melee_def"].text = "Melee def %d" % int(champ.get_defence(0))
@@ -523,8 +540,10 @@ func _update_skills_popups() -> void:
 
 func _update_spectator() -> void:
 	var rig: CameraRig = main.get("camera_rig")
-	_banner.text = "SPECTATING  %s (%s)   ·   Y: camera %s   ·   1-5 / 6-0 or click: switch" % [
-		champ.display_name, Combat.TEAM_NAMES[champ.team], "locked" if rig.locked else "free"]
+	var fog := FogOfWar.current
+	_banner.text = "SPECTATING  %s (%s)   ·   Y: camera %s   ·   F: fog of war %s   ·   1-5 / 6-0 or click: switch" % [
+		champ.display_name, Combat.TEAM_NAMES[champ.team], "locked" if rig.locked else "free",
+		("on (%s's view)" % Combat.TEAM_NAMES[fog.team]) if fog != null and fog.enabled else "off"]
 	for card in _roster_cards:
 		var c: Champion = card["champ"]
 		(card["style"] as StyleBoxFlat).border_color = UiStyle.GOLD if c == champ else UiStyle.BORDER
@@ -548,20 +567,31 @@ func _update_bottom_center() -> void:
 	for slot in Champion.SLOTS:
 		(_ability_slots[slot] as AbilitySlot).refresh(champ, not spectator)
 
-	var pray := champ.offensive_prayer()
-	_offensive_name.text = str(pray.get("name", "None"))
+	# Your prayer (V): lit while on, with the time left at the current drain.
+	var pray := champ.chosen_prayer_data()
+	var on := champ.is_praying(champ.chosen_prayer)
+	var left := champ.prayer_time_left()
+	_offensive_name.text = ""      # name and time are in the tooltip
 	_offensive_icon.texture = Icons.prayer(str(pray.get("name", "")))
-	_offensive.tooltip_text = UiStyle.wrap("%s: %s for 6s (V). Set by your Prayer level (%d)." % [
-		pray.get("name", "No prayer"), Champion.prayer_effect_text(pray), champ.skill("prayer")])
-	var cd_total := float(GameData.rule("offensive_prayer", {}).get("cooldown", 60))
-	var h := 60.0 * clampf(champ.offensive_prayer_cd / cd_total, 0.0, 1.0)
-	_offensive_shade.position = Vector2(0, 60.0 - h)
-	_offensive_shade.size = Vector2(60, h)
+	_offensive_icon.modulate = Color.WHITE if on else Color(0.6, 0.6, 0.6)
+	_offensive_shade.position = Vector2.ZERO
+	_offensive_shade.size = Vector2(60, 60) if not on else Vector2.ZERO
+	var ob := _offensive.get_theme_stylebox("panel") as StyleBoxFlat
+	ob.bg_color = Color(0.55, 0.52, 0.4) if on else UiStyle.BG_SLOT
+	ob.border_color = Color(0.95, 0.9, 0.65) if on else UiStyle.PRAYER.darkened(0.2)
+	if Engine.get_process_frames() % 15 == 0:
+		_offensive.tooltip_text = UiStyle.wrap("%s\n%s (V or click). Picked at champion select." % [
+			PrayerBook.tooltip(pray, champ.prayer_bonus()), ("On: %s left" % PrayerBook.clock_text(left)) if on else "Off"])
 	for i in _overheads.size():
-		_overheads[i].set_pressed_no_signal(champ.protect_style == i)
+		_overheads[i].set_pressed_no_signal(champ.protect_style == i and champ.has_overheads)
 
 	_hp.set_values(champ.health, champ.max_health)
-	_prayer.set_values(champ.prayer, champ.prayer_max, "Prayer %d / %d" % [int(champ.prayer), int(champ.prayer_max)])
+	var pbar := "Prayer %d / %d" % [ceili(champ.prayer), int(champ.prayer_max)]
+	if not champ.active_prayers.is_empty():
+		pbar += "   ·   %d on, %s left" % [champ.active_prayers.size(), PrayerBook.clock_text(left)]
+	if champ.altar_cooldown > 0.0:
+		pbar += "   ·   altar in %ds" % ceili(champ.altar_cooldown)
+	_prayer.set_values(champ.prayer, champ.prayer_max, pbar)
 	_spec.set_values(champ.spec, 100.0, "Special attack %d%%" % int(champ.spec))
 
 	if champ.skill_points > 0 and not spectator:
@@ -569,16 +599,13 @@ func _update_bottom_center() -> void:
 			champ.skill_points, "s" if champ.skill_points > 1 else "", "/R" if champ.can_rank_up("r") else ""]
 	else:
 		_hint.text = ""
+	_update_death_screen()
 	if champ.is_dead:
-		_channel.text = "Respawning in %d" % ceili(champ.respawn_timer)
+		_channel.text = ""
 	elif champ.is_recalling():
 		_channel.text = "Teleporting home… %.1f" % champ.recall_timer
+	elif champ.is_praying_at_altar():
+		_channel.text = "Praying at the altar… %.1f" % champ.pray_timer
 	else:
 		_channel.text = ""
-	var st: Array[String] = []
-	for id in champ.statuses:
-		var kind: String = champ.statuses[id]["kind"]
-		var pretty := kind.replace("_", " ")
-		if kind != "root_immune" and not st.has(pretty):
-			st.append(pretty)
-	_status.text = ", ".join(st)
+	_buffs.unit = champ

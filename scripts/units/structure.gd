@@ -37,7 +37,6 @@ var global_gold := 0
 var last_hit_gold := 0
 var respawn_timer := 0.0
 
-var _scan := 0.0
 var _warm_stacks := 0
 var _last_champion_hit := -100.0
 var _rules: Dictionary = {}
@@ -71,6 +70,8 @@ func init_structure(p_kind: String, def: Dictionary, p_team: int, label: String,
 			setup_visuals(color, 8.0, label, "cylinder")
 		_:
 			setup_visuals(color, 1.2, label, "box")
+			if str(def.get("model", "")) == "cannon":
+				attach_custom_model(CannonModel.build(Unit.team_color(team)))
 
 
 func _ready() -> void:
@@ -133,7 +134,7 @@ func modify_outgoing(info: DamageInfo, target: Unit) -> void:
 
 
 func modify_incoming(amount: float, info: DamageInfo) -> float:
-	if is_tower() and info.is_attack and info.source is Champion \
+	if is_tower() and info.is_attack and is_instance_valid(info.source) and info.source is Champion \
 			and (info.source as Champion).attack_style == Combat.Style.MELEE:
 		amount *= float(_rules.get("melee_champion_damage_mult", 1.2))
 	return amount
@@ -143,20 +144,18 @@ func warming_up_stacks() -> int:
 	return _warm_stacks
 
 
-func _unit_process(delta: float) -> void:
+## Structures don't move; everything they do happens on ticks.
+func _unit_tick(dt: float) -> void:
 	if lifetime > 0.0:
-		lifetime -= delta
+		lifetime -= dt
 		if lifetime <= 0.0:
 			die(null)
 			return
-	_regenerate(delta)
+	_regenerate(dt)
 	if base_attack_range <= 0.0:
 		return
-	_scan -= delta
-	if _scan <= 0.0:
-		_scan = 0.25
-		attack_target = _pick_target()
-	process_attack(delta)
+	attack_target = _pick_target()
+	process_attack(dt)
 
 
 func _regenerate(delta: float) -> void:
@@ -233,10 +232,10 @@ func _on_death(killer: Unit) -> void:
 	respawn_timer = respawn_sec
 
 
-func _dead_process(delta: float) -> void:
+func _dead_tick(dt: float) -> void:
 	if respawn_sec <= 0.0:
 		return
-	respawn_timer -= delta
+	respawn_timer -= dt
 	if respawn_timer <= 0.0:
 		is_dead = false
 		health = max_health * respawn_health_pct

@@ -123,4 +123,11 @@ func refresh(champ: Champion, allow_level_up: bool = true) -> void:
 	_tip_timer -= get_process_delta_time()
 	if _tip_timer <= 0.0:
 		_tip_timer = 0.25
-		tooltip_text = AbilityInfo.tooltip(champ, slot)
+		var tip := AbilityInfo.tooltip_rich(champ, slot)
+		if tip != tooltip_text:
+			tooltip_text = tip
+
+
+## Hotbar tooltips are coloured (BBCode from AbilityInfo.tooltip_rich).
+func _make_custom_tooltip(for_text: String) -> Object:
+	return UiStyle.rich_tooltip(for_text)

@@ -7,7 +7,10 @@ extends RefCounted
 
 ## Effects run in order. "delay" postpones one; "repeat": n with
 ## "repeat_interval": s runs it n times (ground zones like Bonfire).
+## Timings authored in seconds round to the nearest game tick (0 = the cast
+## tick), so everything lands on ticks, as in OSRS.
 static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vector3, rank: int = 1) -> void:
+	ab = ranked(ab, rank)
 	# The aim direction is locked at cast time, so delayed lines and cones
 	# (Timber!'s falling yew) don't swing around if the caster moves.
 	var aim := point - caster.global_position
@@ -19,8 +22,8 @@ static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vecto
 		var repeats := maxi(1, int(effect.get("repeat", 1)))
 		var interval := float(effect.get("repeat_interval", 0.5))
 		for k in repeats:
-			var when := delay + interval * float(k)
-			if when > 0.0:
+			var when := GameTick.nearest_ticks(delay + interval * float(k))
+			if when > 0:
 				# Weak references: the caster or target may be freed before this fires.
 				var caster_ref: WeakRef = weakref(caster)
 				var target_ref: WeakRef = weakref(target) if target != null else null
@@ -30,7 +33,7 @@ static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vecto
 						return
 					var t: Unit = target_ref.get_ref() if target_ref != null else null
 					apply_effect(c, effect, t, point, ctx)
-				caster.get_tree().create_timer(when, false).timeout.connect(run)
+				GameTick.schedule(when, run)
 			else:
 				apply_effect(caster, effect, target, point, ctx)
 
@@ -85,6 +88,8 @@ static func apply_effect(caster: Champion, e: Dictionary, target: Unit, point: V
 			_summon(caster, e)
 		"toggle_form":
 			caster.toggle_form()
+		"max_stacks":
+			caster.fill_passive_stacks()
 		"taunt":
 			for u in collect_area(caster, e.get("area", {}), target, point, false, _ctx_dir(ctx)):
 				u.add_status("taunt", "taunt", 0.0, float(e.get("duration", 1.0)), caster)
@@ -92,10 +97,42 @@ static func apply_effect(caster: Champion, e: Dictionary, target: Unit, point: V
 			push_warning("AbilityRunner: unknown effect type '%s'" % e.get("type", ""))
 
 
+## An ability at a rank: every "<key>_per_rank" (except base_per_rank, which
+## flat_amount() reads) adds its value to "<key>" once per rank past 1, e.g.
+## "duration": 1.5, "duration_per_rank": 0.1 roots for 1.8s at rank 4.
+static func ranked(ab: Dictionary, rank: int) -> Dictionary:
+	if rank <= 1:
+		return ab
+	return _ranked(ab, rank) as Dictionary
+
+
+static func _ranked(node: Variant, rank: int) -> Variant:
+	if node is Dictionary:
+		var d: Dictionary = (node as Dictionary).duplicate()
+		for k in d.keys():
+			var key := str(k)
+			if key.ends_with("_per_rank") and key != "base_per_rank":
+				var base := key.trim_suffix("_per_rank")
+				d[base] = float(d.get(base, 0.0)) + float(d[k]) * float(rank - 1)
+			elif d[k] is Dictionary or d[k] is Array:
+				d[k] = _ranked(d[k], rank)
+		return d
+	if node is Array:
+		var out: Array = []
+		for v in node:
+			out.append(_ranked(v, rank))
+		return out
+	return node
+
+
 # --- Damage ------------------------------------------------------------------
 
 static func _damage(caster: Champion, e: Dictionary, target: Unit, point: Vector3, ctx: Dictionary) -> void:
 	var area: Dictionary = e.get("area", {})
+	var low: Dictionary = e.get("low_health_area", {})
+	if not low.is_empty() and caster.health_ratio() < float(low.get("threshold", 0.25)):
+		# Dharok's Wretched Smash: at low health it hits everything around the target.
+		area = {"shape": "circle", "center": "target", "radius": float(low.get("radius", 3.0))}
 	var center := area_center(caster, area, target, point)
 	var targets: Array[Unit] = []
 	if area.is_empty():
@@ -105,11 +142,14 @@ static func _damage(caster: Champion, e: Dictionary, target: Unit, point: Vector
 		targets = collect_area(caster, area, target, point, false, _ctx_dir(ctx))
 	var hits := maxi(1, int(e.get("hits", 1)))
 	var interval := float(e.get("hit_interval", 0.15))
+	# Multi-hits land on ticks: 0.15 s apart puts two on each tick, like
+	# OSRS Dragon claws.
 	for t in targets:
 		var mults := _hit_multipliers(hits, bool(e.get("cascade", false)), float(e.get("miss_chance", 0.25)))
 		for h in hits:
 			var m: float = mults[h]
-			if h == 0:
+			var when := GameTick.nearest_ticks(interval * h)
+			if when <= 0:
 				_hit(caster, e, t, center, ctx, m)
 			else:
 				var caster_ref: WeakRef = weakref(caster)
@@ -119,7 +159,7 @@ static func _damage(caster: Champion, e: Dictionary, target: Unit, point: Vector
 					var tt: Unit = t_ref.get_ref()
 					if c != null and tt != null:
 						_hit(c, e, tt, center, ctx, m)
-				caster.get_tree().create_timer(interval * h, false).timeout.connect(later)
+				GameTick.schedule(when, later)
 
 
 ## Dragon claws style cascade: a missed hit rolls its damage into the next one.
@@ -194,7 +234,33 @@ static func _hit(caster: Champion, e: Dictionary, t: Unit, center: Vector3, ctx:
 			continue
 		var kind := str(st.get("kind", ""))
 		var id := str(st.get("id", "%s:%d" % [kind, caster.get_instance_id()]))
-		t.add_status(id, kind, float(st.get("amount", 0.0)), float(st.get("duration", 1.0)), caster, st.get("data", {}))
+		var st_amount := float(st.get("amount", 0.0))
+		if t.team == Combat.Team.NEUTRAL:
+			st_amount *= float(st.get("monster_mult", 1.0))
+		var stack := int(st.get("stack", 1))
+		if stack > 1:
+			# OSRS-style stacking drops (Slayer's DWH): each new one takes the same
+			# share of what's left, up to `stack` at once; a full set refreshes the oldest.
+			var held := 0
+			var oldest := ""
+			var oldest_left := INF
+			for k in stack:
+				var sid := "%s#%d" % [id, k]
+				if t.statuses.has(sid):
+					held += 1
+					var left := float(t.statuses[sid]["remaining"])
+					if left < oldest_left:
+						oldest_left = left
+						oldest = sid
+			if held >= stack:
+				t.statuses[oldest]["remaining"] = float(st.get("duration", 1.0))
+				continue
+			st_amount *= pow(1.0 + st_amount, held)
+			id = "%s#%d" % [id, held]
+			while t.statuses.has(id):
+				held += 1
+				id = "%s#%d" % [str(st.get("id", "%s:%d" % [kind, caster.get_instance_id()])), held]
+		t.add_status(id, kind, st_amount, float(st.get("duration", 1.0)), caster, st.get("data", {}))
 
 
 # --- Other effects -----------------------------------------------------------

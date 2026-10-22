@@ -4,13 +4,14 @@
   "default_cast_clip": "magic_cast_1162",
   "eat_clip": "a829",
   "death_clip": "death_836",
+  "pray_clip": "a645",
   "anim_overrides": {
     "6528": {"stab": "a2661", "slash": "a2661", "crush": "a2661"}
   },
   "champions": {
     "dharok": {
       "gear": [4716, 4720, 4722, 6585, 6570, 7462, 11840], "weapon": 4718, "attack": "crush",
-      "abilities": {"q": {"clip": "dharok_axe_attack_stab_2066"}, "w": {"clip": "a829"}, "e": {"clip": "a829"}, "r": {"spec": "granite_maul"}}
+      "abilities": {"q": {"clip": "dharok_axe_attack_stab_2066"}, "w": {"clip": "a829"}, "e": {"clip": "a829"}, "r": {"clip": "dharok_axe_attack_crush_2067"}}
     },
     "pure": {
       "gear": [1169, 544, 2497, 2491, 3105, 6570, 1725], "weapon": 4587, "attack": "slash",
@@ -51,6 +52,8 @@
     },
     "skiller": {
       "gear": [], "weapon": 0, "attack": "stab",
+      "props": [{"bone": "L50_weapon", "prop": "imcando_hammer", "offset": [0, -0.05, 0], "rotation": [60, 0, 0]},
+                {"bone": "L28_hand_L", "prop": "chisel", "offset": [0, -0.03, 0.02], "rotation": [70, 0, 0]}],
       "abilities": {"q": {"clip": "a2846"}, "w": {"clip": "a733"}, "e": {"clip": "a618"}, "r": {"clip": "a898"}},
       "passive_clip": "a862"
     }

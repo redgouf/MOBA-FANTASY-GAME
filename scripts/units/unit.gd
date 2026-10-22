@@ -23,6 +23,13 @@ var base_defence: Array[float] = [0.0, 0.0, 0.0]   # indexed by Combat.Style
 var attack_style: int = Combat.Style.MELEE
 var base_attack_range := 2.0
 var attack_ticks := 4.0
+## Basic attacks deal damage x this (see configure_from_def: OSRS speeds).
+var basic_hit_scale := 1.0
+## Hit statistics for the smoke test (hitsplat sizes).
+static var max_hit_seen := 0.0
+static var max_hit_by := ""
+static var hits_dealt := 0
+static var hits_over_255 := 0
 var bonus_attack_speed := 0.0
 var base_move_speed := 5.0
 var armor_pen := 0.0
@@ -46,6 +53,12 @@ var osrs: OsrsActor
 ## How basic attacks look: {"kind": "swipe", "arc": "slash"} or
 ## {"kind": "projectile", "shape": "arrow"}..., optionally keyed by style.
 var attack_fx: Dictionary = {}
+var _last_flat_pos := Vector3.ZERO
+var custom_model: Node3D                         # built model replacing the whitebox shape
+var crowd_push := Vector3.ZERO                   # this frame's spacing push (Crowd.solve)
+## Hidden by the viewer's fog of war (FogOfWar): drawn on a layer the camera skips.
+var fog_hidden := false
+var _splats: Array = [null, null, null, null]   # Hitsplat per slot
 var _health_bar: HealthBar3D
 var _name_label: Label3D
 
@@ -98,10 +111,21 @@ func configure_from_def(def: Dictionary) -> void:
 		base_attack_range = lol_to_meters(float(def["attack_range_lol"]))
 	else:
 		base_attack_range = float(def.get("attack_range", 2.0))
-	if def.has("attack_speed"):
+	# OSRS attack speeds (ticks of 0.6s). Each basic attack hits harder to make
+	# up for the slower swings, keeping basic_attack_dps_scale of the old
+	# damage per second (LoL attack_speed, or ticks of the old 0.25s).
+	var old_interval := 0.0
+	if def.has("osrs_ticks"):
+		attack_ticks = float(def["osrs_ticks"])
+		if def.has("attack_speed"):
+			old_interval = 1.0 / maxf(float(def["attack_speed"]), 0.01)
+	elif def.has("attack_speed"):
 		attack_ticks = 1.0 / (maxf(float(def["attack_speed"]), 0.01) * Combat.tick_seconds)
-	else:
-		attack_ticks = float(def.get("attack_ticks", 4.0))
+	elif def.has("attack_ticks"):
+		attack_ticks = float(def["attack_ticks"])
+		old_interval = attack_ticks * Combat.legacy_tick_seconds
+	var new_interval := Combat.ticks_to_seconds(attack_ticks)
+	basic_hit_scale = Combat.basic_attack_dps_scale * new_interval / old_interval if old_interval > 0.0 else 1.0
 	if def.has("move_speed_lol"):
 		base_move_speed = lol_to_meters(float(def["move_speed_lol"]))
 	else:
@@ -184,7 +208,8 @@ func setup_visuals(color: Color, height: float, label: String, mesh_kind: String
 	_health_bar = HealthBar3D.new()
 	_health_bar.position.y = height + 0.5
 	add_child(_health_bar)
-	_health_bar.setup(team_color(team), clampf(radius * 2.4, 1.0, 4.0))
+	var layer := 2 if is_class_champion() else 0
+	_health_bar.setup(team_color(team), clampf(radius * 2.4, 1.0, 4.0), layer)
 
 	if label != "":
 		_name_label = Label3D.new()
@@ -195,7 +220,32 @@ func setup_visuals(color: Color, height: float, label: String, mesh_kind: String
 		_name_label.font_size = 28
 		_name_label.pixel_size = 0.01
 		_name_label.outline_size = 8
+		# Champions' names draw over minions and monsters.
+		_name_label.render_priority = 23 if is_class_champion() else 3
+		_name_label.outline_render_priority = 22 if is_class_champion() else 2
+		_name_label.modulate = team_color(team).lightened(0.55) if team != Combat.Team.NEUTRAL else Color(1.0, 0.95, 0.6)
 		add_child(_name_label)
+
+
+## Fog of war: hides (or shows) every visual part of this unit for the viewer.
+## Called every vision update for hidden units, so parts added later hide too.
+func set_fog_hidden(hidden: bool) -> void:
+	if hidden == fog_hidden and not hidden:
+		return
+	fog_hidden = hidden
+	_set_layers(self, FogOfWar.FOG_LAYER if hidden else 1)
+
+
+func _set_layers(n: Node, layers: int) -> void:
+	for c in n.get_children():
+		if c is VisualInstance3D:
+			(c as VisualInstance3D).layers = layers
+		_set_layers(c, layers)
+
+
+## Champions draw their bars and names on top (overridden by Champion).
+func is_class_champion() -> bool:
+	return false
 
 
 func visual_height() -> float:
@@ -226,7 +276,7 @@ func get_attack_range() -> float:
 
 
 func get_attack_interval() -> float:
-	var speed := maxf(0.2, 1.0 + bonus_attack_speed + status_sum("attack_speed"))
+	var speed := maxf(0.2, 1.0 + bonus_attack_speed + status_sum("attack_speed") + extra_attack_speed())
 	return Combat.ticks_to_seconds(attack_ticks) / speed
 
 
@@ -278,9 +328,14 @@ func add_status(id: String, kind: String, amount: float, duration: float,
 			return
 		add_status("root_immune", "root_immune", 0.0, duration + 3.0)
 	var st := {
-		"kind": kind, "amount": amount, "remaining": duration, "permanent": duration < 0.0,
-		"source": source, "data": data, "tick": 1.0,
+		"kind": kind, "amount": amount, "remaining": duration, "total": duration, "permanent": duration < 0.0,
+		"source": source, "data": data, "tick": 1.0, "added": GameTick.current_tick,
 	}
+	if kind == "poison" or kind == "venom":
+		# Antipoison potions: immunity for a while.
+		for other in statuses.values():
+			if other["kind"] == "antipoison" and (other["data"] as Dictionary).get("blocks", []).has(kind):
+				return
 	if kind == "venom" and statuses.has(id):
 		st["amount"] = statuses[id]["amount"]   # re-applying venom keeps its escalation
 	statuses[id] = st
@@ -312,15 +367,20 @@ func status_sum(kind: String) -> float:
 	return total
 
 
+## Once per game tick. A status counts down from the tick after it was
+## applied, so it ends on the first tick at or after its duration
+## (5 s = 9 ticks); damage over time hits about once a second.
 func _tick_statuses(delta: float) -> void:
 	var expired: Array[String] = []
 	var dots: Array[DamageInfo] = []
 	for id in statuses:
 		var st: Dictionary = statuses[id]
+		if int(st.get("added", -1)) == GameTick.current_tick:
+			continue
 		match st["kind"]:
 			"venom", "burn", "poison":
 				st["tick"] -= delta
-				if st["tick"] <= 0.0:
+				if st["tick"] <= 0.001:
 					st["tick"] += 1.0
 					var src: Node = st["source"] if is_instance_valid(st["source"]) else null
 					var dot := DamageInfo.make(float(st["amount"]), Combat.Style.MAGIC, src)
@@ -337,8 +397,12 @@ func _tick_statuses(delta: float) -> void:
 				if is_instance_valid(taunter) and not taunter.is_dead:
 					attack_target = taunter
 		if not st["permanent"]:
-			st["remaining"] -= delta
-			if st["remaining"] <= 0.0:
+			var src_unit: Variant = st["source"]
+			if is_instance_valid(src_unit) and src_unit is Unit and (src_unit as Unit).team != team:
+				st["remaining"] -= delta * debuff_decay_mult()   # Rapid Restore: enemy debuffs fade faster
+			else:
+				st["remaining"] -= delta
+			if st["remaining"] <= 0.001:
 				expired.append(id)
 	for id in expired:
 		statuses.erase(id)
@@ -378,10 +442,20 @@ func take_damage(info: DamageInfo) -> float:
 		if randf() < float(ely_st["data"].get("chance", 0.7)):
 			amt *= 1.0 - float(ely_st["amount"])
 	amt = maxf(modify_incoming(amt, info), 0.0)
+	# Overkill is capped, as in OSRS: a killing blow shows (and takes) exactly
+	# the health that was left.
+	amt = minf(amt, maxf(health, 0.0))
 
 	health -= amt
+	Unit.hits_dealt += 1
+	if amt > Unit.max_hit_seen:
+		Unit.max_hit_seen = amt
+		Unit.max_hit_by = "%s on %s" % [src.display_name if src else info.label, display_name]
+	if amt >= 256.0:
+		Unit.hits_over_255 += 1
 	if src:
 		recent_attackers[src.get_instance_id()] = {"unit": src, "time": Combat.clock}
+		src.on_damage_dealt(self, amt, info)
 
 	var veng := find_status_id("vengeance")
 	if veng != "" and src and amt > 0.0 and not info.is_true:
@@ -409,6 +483,8 @@ func die(killer: Unit) -> void:
 		return
 	is_dead = true
 	health = 0.0
+	if _health_bar:
+		_health_bar.set_ratio(0.0)
 	statuses.clear()
 	attack_target = null
 	velocity = Vector3.ZERO
@@ -434,6 +510,16 @@ func _on_death(_killer: Unit) -> void:
 
 
 ## Swaps the whitebox shape for an OSRS model (private pack installed).
+## Replaces the whitebox shape with a built model (the dwarf multicannon).
+func attach_custom_model(m: Node3D) -> void:
+	if m == null:
+		return
+	custom_model = m
+	add_child(m)
+	if _model != null:
+		_model.visible = false
+
+
 func attach_osrs(actor: OsrsActor) -> void:
 	if actor == null:
 		return
@@ -463,6 +549,8 @@ func _projectile_fx() -> Dictionary:
 ## Attack animation and effect as an attack goes out (projectiles are
 ## launched by perform_attack itself; melee draws a swipe).
 func _attack_visuals(t: Unit) -> void:
+	if custom_model is CannonModel:
+		(custom_model as CannonModel).fire(t.global_position)
 	if osrs != null:
 		face_toward(t.global_position)
 		osrs.play_attack(get_attack_interval(), attack_style)
@@ -474,6 +562,21 @@ func _attack_visuals(t: Unit) -> void:
 ## Hook for passives that change outgoing damage (champions extend this).
 func modify_outgoing(info: DamageInfo, _target: Unit) -> void:
 	info.amount *= maxf(0.0, 1.0 + status_sum("damage_mult"))
+
+
+## Extra attack speed from sources other than items and statuses (prayers).
+func extra_attack_speed() -> float:
+	return 0.0
+
+
+## How fast debuffs from enemies wear off (Rapid Restore makes it faster).
+func debuff_decay_mult() -> float:
+	return 1.0
+
+
+## Called on the attacker after any of its hits lands (after mitigation).
+func on_damage_dealt(_target: Unit, _amount: float, _info: DamageInfo) -> void:
+	pass
 
 
 ## Hook for passives that change incoming damage after mitigation.
@@ -488,7 +591,7 @@ func on_attack_landed(target: Unit, _dealt: float) -> void:
 	# (on hit, then each second for 2 s) and a 3 s slow: melee 10/15/25%,
 	# ranged 5/7.5/12.5% at levels 1/6/11.
 	var lvl: int = self.level if self is Champion else 1
-	var per := 5.0 + 15.0 * float(lvl - 1) / 17.0
+	var per := (5.0 + 15.0 * float(lvl - 1) / 17.0) * float(GameData.rule("hp_scale", 1.0))
 	var hit := DamageInfo.make(per, Combat.Style.MAGIC, self)
 	hit.is_true = true
 	hit.label = "burn"
@@ -503,17 +606,32 @@ func on_attack_landed(target: Unit, _dealt: float) -> void:
 
 # --- Auto attacks --------------------------------------------------------------
 
-func process_attack(delta: float) -> void:
-	_attack_cooldown = maxf(0.0, _attack_cooldown - delta)
+## Called once per game tick (dt = 0.6 s). Swings land on ticks: a 4-tick
+## weapon hits on ticks 1, 5, 9... Attack-speed bonuses carry the leftover
+## part of a tick into the next swing, so +25% on a 4-tick weapon averages
+## 3.2 ticks between swings.
+func process_attack(dt: float) -> void:
+	var before := _attack_cooldown
+	_attack_cooldown -= dt
+	var can_swing := _attack_cooldown <= 0.0001
 	if not is_instance_valid(attack_target) or attack_target.is_dead or not attack_target.is_damageable():
 		attack_target = null
+		_attack_cooldown = maxf(_attack_cooldown, 0.0)
 		return
-	if not can_act() or not in_attack_range(attack_target):
+	if not can_swing or not can_act() or not in_attack_range(attack_target):
+		_attack_cooldown = maxf(_attack_cooldown, 0.0)
 		return
 	face_toward(attack_target.global_position)
-	if _attack_cooldown <= 0.0:
-		_attack_cooldown = get_attack_interval()
-		perform_attack(attack_target)
+	# Only time left over from a cooldown that was running this tick carries
+	# over (not idle time spent waiting for a target).
+	var carry := clampf(_attack_cooldown, -dt, 0.0) if before > 0.0001 else 0.0
+	_attack_cooldown = carry + get_attack_interval()
+	perform_attack(attack_target)
+
+
+## Ticks until the next swing can land (0 = this tick).
+func attack_ticks_left() -> int:
+	return maxi(0, ceili(snappedf(_attack_cooldown / Combat.tick_seconds, 0.0001)))
 
 
 func in_attack_range(t: Unit) -> bool:
@@ -534,14 +652,28 @@ func perform_attack(t: Unit) -> void:
 				var src: Unit = src_ref.get_ref()
 				if src != null:
 					src.on_attack_landed(tt, dealt)
-		Projectile.launch(self, t, _projectile_fx(), on_hit)
+		# The hit lands projectile_hit_ticks() ticks after the swing, and the
+		# projectile is timed to arrive on that tick.
+		var ticks := projectile_hit_ticks(t)
+		var p := Projectile.launch(self, t, _projectile_fx(), Callable())
+		if p != null:
+			p.arrive_in(GameTick.seconds_until_tick(ticks))
+		GameTick.schedule(ticks, on_hit)
 	else:
 		var dealt := t.take_damage(info)
 		on_attack_landed(t, dealt)
 
 
+## Ticks from a ranged swing to its hit: the projectile's flight time rounded
+## up to whole ticks, at least 1 (OSRS hit delay).
+func projectile_hit_ticks(t: Unit) -> int:
+	var speed := Projectile.speed_for(_projectile_fx())
+	var dist := (global_position + Vector3.UP * 1.3).distance_to(t.global_position + Vector3.UP * 0.6)
+	return maxi(1, ceili(snappedf(dist / maxf(speed, 0.1) / Combat.tick_seconds, 0.0001)))
+
+
 func build_attack_damage(t: Unit) -> DamageInfo:
-	var amount := get_magic_power() if attack_style == Combat.Style.MAGIC else get_damage()
+	var amount := (get_magic_power() if attack_style == Combat.Style.MAGIC else get_damage()) * basic_hit_scale
 	var info := DamageInfo.make(amount, attack_style, self)
 	info.is_attack = true
 	info.armor_pen = armor_pen
@@ -551,28 +683,50 @@ func build_attack_damage(t: Unit) -> DamageInfo:
 
 # --- Movement ------------------------------------------------------------------
 
-func _physics_process(delta: float) -> void:
+## One game tick (GameTick calls this; NPCs before champions). All gameplay
+## happens here: statuses, attacks, casts, regen, respawn timers, AI.
+func game_tick(dt: float) -> void:
 	if is_dead:
-		_dead_process(delta)
+		_dead_tick(dt)
 		return
-	_tick_statuses(delta)
+	_tick_statuses(dt)
+	if is_dead:
+		return
+	_unit_tick(dt)
+
+
+## Per-tick behaviour for subclasses (attacks, targeting, timers, bots).
+func _unit_tick(_dt: float) -> void:
+	pass
+
+
+## Per-tick behaviour while dead (respawn timers).
+func _dead_tick(_dt: float) -> void:
+	pass
+
+
+## Per frame: movement and visuals only.
+func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
 	if not _process_dash(delta):
 		_unit_process(delta)
+	if crowd_push != Vector3.ZERO and not _dashing and not is_dead:
+		move_and_collide(crowd_push)   # Crowd: ease out of other units, never through walls
+		crowd_push = Vector3.ZERO
 	global_position.y = 0.0
 	if osrs != null:
-		osrs.moving = _dashing or get_real_velocity().length() > 0.5
+		# Measured from the actual position change: velocity from the last
+		# move_and_slide() lingers after a unit stops calling it.
+		var flat := Vector3(global_position.x, 0.0, global_position.z)
+		osrs.moving = _dashing or (delta > 0.0 and flat.distance_to(_last_flat_pos) / delta > 0.5)
+		_last_flat_pos = flat
 	if _health_bar:
 		_health_bar.set_ratio(health_ratio())
 
 
-## Per-frame behaviour for subclasses (AI, input-driven movement, ...).
+## Per-frame movement for subclasses (walking to a target, following a path).
 func _unit_process(_delta: float) -> void:
-	pass
-
-
-func _dead_process(_delta: float) -> void:
 	pass
 
 
@@ -740,15 +894,26 @@ func find_nearest_enemy(max_range: float, include_structures: bool = true, inclu
 
 
 func _spawn_hitsplat(amount: float, info: DamageInfo) -> void:
-	if not is_inside_tree() or get_parent() == null:
+	if not is_inside_tree() or get_parent() == null or fog_hidden:
 		return
-	var color := Color(0.85, 0.1, 0.1)
-	if amount <= 0.0:
-		color = Color(0.2, 0.45, 0.95)        # OSRS blue zero-hit splat
-	elif info.label == "venom" or info.label == "poison":
-		color = Color(0.2, 0.7, 0.25)
-	elif info.label == "burn":
-		color = Color(0.95, 0.55, 0.1)
-	elif info.label == "vengeance":
-		color = Color(0.7, 0.3, 0.9)
-	Hitsplat.spawn(get_parent(), global_position + Vector3(randf_range(-0.3, 0.3), _height + 0.2, 0.0), amount, color)
+	# Up to four splats at once, OSRS-style; a fifth replaces the oldest.
+	var pick := -1
+	var oldest := 0
+	for k in Hitsplat.SLOTS.size():
+		var h: Variant = _splats[k]
+		if h == null or not is_instance_valid(h):
+			pick = k
+			break
+		if (h as Hitsplat)._age > (_splats[oldest] as Hitsplat)._age:
+			oldest = k
+	if pick < 0:
+		pick = oldest
+		(_splats[pick] as Hitsplat).queue_free()
+	var kind := Hitsplat.kind_for(amount, info)
+	# On the body, like OSRS (not above the health bar).
+	var at := maxf(_height * 0.6, 0.8)
+	var splat := Hitsplat.spawn(get_parent(), global_position + Vector3.UP * at, amount, kind,
+		Hitsplat.is_tinted(self, info), pick)
+	splat.follow = weakref(self)
+	splat.height = at
+	_splats[pick] = splat

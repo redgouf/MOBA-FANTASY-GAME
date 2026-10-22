@@ -4,6 +4,8 @@ Minions, turrets, inhibitors, the nexus and jungle monsters use League of Legend
 
 **Unit scale:** Summoner's Rift is about 14,870 units across, and our map is 200 m, so **75 LoL units = 1 m** (`rules.lol_units_per_meter`). Ranges and minion speed are converted with that. League **armor** maps to our melee and ranged defence, and **magic resist** to magic defence (100 of either halves damage, as in League).
 
+**Attack speed (v0.7):** units now swing at OSRS speeds (`osrs_ticks` × 0.6s: minions, turrets and most monsters 4 ticks, dark wizards and cannon carts 5, ogres and moss giants 6, TzTok-Jad 8). The League `attack_speed` is kept as the reference: each hit is scaled so the unit's damage per second is 70% of its League value (`rules.basic_attack_dps_scale`). Health, armour and damage-per-level numbers below are unchanged.
+
 ## OSRS → League mapping
 
 | Ours | League | Notes |

@@ -24,7 +24,7 @@ const KEY_BINDINGS := {
 	"prayer_melee": KEY_Z,
 	"prayer_ranged": KEY_X,
 	"prayer_magic": KEY_C,
-	# Every build: the best offensive prayer its Prayer level allows.
+	# Every build: toggle the prayer picked at champion select.
 	"prayer_offensive": KEY_V,
 	"recall": KEY_B,
 	"stop": KEY_S,

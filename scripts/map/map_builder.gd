@@ -31,6 +31,7 @@ func build() -> void:
 	add_child(nav_region)
 	_build_ground()
 	_build_walls()
+	_build_prayer_altars()
 	_build_markings()
 	_bake_navigation()
 
@@ -84,6 +85,18 @@ func _build_walls() -> void:
 	_add_wall(Vector3(0.0, 0.0, half + 1.0), Vector3(span, 3.0, 2.0))
 	_add_wall(Vector3(-half - 1.0, 0.0, 0.0), Vector3(2.0, 3.0, span))
 	_add_wall(Vector3(half + 1.0, 0.0, 0.0), Vector3(2.0, 3.0, span))
+
+
+## Prayer altars are solid (walls layer), so the navmesh is baked around them.
+func _build_prayer_altars() -> void:
+	for a in MapLayout.all_prayer_altars():
+		var altar := PrayerAltar.new()
+		altar.side = str(a["side"])
+		altar.name = "PrayerAltar_%s_%d" % [altar.side, nav_region.get_child_count()]
+		altar.position = a["pos"]
+		# Face the open side: towards the map centre line.
+		altar.rotation.y = atan2(-float(a["pos"].x), -float(a["pos"].z))
+		nav_region.add_child(altar)
 
 
 func _add_wall(pos: Vector3, size: Vector3) -> void:

@@ -28,6 +28,7 @@ var hud: Hud
 var pause_menu: PauseMenu
 var spawner: WaveSpawner
 var selection_ring: SelectionRing
+var fog: FogOfWar
 var player: Champion            # the champion you control (null when spectating)
 var focused: Champion           # whose perspective the HUD shows
 var selected: Unit              # left-clicked unit shown in the inspect panel
@@ -85,16 +86,17 @@ func _ready() -> void:
 
 	var mode := Settings.pending_mode
 	var pending := Settings.pending_champion
+	var pending_prayer := Settings.pending_prayer
 	Settings.pending_mode = ""
 	Settings.pending_champion = ""
 	if _smoke or _args.has("spectate") or mode == "spectate":
 		start_spectate()
 	elif _args.has("champion") or (mode == "play" and pending != ""):
-		start_match(str(_args.get("champion", pending)))
+		start_match(str(_args.get("champion", pending)), str(_args.get("prayer", pending_prayer)))
 	else:
 		_show_champion_select()
 		if _shot_path != "":
-			get_tree().create_timer(1.5).timeout.connect(_take_screenshot)
+			get_tree().create_timer(float(_args.get("screenshot-at", 1.5))).timeout.connect(_take_screenshot)
 
 
 func _parse_args() -> Dictionary:
@@ -110,10 +112,16 @@ func _show_champion_select() -> void:
 	var select := ChampionSelect.new()
 	add_child(select)
 	if _args.has("shot-select"):
-		select.call_deferred("_show_detail", str(_args["shot-select"]))
-	select.champion_selected.connect(func(id: String) -> void:
+		select.call_deferred("select_build", str(_args["shot-select"]), str(_args.get("prayer", "")))
+	if _args.has("shot-tab"):
+		select.call_deferred("show_tab", str(_args["shot-tab"]))
+	if _args.has("shot-lock"):
+		var at := float(_args["shot-lock"]) if str(_args["shot-lock"]).is_valid_float() else 1.0
+		get_tree().create_timer(at).timeout.connect(select.lock_in)
+	select.champion_selected.connect(func(id: String, prayer_id: String) -> void:
 		select.queue_free()
-		start_match(id))
+		Settings.pending_prayer = prayer_id
+		start_match(id, prayer_id))
 	select.spectate_selected.connect(func() -> void:
 		select.queue_free()
 		start_spectate())
@@ -122,15 +130,17 @@ func _show_champion_select() -> void:
 # --- Starting a match --------------------------------------------------------
 
 ## Play: you + 4 bot allies (Saradomin) vs 5 bots (Zamorak), one of each build.
-func start_match(champion_id: String) -> void:
+func start_match(champion_id: String, prayer_id: String = "") -> void:
 	if not GameData.champions.has(champion_id):
 		push_warning("Unknown champion '%s', defaulting to dharok" % champion_id)
 		champion_id = "dharok"
+	GameData.ensure_match_rolls()
 	_spawn_world()
 	var pool: Array[String] = GameData.champion_order.duplicate()
 	pool.erase(champion_id)
 	pool.shuffle()
 	player = _spawn_champion(champion_id, Combat.Team.SARADOMIN, false, "mid")
+	player.set_chosen_prayer(prayer_id)
 	var ally_lanes: Array[String] = ["top", "bot", "bot", "top"]
 	var size := team_size()
 	for i in mini(size - 1, ally_lanes.size()):
@@ -148,6 +158,7 @@ func start_match(champion_id: String) -> void:
 ## Spectate: 5 bots vs 5 bots, watched from a free camera.
 func start_spectate() -> void:
 	spectating = true
+	GameData.ensure_match_rolls()
 	_spawn_world()
 	var pool: Array[String] = GameData.champion_order.duplicate()
 	pool.shuffle()
@@ -180,6 +191,9 @@ func _spawn_world() -> void:
 
 
 func _begin(view: Champion, welcome: String) -> void:
+	# The OSRS game tick starts over with the match; Main ticks camps and gold.
+	GameTick.reset()
+	GameTick.register_world(self)
 	spawner = WaveSpawner.new()
 	spawner.name = "WaveSpawner"
 	add_child(spawner)
@@ -188,6 +202,13 @@ func _begin(view: Champion, welcome: String) -> void:
 	spawner.start(units_root)
 
 	focused = view
+	Hitsplat.viewer = view
+	# Fog of war for the viewer's team (players can't turn it off).
+	fog = FogOfWar.new()
+	fog.name = "FogOfWar"
+	add_child(fog)
+	fog.set_team(view.team)
+	camera_rig.camera.cull_mask &= ~FogOfWar.FOG_LAYER
 	camera_rig.follow = view
 	camera_rig.locked = spectating
 	camera_rig.center_on(view.global_position)
@@ -364,6 +385,9 @@ func focus(c: Champion) -> void:
 	if c == null:
 		return
 	focused = c
+	Hitsplat.viewer = c
+	if fog != null:
+		fog.set_team(c.team)
 	hud.set_champion(c)
 	camera_rig.follow = c
 	camera_rig.locked = true
@@ -374,6 +398,7 @@ func focus(c: Champion) -> void:
 func restart_match() -> void:
 	Settings.pending_mode = "spectate" if spectating else "play"
 	Settings.pending_champion = player.champ_id if player != null else ""
+	Settings.pending_prayer = player.chosen_prayer if player != null else ""
 	_reload()
 
 
@@ -413,7 +438,7 @@ func _on_unit_died(unit: Unit, killer: Unit) -> void:
 	elif unit is Minion:
 		_stats["minions_killed"] += 1
 		if killer_champ != null:
-			killer_champ.gold += unit.gold_value
+			killer_champ.gold += unit.gold_value * (1.0 + killer_champ.gold_bonus())
 			killer_champ.creep_score += 1
 	elif unit is Monster:
 		if killer_champ != null:
@@ -456,7 +481,9 @@ func _on_champion_killed(victim: Champion, killer: Champion, killer_unit: Unit) 
 	_stats["champion_kills"] += 1
 	if killer != null and killer.team != victim.team:
 		killer.kills += 1
-		killer.gold += float(GameData.rule("champion_kill_gold", 300))
+		# Protect Item (prayer): the killer gets less gold.
+		var kept := float(victim.prayer_special("protect_item").get("amount", 0.0))
+		killer.gold += float(GameData.rule("champion_kill_gold", 300)) * (1.0 - kept)
 		team_kills[killer.team] += 1
 	elif victim.team <= 1:
 		team_kills[1 - victim.team] += 1
@@ -473,8 +500,9 @@ func _on_champion_killed(victim: Champion, killer: Champion, killer_unit: Unit) 
 		killer_name = killer.display_name
 	elif is_instance_valid(killer_unit):
 		killer_name = "a " + killer_unit.display_name
+	victim.last_killer_name = killer_name
 	if victim == player:
-		_announce("Oh dear, you are dead! (%s)" % killer_name, true)
+		_announce("You were killed by %s" % killer_name)
 	else:
 		_announce("%s defeated %s" % [killer_name, victim.display_name])
 
@@ -482,7 +510,7 @@ func _on_champion_killed(victim: Champion, killer: Champion, killer_unit: Unit) 
 func _on_monster_killed(m: Monster, killer: Champion) -> void:
 	_stats["monsters_killed"] += 1
 	if killer != null:
-		killer.gold += m.gold_value
+		killer.gold += m.gold_value * (1.0 + killer.gold_bonus())
 		if m.team_gold > 0:
 			for c in champions:
 				if c.team == killer.team and c != killer:
@@ -547,6 +575,7 @@ func _physics_process(delta: float) -> void:
 		return
 	game_time += delta
 	Combat.clock = game_time
+	_stats["crowd_pairs"] = int(_stats.get("crowd_pairs", 0)) + Crowd.solve(get_tree(), delta)
 	_follow_attack_focus()
 	if _shot_path != "" and not _shot_taken and game_time >= _shot_at:
 		_take_screenshot()
@@ -554,15 +583,21 @@ func _physics_process(delta: float) -> void:
 		if _smoke:
 			_finish_smoke()
 		return
-	if game_time > float(GameData.rule("passive_gold_start", 60)):
-		var rate := float(GameData.rule("passive_gold_per_sec", 2.0))
-		for c in champions:
-			c.gold += rate * delta
-	_update_camps()
 	if _smoke:
 		_probe_stuck()
 	if _smoke and game_time >= _smoke_seconds:
 		_finish_smoke()
+
+
+## One game tick (GameTick world tickable): passive gold and camp respawns.
+func game_tick(dt: float) -> void:
+	if not match_started or game_over:
+		return
+	if game_time > float(GameData.rule("passive_gold_start", 60)):
+		var rate := float(GameData.rule("passive_gold_per_sec", 2.0))
+		for c in champions:
+			c.gold += rate * dt
+	_update_camps()
 
 
 # --- Screenshots and demo state (for docs and visual checks) -----------------
@@ -614,6 +649,77 @@ func _take_screenshot() -> void:
 			await get_tree().process_frame
 			controller.begin_action("q", "ability_q")
 			await get_tree().process_frame
+		"splats":
+			# Hitsplats: yours bright (dealt by you / taken by you), everyone else's tinted.
+			var origin := Vector3(-37.0, 0.0, 37.0)
+			focused.global_position = origin
+			var foes: Array[Unit] = []
+			for i in 2:
+				var m := Minion.new()
+				m.init_minion("goblin", GameData.unit_def("minions", "goblin"), 1 - focused.team, "mid", MapLayout.lane_path("mid", 1 - focused.team), 1)
+				units_root.add_child(m)
+				m.global_position = origin + Vector3(3.5 + 3.0 * i, 0, -1.5)
+				m.set_physics_process(false)
+				foes.append(m)
+			var ally := Minion.new()
+			ally.init_minion("dark_wizard", GameData.unit_def("minions", "dark_wizard"), focused.team, "mid", MapLayout.lane_path("mid", focused.team), 1)
+			units_root.add_child(ally)
+			ally.global_position = origin + Vector3(5.0, 0, 2.0)
+			ally.set_physics_process(false)
+			camera_rig.zoom = float(_args.get("shot-zoom", 13))
+			camera_rig._apply_zoom()
+			camera_rig.center_on(origin + Vector3(3.5, 0, 0))
+			await get_tree().process_frame
+			var mine := func(amount: float, crit: float, label: String) -> DamageInfo:
+				var d := DamageInfo.make(amount, Combat.Style.MELEE, focused)
+				d.crit_mult = crit
+				d.label = label
+				return d
+			foes[0]._spawn_hitsplat(23.0, mine.call(23.0, 1.0, ""))
+			foes[0]._spawn_hitsplat(0.0, mine.call(0.0, 1.0, ""))
+			foes[0]._spawn_hitsplat(61.0, mine.call(61.0, 1.5, ""))
+			foes[0]._spawn_hitsplat(8.0, mine.call(8.0, 1.0, "poison"))
+			var theirs := DamageInfo.make(17.0, Combat.Style.MAGIC, ally)
+			foes[1]._spawn_hitsplat(17.0, theirs)
+			foes[1]._spawn_hitsplat(0.0, theirs)
+			var crit2 := DamageInfo.make(44.0, Combat.Style.MAGIC, ally)
+			crit2.crit_mult = 1.5
+			foes[1]._spawn_hitsplat(44.0, crit2)
+			focused._spawn_hitsplat(12.0, DamageInfo.make(12.0, Combat.Style.MELEE, foes[0]))
+			focused._spawn_hitsplat(0.0, DamageInfo.make(0.0, Combat.Style.MELEE, foes[0]))
+			ally._spawn_hitsplat(9.0, DamageInfo.make(9.0, Combat.Style.MELEE, foes[1]))
+			await get_tree().create_timer(0.1).timeout
+		"cannon":
+			# The Slayer's multicannon and a siege minion's cannon cart, close up, firing.
+			var origin := Vector3(-37.0, 0.0, 37.0)
+			focused.global_position = origin + Vector3(-3.0, 0, 2.0)
+			var s := Structure.new()
+			s.init_structure("summon", GameData.unit_def("summons", "dwarf_multicannon"), focused.team, "Dwarf multicannon")
+			s.lifetime = 30.0
+			units_root.add_child(s)
+			s.global_position = origin
+			var cart := Minion.new()
+			cart.init_minion("cannon_cart", GameData.unit_def("minions", "cannon_cart"), focused.team, "mid", MapLayout.lane_path("mid", focused.team), 1)
+			units_root.add_child(cart)
+			cart.global_position = origin + Vector3(3.0, 0, 1.0)
+			cart.set_physics_process(false)
+			cart.face_toward(origin + Vector3(6.0, 0, -3.0))
+			camera_rig.zoom = float(_args.get("shot-zoom", 10))
+			camera_rig._apply_zoom()
+			camera_rig.center_on(origin + Vector3(1.0, 0, 0.5))
+			await get_tree().process_frame
+			(s.custom_model as CannonModel).fire(origin + Vector3(-4.0, 0, -6.0))
+			(cart.custom_model as CannonModel).fire(origin + Vector3(8.0, 0, -4.0))
+			await get_tree().create_timer(0.08).timeout
+		"altar":
+			# Praying at the Saradomin blue-side prayer altar, prayer switched on.
+			var altar := PrayerAltar.nearest(MapLayout.saradomin_prayer_altars()[0]["pos"])
+			focused.global_position = altar.global_position + Vector3(0.0, 0.0, 3.2)
+			focused.prayer = 30.0
+			camera_rig.center_on(altar.global_position)
+			focused.toggle_chosen_prayer()
+			focused.command_pray(altar)
+			await get_tree().create_timer(0.5).timeout
 		"skills":
 			for c in champions:
 				if c.team != focused.team:
@@ -637,7 +743,41 @@ func _take_screenshot() -> void:
 			pause_menu.open()
 			pause_menu._show_page("controls")
 		"shop":
+			focused.gold = 2600.0
 			hud.toggle_shop()
+			if _args.has("shot-tab"):
+				hud._shop.show_tab(str(_args["shot-tab"]))
+			await get_tree().process_frame
+		"death":
+			# The death screen, after a few buffs and debuffs went up.
+			var killer: Champion = null
+			for c in champions:
+				if c.team != focused.team:
+					killer = c
+					break
+			focused.take_damage(DamageInfo.make(99999.0, Combat.Style.MELEE, killer))
+			await get_tree().create_timer(0.3).timeout
+		"fog":
+			# Fog of war from mid lane, zoomed out: enemies outside your team's
+			# sight are hidden and the ground beyond it is darkened.
+			focused.global_position = Vector3(-14.0, 0.0, 14.0)
+			for c in champions:
+				if c.team != focused.team:
+					c.global_position = Vector3(randf_range(-10.0, 30.0), 0.0, randf_range(-30.0, 10.0))
+			camera_rig.zoom = float(_args.get("shot-zoom", 46))
+			camera_rig._apply_zoom()
+			camera_rig.center_on(Vector3(0, 0, 0))
+			fog.update_vision()
+			await get_tree().create_timer(0.3).timeout
+		"buffs":
+			# Buff and debuff icons over the hotbar, part-way through their timers.
+			focused.add_status("t1", "damage_mult", 0.15, 8.0, focused)
+			focused.add_status("t2", "haste", 0.2, 6.0, focused)
+			focused.add_status("t3", "root", 0.0, 2.0, null)
+			focused.add_status("t4", "tele_block", 0.0, 6.0, null)
+			focused.add_status("t5", "poison", 2.0, 6.0, null)
+			focused.toggle_chosen_prayer()
+			await get_tree().create_timer(1.5).timeout
 		"lineup":
 			# Every champion in a row in mid lane, close up (model checks).
 			var origin := Vector3(-30.0, 0.0, 30.0)
@@ -745,6 +885,12 @@ func _finish_smoke() -> void:
 		lines.append("[smoke] %-8s %-15s lvl %2d  ranks %s  K/D/A %d/%d/%d  CS %3d  gold %4d  items %s" % [
 			Combat.TEAM_NAMES[c.team], c.display_name, c.level, _ranks_text(c), c.kills, c.deaths, c.assists,
 			c.creep_score, int(c.gold), str(c.inventory)])
+	var praying := 0
+	for c in champions:
+		if not c.active_prayers.is_empty():
+			praying += 1
+	lines.append("[smoke] prayer: %d altar prayers, %d of %d champions praying at the end" % [PrayerAltar.uses, praying, champions.size()])
+	lines.append("[smoke] hits: %d, biggest %d (%s), %d of 256+" % [Unit.hits_dealt, int(Unit.max_hit_seen), Unit.max_hit_by, Unit.hits_over_255])
 	lines.append("[smoke] OSRS models: %s" % ("on" if OsrsModels.available() else "off (whitebox)"))
 	lines.append("[smoke] stuck bots: %s" % ("none" if _stuck_reports.is_empty() else "; ".join(_stuck_reports)))
 	for line in lines:

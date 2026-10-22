@@ -12,13 +12,14 @@ var spectating := false
 
 const CONTROLS_TEXT := """Right-click — move, or attack the unit under the cursor
 Left-click — select a unit to inspect it (top-left)
-Q W E R — abilities (R is your special attack): hold to aim, release to cast
-   (Settings > Ability casting: normal cast = press, then left-click; right-click or Esc cancels)
+Q W E R — abilities (R is your special attack): press to show the indicator, left-click to cast
+   (it stays up while you right-click to walk; Esc cancels; other modes in Settings > Ability casting)
 Ctrl + Q W E R — spend a skill point (R unlocks at level 6)
 1 – 6 — item special attacks
 7 8 9 0 — food and potions
+V — switch your prayer on/off (picked at champion select; drains prayer points)
 Z X C — Protect from Melee / Missiles / Magic (tank and main builds)
-V — offensive prayer (best your Prayer level allows)
+Right-click a prayer altar (beside each red and blue buff) — pray to restore prayer to full
 B — teleport home      P — shop      S — stop      Tab (hold) — scoreboard
 Middle-mouse drag — grab and pan the map
 Minimap — left-click to look, right-click to walk
@@ -29,7 +30,8 @@ Esc — close the shop, or open this menu
 Spectator (NPC vs NPC) mode:
 Left-click a champion or its roster card — lock onto it (its HUD, camera and cursor)
 1 – 5 / 6 – 0 — lock onto a Saradomin / Zamorak champion
-Y — toggle the camera lock      Left-click anything else — inspect it"""
+Y — toggle the camera lock      F — fog of war on/off (the watched team's view)
+Left-click anything else — inspect it"""
 
 var hud: Hud
 

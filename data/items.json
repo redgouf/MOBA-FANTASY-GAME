@@ -113,7 +113,8 @@
       "stats": {
         "damage": 6,
         "magic_power": 10,
-        "health": 60
+        "health": 60,
+        "prayer_bonus": 3
       }
     },
     {
@@ -128,7 +129,8 @@
         "damage": 12,
         "magic_power": 15,
         "health": 120,
-        "defence_all": 6
+        "defence_all": 6,
+        "prayer_bonus": 5
       }
     },
     {
@@ -1140,9 +1142,11 @@
       },
       "stats": {
         "health": 450,
-        "defence_all": 20
+        "defence_all": 20,
+        "prayer_bonus": 3,
+        "elysian": 0.12
       },
-      "text": "70% chance to reduce each hit by 25% (planned as a passive)."
+      "text": "Passive: each hit on you has a 70% chance to be reduced by 12% (the Justiciar's Elysian Ward is 25% and can shield allies)."
     },
     {
       "id": "dinhs_bulwark",
@@ -1315,6 +1319,290 @@
       }
     },
     {
+      "id": "hardleather_body",
+      "name": "Hardleather body",
+      "tier": "component",
+      "cost": 450,
+      "requirements": {
+        "crafting": 28,
+        "defence": 10
+      },
+      "stats": {
+        "health": 110,
+        "defence": {
+          "melee": 8,
+          "ranged": 10
+        }
+      }
+    },
+    {
+      "id": "snakeskin_body",
+      "name": "Snakeskin body",
+      "tier": "component",
+      "cost": 850,
+      "requirements": {
+        "crafting": 53,
+        "ranged": 30,
+        "defence": 30
+      },
+      "stats": {
+        "health": 160,
+        "damage": 6,
+        "defence": {
+          "ranged": 15,
+          "magic": 10
+        }
+      }
+    },
+    {
+      "id": "steel_platebody",
+      "name": "Steel platebody",
+      "tier": "component",
+      "cost": 600,
+      "requirements": {
+        "smithing": 48,
+        "defence": 5
+      },
+      "stats": {
+        "health": 140,
+        "defence": {
+          "melee": 16,
+          "ranged": 12
+        }
+      }
+    },
+    {
+      "id": "mithril_scimitar",
+      "name": "Mithril scimitar",
+      "tier": "component",
+      "cost": 600,
+      "requirements": {
+        "smithing": 55,
+        "attack": 20
+      },
+      "stats": {
+        "damage": 15,
+        "attack_speed": 0.05
+      }
+    },
+    {
+      "id": "maple_shortbow",
+      "name": "Maple shortbow",
+      "tier": "component",
+      "cost": 700,
+      "requirements": {
+        "fletching": 50,
+        "ranged": 30
+      },
+      "stats": {
+        "damage": 18,
+        "attack_speed": 0.12
+      }
+    },
+    {
+      "id": "mithril_darts",
+      "name": "Mithril darts",
+      "tier": "component",
+      "cost": 500,
+      "requirements": {
+        "fletching": 52,
+        "ranged": 20
+      },
+      "stats": {
+        "damage": 9,
+        "attack_speed": 0.1
+      }
+    },
+    {
+      "id": "amulet_of_magic",
+      "name": "Amulet of magic",
+      "tier": "neck",
+      "cost": 550,
+      "requirements": {
+        "crafting": 24
+      },
+      "stats": {
+        "magic_power": 12
+      }
+    },
+    {
+      "id": "amulet_of_strength",
+      "name": "Amulet of strength",
+      "tier": "neck",
+      "cost": 900,
+      "requirements": {
+        "crafting": 50
+      },
+      "stats": {
+        "damage": 12
+      }
+    },
+    {
+      "id": "amulet_of_power",
+      "name": "Amulet of power",
+      "tier": "neck",
+      "cost": 1300,
+      "requirements": {
+        "crafting": 70
+      },
+      "stats": {
+        "damage": 10,
+        "magic_power": 10,
+        "health": 80,
+        "defence_all": 5
+      }
+    },
+    {
+      "id": "black_mask",
+      "name": "Black mask",
+      "tier": "armour",
+      "cost": 900,
+      "requirements": {
+        "slayer": 35
+      },
+      "stats": {
+        "health": 80,
+        "monster_damage": 0.1
+      },
+      "text": "+10% damage to monsters (camps and epics)."
+    },
+    {
+      "id": "leaf_bladed_sword",
+      "name": "Leaf-bladed sword",
+      "tier": "component",
+      "cost": 1400,
+      "requirements": {
+        "slayer": 55,
+        "attack": 50
+      },
+      "stats": {
+        "damage": 26,
+        "monster_damage": 0.15
+      },
+      "text": "+15% damage to monsters."
+    },
+    {
+      "id": "leaf_bladed_battleaxe",
+      "name": "Leaf-bladed battleaxe",
+      "tier": "legendary",
+      "cost": 2600,
+      "requirements": {
+        "slayer": 55,
+        "attack": 65,
+        "strength": 65
+      },
+      "stats": {
+        "damage": 44,
+        "monster_damage": 0.15
+      },
+      "text": "+15% damage to monsters."
+    },
+    {
+      "id": "chinchompa",
+      "name": "Chinchompa",
+      "tier": "spec",
+      "cost": 900,
+      "requirements": {
+        "hunter": 53,
+        "ranged": 45
+      },
+      "stats": {
+        "damage": 10
+      },
+      "spec_active": {
+        "name": "Chinchompa",
+        "cast": "point",
+        "range": 8,
+        "spec_cost": 30,
+        "cooldown": 10,
+        "effects": [
+          {
+            "type": "damage",
+            "delay": 0.35,
+            "base": 40,
+            "base_per_level": 6,
+            "ratio": {
+              "damage": 0.5
+            },
+            "style": "ranged",
+            "area": {
+              "shape": "circle",
+              "center": "point",
+              "radius": 2.5
+            }
+          }
+        ],
+        "fx": [
+          {
+            "kind": "projectile",
+            "shape": "rock",
+            "color": "#8f8a80",
+            "size": 0.14
+          },
+          {
+            "kind": "burst",
+            "color": "fire",
+            "radius": 2.5,
+            "delay": 0.35
+          }
+        ]
+      },
+      "text": "Spec: throw an exploding chinchompa that hits everything within 2.5m of where it lands."
+    },
+    {
+      "id": "spotted_cape",
+      "name": "Spotted cape",
+      "tier": "boots",
+      "cost": 500,
+      "requirements": {
+        "hunter": 40
+      },
+      "stats": {
+        "move_speed": 0.4
+      }
+    },
+    {
+      "id": "spottier_cape",
+      "name": "Spottier cape",
+      "tier": "boots",
+      "cost": 900,
+      "requirements": {
+        "hunter": 66
+      },
+      "stats": {
+        "move_speed": 0.7
+      }
+    },
+    {
+      "id": "rogue_outfit",
+      "name": "Rogue outfit",
+      "tier": "tool",
+      "cost": 900,
+      "requirements": {
+        "thieving": 50,
+        "agility": 50
+      },
+      "stats": {
+        "gold_bonus": 0.25,
+        "move_speed": 0.2
+      },
+      "text": "+25% gold from last hits on minions and monsters (double loot, like pickpocketing in rogue's gear)."
+    },
+    {
+      "id": "bruma_torch",
+      "name": "Bruma torch",
+      "tier": "offhand",
+      "cost": 1000,
+      "requirements": {
+        "firemaking": 50
+      },
+      "stats": {
+        "damage": 10,
+        "burn_on_hit": 6
+      },
+      "text": "Basic attacks set the target alight: 1.5 true damage a second for 2s."
+    },
+    {
       "id": "shark",
       "name": "Shark",
       "consumable": true,
@@ -1322,6 +1610,9 @@
       "use": {
         "heal_over_time": 200,
         "duration": 5
+      },
+      "requirements": {
+        "cooking": 80
       }
     },
     {
@@ -1331,6 +1622,9 @@
       "cost": 40,
       "use": {
         "heal": 80
+      },
+      "requirements": {
+        "cooking": 30
       }
     },
     {
@@ -1352,6 +1646,9 @@
             "duration": 5
           }
         ]
+      },
+      "requirements": {
+        "herblore": 81
       }
     },
     {
@@ -1361,6 +1658,9 @@
       "cost": 150,
       "use": {
         "prayer": 40
+      },
+      "requirements": {
+        "herblore": 63
       }
     },
     {
@@ -1370,6 +1670,9 @@
       "cost": 90,
       "use": {
         "prayer": 30
+      },
+      "requirements": {
+        "herblore": 38
       }
     },
     {
@@ -1385,6 +1688,9 @@
             "duration": 60
           }
         ]
+      },
+      "requirements": {
+        "herblore": 90
       }
     },
     {
@@ -1398,6 +1704,396 @@
             "kind": "haste",
             "amount": 0.25,
             "duration": 6
+          }
+        ]
+      },
+      "requirements": {
+        "herblore": 77
+      }
+    },
+    {
+      "id": "shrimps",
+      "name": "Shrimps",
+      "consumable": true,
+      "cost": 15,
+      "requirements": {
+        "cooking": 1
+      },
+      "use": {
+        "heal": 50
+      }
+    },
+    {
+      "id": "trout",
+      "name": "Trout",
+      "consumable": true,
+      "cost": 25,
+      "requirements": {
+        "cooking": 15
+      },
+      "use": {
+        "heal_over_time": 100,
+        "duration": 5
+      }
+    },
+    {
+      "id": "salmon",
+      "name": "Salmon",
+      "consumable": true,
+      "cost": 30,
+      "requirements": {
+        "cooking": 25
+      },
+      "use": {
+        "heal_over_time": 120,
+        "duration": 5
+      }
+    },
+    {
+      "id": "tuna",
+      "name": "Tuna",
+      "consumable": true,
+      "cost": 35,
+      "requirements": {
+        "cooking": 30
+      },
+      "use": {
+        "heal_over_time": 135,
+        "duration": 5
+      }
+    },
+    {
+      "id": "lobster",
+      "name": "Lobster",
+      "consumable": true,
+      "cost": 40,
+      "requirements": {
+        "cooking": 40
+      },
+      "use": {
+        "heal_over_time": 160,
+        "duration": 5
+      }
+    },
+    {
+      "id": "swordfish",
+      "name": "Swordfish",
+      "consumable": true,
+      "cost": 45,
+      "requirements": {
+        "cooking": 45
+      },
+      "use": {
+        "heal_over_time": 175,
+        "duration": 5
+      }
+    },
+    {
+      "id": "monkfish",
+      "name": "Monkfish",
+      "consumable": true,
+      "cost": 50,
+      "requirements": {
+        "cooking": 62
+      },
+      "use": {
+        "heal_over_time": 190,
+        "duration": 5
+      }
+    },
+    {
+      "id": "anglerfish",
+      "name": "Anglerfish",
+      "consumable": true,
+      "cost": 70,
+      "requirements": {
+        "cooking": 84
+      },
+      "use": {
+        "heal_pct_max": 0.22
+      }
+    },
+    {
+      "id": "dark_crab",
+      "name": "Dark crab",
+      "consumable": true,
+      "cost": 75,
+      "requirements": {
+        "cooking": 90
+      },
+      "use": {
+        "heal_over_time": 240,
+        "duration": 5
+      }
+    },
+    {
+      "id": "manta_ray",
+      "name": "Manta ray",
+      "consumable": true,
+      "cost": 80,
+      "requirements": {
+        "cooking": 91
+      },
+      "use": {
+        "heal_over_time": 260,
+        "duration": 5
+      }
+    },
+    {
+      "id": "antipoison",
+      "name": "Antipoison",
+      "consumable": true,
+      "cost": 30,
+      "requirements": {
+        "herblore": 5
+      },
+      "use": {
+        "cleanse": [
+          "poison"
+        ],
+        "statuses": [
+          {
+            "kind": "antipoison",
+            "amount": 0,
+            "duration": 30,
+            "data": {
+              "blocks": [
+                "poison"
+              ]
+            }
+          }
+        ]
+      },
+      "text": "Cures poison and protects you from poison for 30s."
+    },
+    {
+      "id": "attack_potion",
+      "name": "Attack potion",
+      "consumable": true,
+      "cost": 50,
+      "requirements": {
+        "herblore": 3
+      },
+      "use": {
+        "statuses": [
+          {
+            "kind": "damage_mult",
+            "amount": 0.03,
+            "duration": 60
+          }
+        ]
+      }
+    },
+    {
+      "id": "strength_potion",
+      "name": "Strength potion",
+      "consumable": true,
+      "cost": 60,
+      "requirements": {
+        "herblore": 12
+      },
+      "use": {
+        "statuses": [
+          {
+            "kind": "damage_mult",
+            "amount": 0.04,
+            "duration": 60
+          }
+        ]
+      }
+    },
+    {
+      "id": "energy_potion",
+      "name": "Energy potion",
+      "consumable": true,
+      "cost": 40,
+      "requirements": {
+        "herblore": 26
+      },
+      "use": {
+        "statuses": [
+          {
+            "kind": "haste",
+            "amount": 0.1,
+            "duration": 6
+          }
+        ]
+      }
+    },
+    {
+      "id": "defence_potion",
+      "name": "Defence potion",
+      "consumable": true,
+      "cost": 60,
+      "requirements": {
+        "herblore": 30
+      },
+      "use": {
+        "statuses": [
+          {
+            "kind": "armor_mult",
+            "amount": 0.06,
+            "duration": 60
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat_potion",
+      "name": "Combat potion",
+      "consumable": true,
+      "cost": 90,
+      "requirements": {
+        "herblore": 36
+      },
+      "use": {
+        "statuses": [
+          {
+            "kind": "damage_mult",
+            "amount": 0.04,
+            "duration": 60
+          },
+          {
+            "kind": "armor_mult",
+            "amount": 0.04,
+            "duration": 60
+          }
+        ]
+      }
+    },
+    {
+      "id": "super_attack",
+      "name": "Super attack",
+      "consumable": true,
+      "cost": 90,
+      "requirements": {
+        "herblore": 45
+      },
+      "use": {
+        "statuses": [
+          {
+            "kind": "damage_mult",
+            "amount": 0.05,
+            "duration": 60
+          }
+        ]
+      }
+    },
+    {
+      "id": "superantipoison",
+      "name": "Superantipoison",
+      "consumable": true,
+      "cost": 60,
+      "requirements": {
+        "herblore": 48
+      },
+      "use": {
+        "cleanse": [
+          "poison",
+          "venom"
+        ],
+        "statuses": [
+          {
+            "kind": "antipoison",
+            "amount": 0,
+            "duration": 60,
+            "data": {
+              "blocks": [
+                "poison",
+                "venom"
+              ]
+            }
+          }
+        ]
+      },
+      "text": "Cures poison and venom and protects you from poison and venom for 60s."
+    },
+    {
+      "id": "super_energy",
+      "name": "Super energy",
+      "consumable": true,
+      "cost": 60,
+      "requirements": {
+        "herblore": 52
+      },
+      "use": {
+        "statuses": [
+          {
+            "kind": "haste",
+            "amount": 0.15,
+            "duration": 8
+          }
+        ]
+      }
+    },
+    {
+      "id": "super_strength",
+      "name": "Super strength",
+      "consumable": true,
+      "cost": 100,
+      "requirements": {
+        "herblore": 55
+      },
+      "use": {
+        "statuses": [
+          {
+            "kind": "damage_mult",
+            "amount": 0.06,
+            "duration": 60
+          }
+        ]
+      }
+    },
+    {
+      "id": "super_defence",
+      "name": "Super defence",
+      "consumable": true,
+      "cost": 100,
+      "requirements": {
+        "herblore": 66
+      },
+      "use": {
+        "statuses": [
+          {
+            "kind": "armor_mult",
+            "amount": 0.1,
+            "duration": 60
+          }
+        ]
+      }
+    },
+    {
+      "id": "ranging_potion",
+      "name": "Ranging potion",
+      "consumable": true,
+      "cost": 110,
+      "requirements": {
+        "herblore": 72
+      },
+      "use": {
+        "statuses": [
+          {
+            "kind": "damage_mult",
+            "amount": 0.08,
+            "duration": 60
+          }
+        ]
+      }
+    },
+    {
+      "id": "magic_potion",
+      "name": "Magic potion",
+      "consumable": true,
+      "cost": 110,
+      "requirements": {
+        "herblore": 76
+      },
+      "use": {
+        "statuses": [
+          {
+            "kind": "damage_mult",
+            "amount": 0.08,
+            "duration": 60
           }
         ]
       }

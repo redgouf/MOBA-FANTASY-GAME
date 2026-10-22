@@ -17,7 +17,6 @@ var waypoint := 1
 var offset := Vector3.ZERO
 var bonus_vs_minions := 0.0
 
-var _scan := 0.0
 
 
 func init_minion(id: String, def: Dictionary, p_team: int, p_lane: String, p_path: PackedVector3Array, p_upgrades: int = 0) -> void:
@@ -37,6 +36,7 @@ func init_minion(id: String, def: Dictionary, p_team: int, p_lane: String, p_pat
 	match role:
 		"siege":
 			setup_visuals(color, 1.4, "", "box")
+			attach_custom_model(CannonModel.build(Unit.team_color(team), true, 0.95))
 		"caster":
 			setup_visuals(color.lightened(0.2), 1.6, "")
 		"super":
@@ -92,11 +92,7 @@ func modify_outgoing(info: DamageInfo, target: Unit) -> void:
 		info.amount += target.health * bonus_vs_minions
 
 
-func _unit_process(delta: float) -> void:
-	_scan -= delta
-	if _scan <= 0.0:
-		_scan = 0.3
-		_acquire_target()
+func _unit_process(_delta: float) -> void:
 	if is_instance_valid(attack_target) and not attack_target.is_dead:
 		if in_attack_range(attack_target):
 			velocity = Vector3.ZERO
@@ -104,7 +100,11 @@ func _unit_process(delta: float) -> void:
 			move_directly_toward(attack_target.global_position)
 	else:
 		_walk_lane()
-	process_attack(delta)
+
+
+func _unit_tick(dt: float) -> void:
+	_acquire_target()
+	process_attack(dt)
 
 
 func _acquire_target() -> void:

@@ -50,6 +50,7 @@ static func fall_direction(chopper_pos: Vector3, tree_pos: Vector3, fallback: Ve
 
 func _ready() -> void:
 	add_to_group("planted_trees")
+	GameTick.register_world(self)
 	collision_layer = Unit.LAYER_WALLS
 	collision_mask = 0
 	_shape = CollisionShape3D.new()
@@ -105,7 +106,8 @@ func _add_mesh(mesh: Mesh, mat: Material, pos: Vector3, parent: Node3D = null) -
 	return mi
 
 
-func _physics_process(delta: float) -> void:
+## A yew's lifetime runs out on a game tick.
+func game_tick(delta: float) -> void:
 	if falling or lifetime <= 0.0:
 		return
 	lifetime -= delta

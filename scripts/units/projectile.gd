@@ -11,6 +11,7 @@ var target: Unit
 var target_point := Vector3.ZERO
 var speed := 30.0
 var on_hit: Callable
+var _time_left := 0.0     # > 0: seconds until arrival (timed to a game tick)
 var fx: Dictionary = {}
 
 var _start := Vector3.ZERO
@@ -19,6 +20,13 @@ var _arc := 0.0
 var _trail_timer := 0.0
 var _spin: Node3D
 var _color := Color.WHITE
+var _uncut := false
+
+## The Skiller's gems, opal to zenyte (shape "gem" picks one at random).
+const GEMS := [["Opal", Color(0.93, 0.88, 0.95)], ["Jade", Color(0.42, 0.78, 0.48)], ["Red topaz", Color(0.95, 0.45, 0.35)],
+	["Sapphire", Color(0.2, 0.38, 0.98)], ["Emerald", Color(0.15, 0.85, 0.35)], ["Ruby", Color(0.92, 0.1, 0.2)],
+	["Diamond", Color(0.95, 0.97, 1.0)], ["Dragonstone", Color(0.72, 0.28, 0.95)], ["Onyx", Color(0.16, 0.16, 0.18)],
+	["Zenyte", Color(1.0, 0.62, 0.15)]]
 
 
 ## Default look for an attacker's basic attacks, by style.
@@ -51,11 +59,17 @@ static func launch_to_point(source: Node3D, point: Vector3, p_fx: Dictionary, fr
 func _setup(source: Node3D, f: Dictionary, p_speed: float, from: Vector3 = Vector3.INF) -> void:
 	fx = f
 	var shape := str(f.get("shape", "orb"))
+	if shape == "gem":
+		var g: Array = GEMS.pick_random()
+		_uncut = randf() < 0.5
+		f = f.duplicate()
+		f["color"] = g[1].darkened(0.25) if _uncut else g[1]
+		f["gem"] = ("Uncut " + str(g[0]).to_lower()) if _uncut else g[0]
+		fx = f
 	_color = CombatFx.color(f.get("color", ""), {"arrow": Color(0.55, 0.4, 0.25), "bolt": Color(0.6, 0.62, 0.66),
 		"dart": Color(0.3, 0.8, 0.3), "rock": Color(0.5, 0.48, 0.45), "cannonball": Color(0.15, 0.15, 0.17),
 		"javelin": Color(0.7, 0.7, 0.72), "fireball": Color(1.0, 0.5, 0.1)}.get(shape, Color(0.5, 0.65, 1.0)))
-	speed = p_speed if p_speed > 0.0 else float(f.get("speed", {"orb": 26.0, "fireball": 22.0, "rock": 18.0,
-		"cannonball": 20.0, "dart": 40.0, "bolt": 38.0, "arrow": 34.0}.get(shape, 30.0)))
+	speed = p_speed if p_speed > 0.0 else speed_for(f)
 	_arc = float(f.get("arc", {"rock": 1.6, "cannonball": 1.2}.get(shape, 0.0)))
 	source.get_parent().add_child(self)
 	_start = from if from != Vector3.INF else source.global_position + Vector3.UP * 1.3
@@ -63,6 +77,17 @@ func _setup(source: Node3D, f: Dictionary, p_speed: float, from: Vector3 = Vecto
 	_total = maxf(0.5, _start.distance_to(_aim()))
 	_build(shape)
 	_face(_aim() - global_position)
+
+
+## Flight speed (m/s) of a projectile look.
+static func speed_for(f: Dictionary) -> float:
+	return float(f.get("speed", {"orb": 26.0, "fireball": 22.0, "rock": 18.0,
+		"cannonball": 20.0, "dart": 40.0, "bolt": 38.0, "arrow": 34.0}.get(str(f.get("shape", "orb")), 30.0)))
+
+
+## Times the flight to land in `seconds` (on the game tick its hit is due).
+func arrive_in(seconds: float) -> void:
+	_time_left = maxf(seconds, 0.05)
 
 
 func _aim() -> Vector3:
@@ -97,6 +122,23 @@ func _build(shape: String) -> void:
 			r.radial_segments = 6
 			r.rings = 3
 			_part(r, c, Vector3.ZERO, false, false, _spin)
+		"gem":
+			_spin = Node3D.new()
+			add_child(_spin)
+			if _uncut:
+				# A rough, dull lump.
+				var lump := SphereMesh.new()
+				lump.radius = 0.11
+				lump.height = 0.18
+				lump.radial_segments = 5
+				lump.rings = 2
+				var mi := _part(lump, c, Vector3.ZERO, false, false, _spin)
+				mi.scale = Vector3(1.0, 0.8, 1.25)
+			else:
+				# A cut gem: two cones point to point, glinting.
+				_part(_cone(0.12, 0.1), c, Vector3(0, 0.05, 0), false, true, _spin)
+				var bottom := _part(_cone(0.12, 0.16), c.darkened(0.15), Vector3(0, -0.08, 0), false, true, _spin)
+				bottom.rotation.x = PI
 		"cannonball":
 			var s := SphereMesh.new()
 			s.radius = 0.2
@@ -164,7 +206,14 @@ func _physics_process(delta: float) -> void:
 	var flat := Vector3(aim.x, _start.y, aim.z)
 	var to := aim - global_position
 	var step := speed * delta
-	if to.length() <= step + 0.2:
+	if _time_left > 0.0:
+		# Timed flight: cover what's left of the way in what's left of the time.
+		step = to.length() * minf(delta / _time_left, 1.0)
+		_time_left -= delta
+		if _time_left <= 0.0:
+			_arrive(aim)
+			return
+	elif to.length() <= step + 0.2:
 		_arrive(aim)
 		return
 	var next := global_position + to.normalized() * step
@@ -176,6 +225,7 @@ func _physics_process(delta: float) -> void:
 	global_position = next
 	if _spin != null:
 		_spin.rotate_x(delta * 14.0)
+		_spin.rotate_y(delta * 9.0)
 	var shape := str(fx.get("shape", "orb"))
 	if shape == "orb" or shape == "fireball":
 		_trail_timer -= delta

@@ -21,13 +21,18 @@ Champion abilities (`data/champions.json`) and item spec actives (`data/items.js
 
 | `type` | Key fields |
 | --- | --- |
-| `damage` | `base`, `base_per_rank` (kit abilities), `base_per_level` (champion level), `ratio` {`damage`, `magic_power`, `skill_power`}, `style`, `hits` + `hit_interval`, `cascade` (dragon claws), `pct_current_health` / `pct_max_health` + `cap`, `missing_health_bonus`, `bonus_below_health` {`threshold`, `mult`}, `lifesteal`, `crit_mult`, `armor_pen`, `true`, `ignores_prayer`, `falloff`, `shred_ratio` + `shred_duration`, `target_statuses` [...], `area` |
+| `damage` | `base`, `base_per_rank` (kit abilities), `base_per_level` (champion level), `ratio` {`damage`, `magic_power`, `skill_power`}, `style`, `hits` + `hit_interval`, `cascade` (dragon claws), `pct_current_health` / `pct_max_health` + `cap`, `missing_health_bonus`, `bonus_below_health` {`threshold`, `mult`}, `low_health_area` {`threshold`, `radius`} (below that much of the caster's health, hit everything around the target), `lifesteal`, `crit_mult`, `armor_pen`, `true`, `ignores_prayer`, `falloff`, `shred_ratio` + `shred_duration`, `target_statuses` [...], `area` |
 | `heal` | `base`, `base_per_level`, `ratio.magic_power`, `pct_missing`, `pct_max`, `from_self_cost_mult`, `over_time`, `on` (`self`/`target`), `area` (heals allies) |
 | `self_cost` | `pct_current_health` (never drops below 1) |
 | `status` | `on` (`self`, `target`, `area_allies`, `area_enemies`), `kind`, `amount`, `duration`, `chance`, `data`, `area` |
 | `dash` | `to` (`point`/`target`), `distance`, `speed`, `stop_distance`, `ignore_walls`, `teleport` |
 | `knockback` | `distance` (pushes the target away) |
 | `spec_transfer` | `amount` (gives an ally spec energy) |
+| `max_stacks` | (none) fills a `stacking_damage` passive (Zerker's claws fill the Berserker Necklace) |
+
+**Per-rank values:** any number in an effect (or in one of its `target_statuses`) can have a `<key>_per_rank` partner that is added once per rank past 1, e.g. `"duration": 1.5, "duration_per_rank": 0.1` roots for 1.8s at rank 4. `base_per_rank` works the same way for damage and healing. `AbilityRunner.ranked()` applies them; tooltips list them under "Each rank".
+
+`target_statuses` entries take `kind`, `amount`, `duration`, `chance`, `id`, `data`, plus `stack` (up to that many copies at once, each taking the same share of what's left, OSRS DWH-style) and `monster_mult` (amount multiplier against neutral monsters).
 | `summon` | `unit` (from `units.json` → `summons`), `duration` |
 | `toggle_form` | Switches champion form (Hybrid) |
 | `taunt` | `area`, `duration` |
@@ -76,9 +81,9 @@ Basic attacks use `attack_fx` on the champion (or form, or unit in `units.json`)
 
 Set in a champion's `passive.type`: `missing_health_damage`, `glass_cannon`, `nth_hit_bonus`, `form_switch`, `target_magic_scaling`, `monster_bonus`, `venom`, `stacking_damage`, `flat_reduction`, `skilling_level_up` (every Nth ability runs the passive's own `effects`), `rune_pouch` (placeholder). Implemented in `Champion.modify_outgoing`, `modify_incoming` and `on_attack_landed`.
 
-## Offensive prayers
+## Prayers
 
-`rules.json` → `offensive_prayers` lists each style's prayers, best first; a build gets the first its Prayer level allows. Entries are `+bonus` damage unless they set `kind` (Thick Skin, Prayer 1: `"kind": "damage_taken_mult", "bonus": -0.05`) and a `text` for tooltips.
+`rules.json` → `prayers` is the OSRS prayer book in order: `id`, `name`, `level`, `drain` (OSRS drain effect), and what it does here: `style` + `damage` / `attack_speed` (only for that style), `damage_taken`, `protect` (a style), or `special` (`rapid_restore`, `rapid_heal`, `protect_item`, `retribution`, `redemption`, `smite`, `preserve`, with their own numbers and a `text`). `osrs` is the original effect, shown in tooltips. `PrayerBook` reads it; see [PRAYER.md](PRAYER.md).
 
 ## Item requirements
 
@@ -86,4 +91,6 @@ Set in a champion's `passive.type`: `missing_health_damage`, `glass_cannon`, `nt
 "requirements": { "attack": 75, "defence": 65 }
 ```
 
-Skills: `attack`, `hitpoints`, `strength`, `defence`, `ranged`, `prayer`, `magic` (Hitpoints is shown in the Skills tab and counts toward combat level; no items require it yet). A champion can only buy an item if every level in its `skills` meets the requirement.
+Skills: any of the 24 OSRS skills. Combat skills (`attack`, `hitpoints`, `strength`, `defence`, `ranged`, `prayer`, `magic`) are fixed per build; the others are rolled 20–60 each game (see DESIGN.md), so an item gated on, say, `"cooking": 40` is only sometimes buyable, and one above 60 is Skiller-only. A champion can only buy an item if every level it has this game meets the requirement.
+
+Item stats beyond the basics: `prayer_bonus` (OSRS prayer bonus), `monster_damage` (vs camps and epics), `gold_bonus` (last-hit gold), `burn_on_hit` (true damage a second for 2s on basic attacks), `elysian`. Consumable `use`: `heal`, `heal_over_time` + `duration`, `heal_pct_max`, `prayer`, `spec`, `statuses` (each may carry `data`), `cleanse` (status kinds to remove; an `antipoison` status with `data.blocks` keeps them off).

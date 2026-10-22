@@ -77,6 +77,41 @@ func set_item(id: String, cooldown_left: float = 0.0, cooldown_total: float = 0.
 		_shade.size = Vector2(size.x, h)
 
 
+## One stat line: "+12% attack speed", "+5 prayer bonus", "+25 damage".
+static func stat_text(k: String, v: float) -> String:
+	match k:
+		"attack_speed", "spec_regen", "armor_pen":
+			return "+%d%% %s" % [roundi(v * 100.0), {"attack_speed": "attack speed", "spec_regen": "spec energy regen", "armor_pen": "armour penetration"}[k]]
+		"gold_bonus":
+			return "+%d%% gold from last hits" % roundi(v * 100.0)
+		"monster_damage":
+			return "+%d%% damage to monsters" % roundi(v * 100.0)
+		"burn_on_hit":
+			return "Attacks burn: %d a second for 2s" % roundi(v)
+		"defence_all":
+			return "+%s defence (all styles)" % str(v).trim_suffix(".0")
+	return "+%s %s" % [str(snappedf(v, 0.01)).trim_suffix(".0"), k.replace("_", " ")]
+
+
+## What a food or potion does: "Heals 160 over 5s", "+5% damage for 60s".
+static func use_text(use: Dictionary) -> String:
+	var parts: Array[String] = []
+	if use.has("heal"):
+		parts.append("Heals %d" % int(use["heal"]))
+	if use.has("heal_over_time"):
+		parts.append("Heals %d over %ds" % [int(use["heal_over_time"]), int(use.get("duration", 5))])
+	if use.has("heal_pct_max"):
+		parts.append("Heals %d%% of max health" % roundi(float(use["heal_pct_max"]) * 100.0))
+	if use.has("prayer"):
+		parts.append("Restores %d prayer" % int(use["prayer"]))
+	for st in use.get("statuses", []):
+		var amt := float(st.get("amount", 0.0))
+		var what: String = {"damage_mult": "damage", "armor_mult": "armour", "haste": "move speed"}.get(str(st["kind"]), "")
+		if what != "":
+			parts.append("%s%d%% %s for %ds" % ["+" if amt >= 0.0 else "", roundi(amt * 100.0), what, int(st.get("duration", 0))])
+	return ("Use: " + ", ".join(parts)) if not parts.is_empty() else "Consumable"
+
+
 static func _tooltip(it: Dictionary) -> String:
 	var lines: Array[String] = [str(it.get("name", ""))]
 	var reqs: Dictionary = it.get("requirements", {})
@@ -87,16 +122,18 @@ static func _tooltip(it: Dictionary) -> String:
 		lines.append("Requires " + ", ".join(parts))
 	var stats: Dictionary = it.get("stats", {})
 	for k in stats:
+		if k == "elysian":
+			continue   # described by the item's text
 		if k == "defence":
 			for s in stats[k]:
 				lines.append("+%s %s defence" % [stats[k][s], s])
 		else:
-			lines.append("+%s %s" % [stats[k], str(k).replace("_", " ")])
+			lines.append(stat_text(str(k), float(stats[k])))
 	if it.has("spec_active"):
 		var sa: Dictionary = it["spec_active"]
 		lines.append("Spec: %s (%d%% energy, %ds cooldown)" % [sa.get("name", ""), int(sa.get("spec_cost", 0)), int(sa.get("cooldown", 0))])
 	if it.has("use"):
-		lines.append("Consumable")
+		lines.append(use_text(it["use"]))
 	if it.has("text"):
 		lines.append(str(it["text"]))
 	return "\n".join(lines)
