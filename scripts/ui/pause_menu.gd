@@ -12,13 +12,14 @@ var spectating := false
 
 const CONTROLS_TEXT := """Right-click — move, or attack the unit under the cursor
 Left-click — select a unit to inspect it (top-left)
-Q W E R — abilities, aimed at the cursor (R is your special attack)
+Q W E R — abilities (R is your special attack): hold to aim, release to cast
+   (Settings > Ability casting: normal cast = press, then left-click; right-click or Esc cancels)
 Ctrl + Q W E R — spend a skill point (R unlocks at level 6)
 1 – 6 — item special attacks
 7 8 9 0 — food and potions
 Z X C — Protect from Melee / Missiles / Magic (tank and main builds)
 V — offensive prayer (best your Prayer level allows)
-B — teleport home      P — shop      S — stop
+B — teleport home      P — shop      S — stop      Tab (hold) — scoreboard
 Middle-mouse drag — grab and pan the map
 Minimap — left-click to look, right-click to walk
 Space — centre on your champion      Y — lock camera
@@ -90,6 +91,7 @@ func _build_settings(parent: Control) -> Control:
 	page.add_theme_constant_override("separation", 10)
 	page.custom_minimum_size = Vector2(420, 0)
 	parent.add_child(page)
+	_choice(page, "Ability casting", Settings.CAST_MODE_NAMES, Settings.cast_mode, "cast_mode")
 	_check(page, "Pan the camera at the screen edge", Settings.edge_pan, "edge_pan")
 	_slider(page, "Edge and arrow-key pan speed", Settings.pan_speed, "pan_speed")
 	_slider(page, "Middle-mouse drag speed", Settings.drag_pan_speed, "drag_pan_speed")
@@ -128,6 +130,22 @@ func _check(parent: Control, text: String, value: bool, key: String) -> void:
 	parent.add_child(c)
 
 
+func _choice(parent: Control, text: String, options: Array, value: int, key: String) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	parent.add_child(row)
+	var l := UiStyle.label(row, text, 15)
+	l.custom_minimum_size = Vector2(130, 0)
+	var o := OptionButton.new()
+	for opt in options:
+		o.add_item(str(opt))
+	o.select(value)
+	o.add_theme_font_size_override("font_size", 15)
+	o.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	o.item_selected.connect(func(i: int) -> void: Settings.set_value(key, i))
+	row.add_child(o)
+
+
 func _slider(parent: Control, text: String, value: float, key: String) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -156,6 +174,9 @@ func _show_page(page_name: String) -> void:
 
 
 func open() -> void:
+	var pc := get_tree().get_first_node_in_group("player_controller") as PlayerController
+	if pc != null:
+		pc.cancel_aim()
 	_show_page("main")
 	visible = true
 	get_tree().paused = true
@@ -170,6 +191,9 @@ func _input(event: InputEvent) -> void:
 	if not event.is_action_pressed("menu"):
 		return
 	get_viewport().set_input_as_handled()
+	var pc := get_tree().get_first_node_in_group("player_controller") as PlayerController
+	if not visible and pc != null and pc.cancel_aim():
+		return     # Esc first cancels an ability being aimed
 	if visible:
 		if _pages["main"].visible:
 			close()

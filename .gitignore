@@ -20,3 +20,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.tmp
+
+# Private OSRS models (SkullSlayer pack): Jagex assets for personal prototype use only.
+# Never commit or publish them. See docs/OSRS_MODELS.md.
+# private_assets/

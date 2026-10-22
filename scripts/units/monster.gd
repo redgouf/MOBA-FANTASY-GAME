@@ -38,6 +38,9 @@ func init_monster(id: String, def: Dictionary, p_home: Vector3, p_camp: String, 
 	cycle_styles = def.get("cycle_styles", [])
 	var color := Color(0.75, 0.45, 0.15) if is_epic else Color(0.6, 0.55, 0.4)
 	setup_visuals(color, 1.2 + radius * 1.2, display_name)
+	var model := str(OsrsModels.monster_config(id).get("model", "")) if OsrsModels.available() else ""
+	if model != "":
+		attach_osrs(OsrsActor.creature(model, radius * 2.4))
 
 
 ## Value of a [start, end] stat at this level (numbers pass through unchanged).

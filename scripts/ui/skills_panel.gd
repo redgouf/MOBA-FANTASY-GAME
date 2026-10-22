@@ -151,7 +151,7 @@ func show_build(def: Dictionary, p_champ: Champion = null) -> void:
 		var t: SkillTile = _tiles[s]
 		t.base = level_of(skills, s)
 		t.current = t.base
-		t.tooltip_text = skill_tooltip(def, s)
+		t.tooltip_text = UiStyle.wrap(skill_tooltip(def, s))
 		t.queue_redraw()
 	_update_live()
 

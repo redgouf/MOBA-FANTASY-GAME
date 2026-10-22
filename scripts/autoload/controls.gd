@@ -29,6 +29,7 @@ const KEY_BINDINGS := {
 	"recall": KEY_B,
 	"stop": KEY_S,
 	"toggle_shop": KEY_P,
+	"scoreboard": KEY_TAB,
 	"camera_center": KEY_SPACE,
 	"camera_lock": KEY_Y,
 	"camera_left": KEY_LEFT,

@@ -9,6 +9,7 @@ signal damaged(unit: Unit, amount: float, source: Unit)
 const LAYER_WALLS := 1
 const LAYER_UNITS := 2
 const LAYER_GROUND := 4
+const MAX_WALL_COLLISION_RADIUS := 0.45
 
 var team: int = Combat.Team.NEUTRAL
 var unit_id := ""
@@ -40,6 +41,11 @@ var recent_attackers: Dictionary = {}
 var _attack_cooldown := 0.0
 var _height := 2.0
 var _model: MeshInstance3D
+## The OSRS model replacing _model when the private pack is installed.
+var osrs: OsrsActor
+## How basic attacks look: {"kind": "swipe", "arc": "slash"} or
+## {"kind": "projectile", "shape": "arrow"}..., optionally keyed by style.
+var attack_fx: Dictionary = {}
 var _health_bar: HealthBar3D
 var _name_label: Label3D
 
@@ -47,6 +53,12 @@ var _dashing := false
 var _dash_target := Vector3.ZERO
 var _dash_speed := 0.0
 var _dash_ignore_walls := false
+# Straight-line movers (minions, monsters) fall back to a navmesh detour when
+# they stop making progress (pressed against a wall corner or a Timber! yew).
+var _blocked_time := 0.0
+var _detour := PackedVector3Array()
+var _detour_index := 0
+var _detour_time := 0.0
 
 
 func _ready() -> void:
@@ -68,6 +80,7 @@ func _ready() -> void:
 func configure_from_def(def: Dictionary) -> void:
 	display_name = str(def.get("name", display_name))
 	attack_style = Combat.style_from_string(str(def.get("style", "melee")))
+	attack_fx = def.get("attack_fx", {})
 	max_health = float(first_value(def.get("max_health", def.get("health", 100.0))))
 	health = max_health
 	base_damage = float(first_value(def.get("damage", 0.0)))
@@ -149,6 +162,14 @@ func setup_visuals(color: Color, height: float, label: String, mesh_kind: String
 			cap.radius = radius
 			cap.height = cap_shape.height
 			mesh = cap
+	if not is_structure() and radius > MAX_WALL_COLLISION_RADIUS:
+		# Moving units collide with walls using a slimmer body than their
+		# gameplay radius, so bulky ones (cannon carts, Dharok) never snag on
+		# corners the navmesh (baked for 0.5 m agents) lets them cut.
+		var slim := CylinderShape3D.new()
+		slim.radius = MAX_WALL_COLLISION_RADIUS
+		slim.height = height
+		col.shape = slim
 	col.position.y = height * 0.5
 	add_child(col)
 
@@ -396,12 +417,58 @@ func die(killer: Unit) -> void:
 	_on_death(killer)
 
 
-## Default death: vanish and free. Champions override this to respawn.
+## Default death: vanish and free (after the death clip, with an OSRS
+## model). Champions override this to respawn.
 func _on_death(_killer: Unit) -> void:
-	visible = false
 	collision_layer = 0
+	var linger := 0.5
+	if osrs != null:
+		osrs.die()
+		linger = 1.6
+		if _health_bar != null:
+			_health_bar.visible = false
+	else:
+		visible = false
 	if is_inside_tree():
-		get_tree().create_timer(0.5, false).timeout.connect(queue_free)
+		get_tree().create_timer(linger, false).timeout.connect(queue_free)
+
+
+## Swaps the whitebox shape for an OSRS model (private pack installed).
+func attach_osrs(actor: OsrsActor) -> void:
+	if actor == null:
+		return
+	osrs = actor
+	add_child(actor)
+	if _model != null:
+		_model.visible = false
+
+
+## The look of this unit's basic attack right now (style-keyed entries win,
+## so Jad's ranged and magic attacks differ).
+func get_attack_fx() -> Dictionary:
+	var fx: Dictionary = attack_fx.get(Combat.style_name(attack_style), attack_fx)
+	if not fx.has("kind"):
+		fx = Projectile.default_fx(attack_style)
+	if bool(fx.get("team_color", false)):
+		fx = fx.duplicate()
+		fx["color"] = team_color(team).lightened(0.3)
+	return fx
+
+
+func _projectile_fx() -> Dictionary:
+	var fx := get_attack_fx()
+	return fx if str(fx.get("kind", "")) == "projectile" else Projectile.default_fx(attack_style)
+
+
+## Attack animation and effect as an attack goes out (projectiles are
+## launched by perform_attack itself; melee draws a swipe).
+func _attack_visuals(t: Unit) -> void:
+	if osrs != null:
+		face_toward(t.global_position)
+		osrs.play_attack(get_attack_interval(), attack_style)
+	if get_attack_range() <= 3.0 and is_inside_tree():
+		var fx := get_attack_fx()
+		CombatFx.melee(self, t, fx if str(fx.get("kind", "")) == "swipe" else {"arc": "slash"})
 
 
 ## Hook for passives that change outgoing damage (champions extend this).
@@ -454,13 +521,20 @@ func in_attack_range(t: Unit) -> bool:
 
 
 func perform_attack(t: Unit) -> void:
+	_attack_visuals(t)
 	var info := build_attack_damage(t)
 	if get_attack_range() > 3.0:
+		# Weak references: the attacker may die (and be freed) mid-flight.
+		var src_ref: WeakRef = weakref(self)
+		var t_ref: WeakRef = weakref(t)
 		var on_hit := func() -> void:
-			if is_instance_valid(t) and not t.is_dead:
-				var dealt := t.take_damage(info)
-				on_attack_landed(t, dealt)
-		Projectile.launch(self, t, attack_style, on_hit)
+			var tt: Unit = t_ref.get_ref()
+			if tt != null and not tt.is_dead:
+				var dealt := tt.take_damage(info)
+				var src: Unit = src_ref.get_ref()
+				if src != null:
+					src.on_attack_landed(tt, dealt)
+		Projectile.launch(self, t, _projectile_fx(), on_hit)
 	else:
 		var dealt := t.take_damage(info)
 		on_attack_landed(t, dealt)
@@ -487,6 +561,8 @@ func _physics_process(delta: float) -> void:
 	if not _process_dash(delta):
 		_unit_process(delta)
 	global_position.y = 0.0
+	if osrs != null:
+		osrs.moving = _dashing or get_real_velocity().length() > 0.5
 	if _health_bar:
 		_health_bar.set_ratio(health_ratio())
 
@@ -520,15 +596,84 @@ func forward() -> Vector3:
 
 
 ## Straight-line movement (minions and monsters walk open lanes, no pathfinding).
+## If the unit stops making progress it follows a short navmesh detour instead.
 func move_directly_toward(point: Vector3) -> void:
 	var d := point - global_position
 	d.y = 0.0
 	if d.length() < 0.05 or not can_move():
 		velocity = Vector3.ZERO
 		return
-	velocity = d.normalized() * get_move_speed()
+	var delta := get_physics_process_delta_time()
+	var aim := point
+	if not _detour.is_empty():
+		_detour_time -= delta
+		while _detour_index < _detour.size() and flat_distance(global_position, _detour[_detour_index]) < 0.3:
+			_detour_index += 1
+		if _detour_time <= 0.0 or _detour_index >= _detour.size() \
+				or flat_distance(_detour[_detour.size() - 1], point) > 4.0:
+			_detour = PackedVector3Array()
+		else:
+			aim = _detour[_detour_index]
+	var dir := aim - global_position
+	dir.y = 0.0
+	if dir.length() < 0.01:
+		dir = d
+	var speed := get_move_speed()
+	velocity = steer_around_trees(dir.normalized()) * speed
 	move_and_slide()
-	face_toward(point)
+	face_toward(aim)
+	if get_real_velocity().length() < speed * 0.25:
+		_blocked_time += delta
+		if _blocked_time > 0.6:
+			_blocked_time = 0.0
+			_start_detour(point)
+	else:
+		_blocked_time = maxf(0.0, _blocked_time - delta)
+
+
+func _start_detour(point: Vector3) -> void:
+	var nav_map := get_world_3d().navigation_map
+	if NavigationServer3D.map_get_iteration_id(nav_map) == 0 or NavigationServer3D.map_get_regions(nav_map).is_empty():
+		return
+	var start := global_position
+	var lead := PackedVector3Array()
+	if get_slide_collision_count() > 0:
+		# Side-step along whatever we're pressed against, toward the goal, so
+		# bulky units (cannon carts) don't snag on the corner the path hugs.
+		var n := get_slide_collision(0).get_normal()
+		n.y = 0.0
+		var along := n.cross(Vector3.UP).normalized()
+		if along.dot(point - start) < 0.0:
+			along = -along
+		start = global_position + (along + n.normalized() * 0.3).normalized() * 1.2
+		lead.append(start)
+	_detour = lead + NavigationServer3D.map_get_path(nav_map, start, point, true)
+	_detour_index = 0
+	_detour_time = 4.0
+
+
+## Bends a walking direction around Timber! yews just ahead, so units slide
+## past them instead of stalling against them. (Champions also path around
+## them on the rebaked navmesh; this covers minions, monsters and the moment
+## before a rebake lands.)
+func steer_around_trees(dir: Vector3) -> Vector3:
+	for t in PlantedTree.active:
+		if not is_instance_valid(t):
+			continue
+		var to := t.global_position - global_position
+		to.y = 0.0
+		var clear := t.block_radius + radius + 0.05
+		var ahead := to.dot(dir)
+		if ahead <= 0.0 or ahead > clear + 1.2:
+			continue
+		var lateral := to - dir * ahead
+		if lateral.length() >= clear:
+			continue
+		var right := dir.cross(Vector3.UP)
+		var side := -signf(lateral.dot(right)) if lateral.length() > 0.02 else 1.0
+		var weight := lateral.length() / clear
+		dir = (right * side + dir * weight).normalized()
+	return dir
 
 
 ## Moves the unit quickly toward a point. Used for dashes and knockbacks alike;

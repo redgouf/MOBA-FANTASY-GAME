@@ -6,7 +6,7 @@ A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School Run
 
 Built with **Godot 4.7.2** (GDScript, Forward+).
 
-## Status: whitebox prototype (v0.4)
+## Status: whitebox prototype (v0.6)
 
 ![Playing the Pure: stats and items bottom-left, abilities centre, minimap bottom-right, inspected target top-left](docs/screenshots/play.png)
 
@@ -19,7 +19,13 @@ Playable today, with primitive shapes standing in for art:
 - **League-style leveling**: start with nothing learned and one point; one point per level; basic abilities rank up to 5 (rank n at level 2n−1), R unlocks at 6/11/16.
 
 - **The Wilderness Rift**: three lanes, the Ditch (visual only), four jungle quadrants, Jad and dragon pits, towers, altars and team flags with LoL-style destruction order, and a runtime-baked navmesh.
-- **11 champions** with full data-driven kits (passive + Q/W/E/R), OSRS skill levels, and lane bots, including the **level-3 Skiller** ([in action](docs/screenshots/skiller_kit.png)), who never swings a weapon: a felled yew (Timber!), a Bonfire, a Harpoon and an Anvil Drop do the damage, and every 4th ability sets off level-up fireworks.
+- **11 champions** with full data-driven kits (passive + Q/W/E/R), OSRS skill levels, and lane bots, including the **level-3 Skiller** ([in action](docs/screenshots/skiller_kit.png)), who never swings a weapon: Timber! plants up to three solid yews that block movement, then chops one so it falls away from where the Skiller stands ([fall-path indicator](docs/screenshots/timber_chop.png)); Bonfire, Harpoon and Anvil Drop do the rest, and every 4th ability sets off level-up fireworks.
+- **League-style casting**: hold an ability key to see its indicator (range, line, cone, circle, dash), release to cast. Normal cast and quick cast are in Settings.
+- **Tab scoreboard** ([screenshot](docs/screenshots/scoreboard.png)): every champion's level, K/D/A, CS, special prayer and items (enemies' as your team last saw them).
+- **Tooltips** with solid backgrounds; ability tooltips show the damage they'd do right now: spell (by rank) + your stats + items = total ([screenshot](docs/screenshots/ability_tooltip.png)).
+- **OSRS item and prayer icons**, and a two-letter tag on every champion's chest and back.
+- **Attack and ability effects**: melee swipes (slash, overhead crush, thrust), weapon-matched projectiles (arrows, bolts, darts, thrown rocks, cannonballs, spell orbs and fireballs with trails), and per-ability effects (ice barrage shards, blood and shadow bursts, slams, multi-hit claw slashes, heal and buff glows, freezes, chinchompa explosions, arrow volleys).
+- **Optional real OSRS models** from a private asset pack (personal builds only, never committed): fixed gear per champion, real OSRS animations, weapon swaps on item specs, TzTok-Jad and the Giant Mole. Without the pack the game uses its whitebox shapes. See [docs/OSRS_MODELS.md](docs/OSRS_MODELS.md).
 - **Combat**: melee/ranged/magic triangle, three resists, tick-based attack speed, special attack energy powering ultimates *and* spec-weapon items, overheads only on tank/main builds, offensive prayers set by Prayer level (Piety at 70, Chivalry at 60, ...).
 - **Shop**: 70+ OSRS items with real requirements (a 1 Defence Pure can't wear Bandos), build paths, spec actives (Dragon claws, AGS, Voidwaker...), and a food/potion belt.
 - **Minion waves** (goblins, dark wizards, dwarf cannon carts), jungle camps with buffs, TzTok-Jad (telegraphs his next style), and the Giant Mole before 14:00.
@@ -46,7 +52,9 @@ godot --path . -- --champion=pure
 | --- | --- |
 | Right-click | Move, or attack the unit under the cursor |
 | Left-click | Select a unit to inspect it (top-left panel + ring under its feet) |
-| Q W E R | Abilities, aimed at the cursor (R is your special attack) |
+| Q W E R | Abilities (R is your special attack). Hold to aim with an indicator, release to cast; right-click cancels. Settings > Ability casting switches to normal cast (press, then left-click) or quick cast |
+| Q (Skiller) | On open ground: plant a yew. On one of your yews: chop it; it falls away from you |
+| Tab (hold) | Scoreboard |
 | Ctrl + Q W E R / the + buttons | Spend a skill point |
 | 1 – 6 | Item spec actives (Dragon claws, AGS, ...) |
 | 7 8 9 0 | Food and potions |
@@ -121,6 +129,12 @@ docs/            Design and developer docs
 - [docs/ABILITIES.md](docs/ABILITIES.md): how to write champion kits and item specs in JSON
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the code fits together, and the roadmap
 - [docs/LOL_VALUES.md](docs/LOL_VALUES.md): the League of Legends numbers used for minions, turrets and jungle, with sources
+- [docs/OSRS_MODELS.md](docs/OSRS_MODELS.md): the private OSRS model pack: installing it, keeping it out of git, the personal build
+
+## Credits
+
+- Old School RuneScape, its items, prayers and names belong to Jagex Ltd.
+- Item and prayer icons come from [Dava96/osrs-icons](https://github.com/Dava96/osrs-icons) (icons from the OSRS Wiki, CC BY-NC-SA 3.0). Only the icons the game uses are included in `assets/icons`, listed in `assets/icons/SOURCE.json`. Because of that licence, the icons, like the whole project, stay free and non-commercial.
 
 ## Contributing
 

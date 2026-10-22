@@ -189,6 +189,13 @@
             },
             "style": "melee"
           }
+        ],
+        "fx": [
+          {
+            "kind": "multi_slash",
+            "count": 2,
+            "color": "venom"
+          }
         ]
       }
     },
@@ -218,6 +225,13 @@
               "damage": 0.8
             },
             "style": "melee"
+          }
+        ],
+        "fx": [
+          {
+            "kind": "slam",
+            "color": "#909098",
+            "radius": 1.4
           }
         ]
       }
@@ -256,6 +270,13 @@
               }
             ]
           }
+        ],
+        "fx": [
+          {
+            "kind": "slam",
+            "color": "#d04030",
+            "radius": 1.6
+          }
         ]
       }
     },
@@ -289,6 +310,13 @@
             },
             "style": "melee"
           }
+        ],
+        "fx": [
+          {
+            "kind": "multi_slash",
+            "count": 4,
+            "color": "blood"
+          }
         ]
       }
     },
@@ -320,6 +348,21 @@
               "damage": 0.6
             },
             "style": "ranged"
+          }
+        ],
+        "fx": [
+          {
+            "kind": "projectile",
+            "shape": "arrow",
+            "color": "#e0a040",
+            "impact": "spark"
+          },
+          {
+            "kind": "projectile",
+            "shape": "arrow",
+            "color": "#e0a040",
+            "impact": "spark",
+            "delay": 0.15
           }
         ]
       }
@@ -383,6 +426,20 @@
             },
             "style": "melee"
           }
+        ],
+        "fx": [
+          {
+            "kind": "swipe",
+            "arc": "crush",
+            "color": "#a0c0ff",
+            "size": 2.0
+          },
+          {
+            "kind": "slam",
+            "color": "#a0c0ff",
+            "radius": 1.8,
+            "delay": 0.2
+          }
         ]
       }
     },
@@ -415,6 +472,20 @@
             "shred_ratio": 0.1,
             "shred_duration": 6
           }
+        ],
+        "fx": [
+          {
+            "kind": "swipe",
+            "arc": "crush",
+            "color": "#d0a060",
+            "size": 2.0
+          },
+          {
+            "kind": "slam",
+            "color": "#d0a060",
+            "radius": 1.8,
+            "delay": 0.2
+          }
         ]
       }
     },
@@ -445,6 +516,20 @@
             },
             "style": "melee",
             "lifesteal": 0.5
+          }
+        ],
+        "fx": [
+          {
+            "kind": "swipe",
+            "arc": "crush",
+            "color": "holy",
+            "size": 2.0
+          },
+          {
+            "kind": "glow",
+            "color": "heal",
+            "at": "self",
+            "delay": 0.2
           }
         ]
       }
@@ -481,6 +566,19 @@
               }
             ]
           }
+        ],
+        "fx": [
+          {
+            "kind": "swipe",
+            "arc": "crush",
+            "color": "#ff6060",
+            "size": 2.0
+          },
+          {
+            "kind": "ice_block",
+            "duration": 2.0,
+            "delay": 0.2
+          }
         ]
       }
     },
@@ -509,6 +607,20 @@
               "damage": 0.9
             },
             "style": "magic"
+          }
+        ],
+        "fx": [
+          {
+            "kind": "swipe",
+            "arc": "slash",
+            "color": "shadow",
+            "size": 1.8
+          },
+          {
+            "kind": "burst",
+            "color": "shadow",
+            "radius": 1.2,
+            "delay": 0.15
           }
         ]
       }
@@ -598,6 +710,20 @@
             },
             "style": "ranged",
             "crit_mult": 1.5
+          }
+        ],
+        "fx": [
+          {
+            "kind": "projectile",
+            "shape": "bolt",
+            "color": "#60c0ff",
+            "impact": "spark"
+          },
+          {
+            "kind": "burst",
+            "color": "#80d0ff",
+            "radius": 1.0,
+            "delay": 0.3
           }
         ]
       }
@@ -760,6 +886,19 @@
             "amount": -0.5,
             "duration": 5
           }
+        ],
+        "fx": [
+          {
+            "kind": "ring",
+            "color": "venom",
+            "at": "self",
+            "thickness": 0.25
+          },
+          {
+            "kind": "glow",
+            "color": "venom",
+            "at": "self"
+          }
         ]
       }
     },
@@ -788,6 +927,20 @@
               "magic_power": 1.0
             },
             "style": "magic"
+          }
+        ],
+        "fx": [
+          {
+            "kind": "projectile",
+            "shape": "fireball",
+            "color": "#c060ff",
+            "impact": "splash"
+          },
+          {
+            "kind": "burst",
+            "color": "#c060ff",
+            "radius": 1.6,
+            "delay": 0.35
           }
         ]
       }
@@ -1303,6 +1456,13 @@
             "kind": "skill_power_mult",
             "amount": 0.3,
             "duration": 6
+          }
+        ],
+        "fx": [
+          {
+            "kind": "glow",
+            "color": "#ffd060",
+            "at": "self"
           }
         ]
       }

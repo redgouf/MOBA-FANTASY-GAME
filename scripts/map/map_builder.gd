@@ -14,9 +14,17 @@ const PIT_COLOR := Color(0.45, 0.2, 0.08)
 
 var nav_region: NavigationRegion3D
 var is_navigation_ready := false
+var rebake_count := 0
+
+var _baking := false
+var _rebake_pending := false
+var _bake_started_ms := 0
+var _watchdog := 0.0
+var resubmits := 0          # times the watchdog reloaded an empty navmesh
 
 
 func build() -> void:
+	add_to_group("map_builder")
 	_build_environment()
 	nav_region = NavigationRegion3D.new()
 	nav_region.name = "Navigation"
@@ -168,10 +176,50 @@ func _bake_navigation() -> void:
 	nm.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 	nm.geometry_collision_mask = Unit.LAYER_WALLS | Unit.LAYER_GROUND
 	nav_region.navigation_mesh = nm
-	nav_region.bake_finished.connect(_on_bake_finished, CONNECT_ONE_SHOT)
+	nav_region.bake_finished.connect(_on_bake_finished)
+	_baking = true
+	nav_region.bake_navigation_mesh(true)
+	_bake_started_ms = Time.get_ticks_msec()
+
+
+## Rebakes the navmesh on a worker thread, e.g. after a Timber! yew is planted
+## or felled (trees are static colliders under nav_region). Requests made while
+## a bake is running are merged into one follow-up bake.
+func request_rebake() -> void:
+	if nav_region == null or nav_region.navigation_mesh == null:
+		return
+	if _baking:
+		_rebake_pending = true
+		return
+	_baking = true
+	_bake_started_ms = Time.get_ticks_msec()
 	nav_region.bake_navigation_mesh(true)
 
 
+## Watchdog: now and then the navigation server ends up with the region but
+## none of its polygons (closest-point queries return nothing), which leaves
+## every champion with an empty path. Resubmitting the baked mesh fixes it.
+func _physics_process(delta: float) -> void:
+	if not is_navigation_ready or _baking:
+		return
+	_watchdog -= delta
+	if _watchdog > 0.0:
+		return
+	_watchdog = 0.5
+	var nav_map := get_world_3d().navigation_map
+	if NavigationServer3D.map_get_closest_point_owner(nav_map, MapLayout.SARADOMIN_BASE) == RID():
+		resubmits += 1
+		NavigationServer3D.region_set_navigation_mesh(nav_region.get_rid(), nav_region.navigation_mesh)
+
+
 func _on_bake_finished() -> void:
-	is_navigation_ready = true
-	navigation_ready.emit()
+	_baking = false
+	_watchdog = 1.0      # give the server a moment to sync before checking
+	if is_navigation_ready:
+		rebake_count += 1
+	else:
+		is_navigation_ready = true
+		navigation_ready.emit()
+	if _rebake_pending:
+		_rebake_pending = false
+		request_rebake()

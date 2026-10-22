@@ -97,6 +97,8 @@ func show_unit(u: Unit, viewer_team: int, caption: String = "") -> void:
 	_hp.set_color(UiStyle.HP_ENEMY if enemy else UiStyle.HP)
 	_title.text = u.display_name
 	var initial := u.display_name.substr(4, 1) if u.display_name.begins_with("The ") else u.display_name.substr(0, 1)
+	if u is Champion:
+		initial = str((u as Champion).def.get("tag", initial))
 	_initial.text = initial
 
 	var team_name: String = Combat.TEAM_NAMES[clampi(u.team, 0, 2)]

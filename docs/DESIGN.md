@@ -17,7 +17,11 @@ The living design doc (full kits, item tables, map breakdown, open questions) is
 | Skill levels | Each champion has OSRS levels (Attack, Hitpoints, Strength, Defence, Ranged, Prayer, Magic), shown in an OSRS-style Skills tab. Items keep real OSRS requirements. Name tags show the build's real OSRS combat level. |
 | Mobs and structures | League of Legends Summoner's Rift values for minions, turrets, inhibitors, nexus and jungle (see LOL_VALUES.md). |
 | Protection prayers | **Not universal.** Only tank and main-account builds (currently Justiciar Tank and Slayer) have overheads: −40% from one style, drains prayer. |
-| Offensive prayers | Every build gets the best its Prayer level allows: Piety 70 / Chivalry 60 / Ultimate Strength 31 (melee), Rigour 74 / Eagle Eye 44 (ranged), Augury 77 / Mystic Might 45 (magic). |
+| Offensive prayers | Every build gets the best its Prayer level allows: Piety 70 / Chivalry 60 / Ultimate Strength 31 (melee), Rigour 74 / Eagle Eye 44 (ranged), Augury 77 / Mystic Might 45 (magic), down to Thick Skin at Prayer 1 (the Skiller's: take 5% less damage). |
+| Casting | League-style: quick cast with indicator by default (hold to aim, release to cast), or normal cast / quick cast in Settings. |
+| Scoreboard | Hold Tab. Enemy items are the last ones your team saw. |
+| Visuals | Whitebox shapes by default; real OSRS models from a private pack in personal builds only (fixed look per champion, weapon swaps on specs, Hybrid's form shows its weapon). Melee swipes, weapon-matched projectiles and per-ability effects in both. |
+| Champion tags | Two letters on each champion's chest and back (DH, PU, AM, HY, MR, BP, SL, ZK, JT, LU, SK). |
 | Spec weapons | Active items in the 6 item slots, each with its own cooldown, spending the shared spec bar. Requirements stop builds from using gear their account couldn't wield. |
 | Wilderness Ditch | Visual only. Walkable like a normal river; no ditch-jump. |
 | Teams | Saradomin (Falador, bottom-left) vs Zamorak (Lava Maze, top-right). |
@@ -48,4 +52,4 @@ The living design doc (full kits, item tables, map breakdown, open questions) is
 | Zerker | Top/jungle diver | No | Berserker stacks; dragon claws |
 | Justiciar Tank | Support/top tank | Yes | Flat damage reduction; shove; BGS |
 | Lunar | Support enchanter | No | Heal Other, Vengeance Other, Energy Transfer |
-| Skiller | Mid/support zone control | No | Level 3 (1 combat, 99 skilling). Damage only from skilling actions: Timber! (Woodcutting), Bonfire (Firemaking + Cooking), Harpoon (Fishing), Anvil Drop (Smithing), ore-toss basic attacks (Mining), Level up! fireworks. Scales with **skill power** from skilling tools. |
+| Skiller | Mid/support zone control | No | Level 3 (1 combat, 99 skilling). Damage only from skilling actions: Timber! (plant up to 3 solid yews, then chop one so it falls away from you: Farming + Woodcutting), Bonfire (Firemaking + Cooking), Harpoon (Fishing), Anvil Drop (Smithing), ore-toss basic attacks (Mining), Level up! fireworks. Scales with **skill power** from skilling tools. |

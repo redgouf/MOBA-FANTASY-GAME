@@ -13,6 +13,9 @@ var _failed := 0
 
 func _ready() -> void:
 	await get_tree().process_frame
+	# Everything runs on the whitebox shapes first; test_osrs_models() then
+	# checks the private OSRS pack when it's installed.
+	OsrsModels.enabled = false
 	test_data_integrity()
 	test_combat_math()
 	test_requirements()
@@ -23,8 +26,13 @@ func _ready() -> void:
 	await test_lol_turrets()
 	test_lol_monsters()
 	await test_skiller()
+	await test_timber()
+	test_ability_indicator()
+	await test_v05_ui()
 	await test_item_specs()
 	await test_every_ability()
+	await test_osrs_models()
+	await test_combat_fx()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
 
@@ -355,9 +363,12 @@ func test_skiller() -> void:
 		await get_tree().physics_frame
 	check(c.flat_distance_to(foe) < before - 2.0, "Harpoon reels the target in (%.1f -> %.1f m)" % [before, c.flat_distance_to(foe)])
 	foe.health = foe.max_health
-	foe.global_position = c.global_position + Vector3(5, 0, 0)
+	foe.global_position = c.global_position + Vector3(6, 0, 0)
 	c.cooldowns["q"] = 0.0
-	c.try_cast("q", null, foe.global_position)
+	c.try_cast("q", null, c.global_position + Vector3(2.5, 0, 0))     # plant between us
+	check(c.standing_trees().size() == 1, "Timber! plants a yew")
+	c.cooldowns["q"] = 0.0
+	c.try_cast("q", null, c.standing_trees()[0].global_position)      # chop it onto the foe
 	var hp := foe.health
 	await get_tree().create_timer(0.8).timeout
 	check(foe.health < hp and foe.has_status("slow"), "Timber! hits and slows enemies the tree falls on")
@@ -382,6 +393,292 @@ func test_skiller() -> void:
 	check(c.skilling_casts_until_level_up() == 4, "the Level up! counter resets")
 	c.queue_free()
 	foe.queue_free()
+	await get_tree().process_frame
+
+
+## Timber!: planting, blocking, the 3-tree limit, chopping direction and bots.
+func test_timber() -> void:
+	var p := Vector3(40, 0, -40)
+	var c := _make("skiller", Combat.Team.SARADOMIN, p)
+	var walker := _make("dharok", Combat.Team.ZAMORAK, p + Vector3(0, 0, 20))
+	var ahead := _make("dharok", Combat.Team.ZAMORAK, p + Vector3(-9, 0, 0))
+	var behind := _make("dharok", Combat.Team.ZAMORAK, p + Vector3(4, 0, 0))
+	for u in [walker, ahead, behind]:
+		u.spawn_point = MapLayout.ZAMORAK_BASE
+	await get_tree().physics_frame
+	c.ranks["q"] = 1
+	var ab := c.get_ability("q")
+	var cfg: Dictionary = ab["planter"]
+	var counter := c.skilling_casts_until_level_up()
+
+	check(c.try_cast("q", null, p + Vector3(0, 0, 4)), "Q on open ground plants a yew")
+	var first := c.standing_trees()[0]
+	check(Unit.flat_distance(first.global_position, p + Vector3(0, 0, 4)) < 0.05, "the yew is planted where the cursor was")
+	check(first.collision_layer == Unit.LAYER_WALLS and PlantedTree.active.has(first), "the yew is a solid obstacle")
+	check(is_equal_approx(c.cooldowns["q"], float(cfg["cooldown"])), "planting has the short plant cooldown")
+	check(c.skilling_casts_until_level_up() == counter, "planting doesn't count toward Level up!")
+	c.cooldowns["q"] = 0.0
+	c.try_cast("q", null, p + Vector3(0, 0, 30))
+	check(Unit.flat_distance(c.standing_trees()[1].global_position, p) <= float(ab["range"]) + 0.05, "planting is clamped to the ability range")
+	c.cooldowns["q"] = 0.0
+	c.try_cast("q", null, p + Vector3(-4, 0, 0))
+	check(c.standing_trees().size() == 3, "three yews can stand at once")
+	check(c.tree_to_replace(cfg) == first, "the oldest yew is next to be replaced")
+	c.cooldowns["q"] = 0.0
+	c.try_cast("q", null, p + Vector3(0, 0, -4))
+	await get_tree().physics_frame
+	check(c.standing_trees().size() == 3 and (not is_instance_valid(first) or not first.is_standing()), "a 4th yew replaces the oldest")
+
+	# Blocking: walking straight at a yew goes around it; a dash stops at it.
+	var block: PlantedTree = c.standing_trees()[0]     # at p + (0, 0, 30) clamped -> (0, 0, 8)
+	var bp := block.global_position
+	walker.global_position = bp + Vector3(-4, 0, 0)
+	walker.command_move(bp + Vector3(4, 0, 0))
+	var closest := INF
+	for i in 150:
+		await get_tree().physics_frame
+		closest = minf(closest, walker.flat_distance_to(block))
+	check(closest >= block.block_radius + walker.radius - 0.1, "units can't walk through a yew (closest %.2f m)" % closest)
+	check(walker.global_position.x > bp.x + 2.0, "units walk around a yew to reach the far side")
+	walker.global_position = bp + Vector3(-3, 0, 0)
+	walker.start_dash(bp + Vector3(3, 0, 0), 24.0)
+	for i in 30:
+		await get_tree().physics_frame
+	check(walker.global_position.x < bp.x, "dashes are stopped by a yew")
+	walker.global_position = p + Vector3(0, 0, 25)
+
+	# Chopping: the yew at p + (-4, 0, 0) is out of reach, so the Skiller walks
+	# over; it then falls away from the Skiller (toward -x), onto `ahead`.
+	var chop: PlantedTree = c.standing_trees()[1]
+	c.cooldowns["q"] = 0.0
+	var hp_ahead := ahead.health
+	var hp_behind := behind.health
+	check(c.try_cast("q", null, chop.global_position) and c._queued_cast.has("tree"), "Q on a far yew walks over to chop it")
+	for i in 90:
+		await get_tree().physics_frame
+		if not chop.is_standing():
+			break
+	check(not chop.is_standing(), "the yew is chopped once in reach")
+	check(c.cooldowns["q"] > float(cfg["cooldown"]) + 1.0, "chopping uses the full cooldown")
+	await get_tree().create_timer(0.7).timeout
+	check(ahead.health < hp_ahead and ahead.has_status("slow"), "the falling yew hits and slows enemies in its path")
+	check(is_equal_approx(behind.health, hp_behind), "it falls away from the Skiller, not onto enemies behind them")
+	check(c.skilling_casts_until_level_up() == counter - 1, "chopping counts toward Level up!")
+	check(c.standing_trees().size() == 2, "a chopped yew is gone")
+
+	# Bots plant between themselves and a target, then fell it onto them.
+	for t in c.standing_trees():
+		t.wither()
+	await get_tree().physics_frame
+	c.global_position = p
+	ahead.global_position = p + Vector3(6, 0, 0)
+	ahead.health = ahead.max_health
+	ahead.remove_status(ahead.find_status_id("slow"))
+	c.cooldowns["q"] = 0.0
+	check(c._bot_timber("q", ab, ahead) and c.standing_trees().size() == 1, "a bot plants a yew toward its target")
+	c.cooldowns["q"] = 0.0
+	var hp2 := ahead.health
+	check(c._bot_timber("q", ab, ahead) and c.standing_trees().is_empty(), "then chops it when the target is in the fall path")
+	await get_tree().create_timer(0.7).timeout
+	check(ahead.health < hp2, "the bot's yew lands on the target")
+
+	# Expiry
+	c.cooldowns["q"] = 0.0
+	c.try_cast("q", null, p + Vector3(0, 0, 3))
+	var short := c.standing_trees()[0]
+	short.lifetime = 0.05
+	await get_tree().create_timer(0.2).timeout
+	check(not is_instance_valid(short) or not short.is_standing(), "yews wither when their lifetime ends")
+	for u in [c, walker, ahead, behind]:
+		u.queue_free()
+	await get_tree().create_timer(0.5).timeout
+
+
+func test_ability_indicator() -> void:
+	var c := _make("skiller", Combat.Team.SARADOMIN, Vector3(-40, 0, 40))
+	var ind := AbilityIndicator.new()
+	add_child(ind)
+	c.ranks["q"] = 1
+	ind.update_for(c, "q", c.global_position + Vector3(3, 0, 0), null, null)
+	check(ind.mode == "plant" and ind.visible, "Timber! indicator shows the planting spot")
+	c.try_cast("q", null, c.global_position + Vector3(3, 0, 3))
+	var tree := c.standing_trees()[0]
+	ind.update_for(c, "q", tree.global_position, null, tree)
+	var expect := (tree.global_position - c.global_position).normalized()
+	check(ind.mode == "chop" and ind.chop_tree == tree and ind.fall_dir.distance_to(expect) < 0.01,
+		"hovering a yew shows its fall path, away from the Skiller")
+	var mage := _make("ancient_mage", Combat.Team.SARADOMIN, Vector3(-40, 0, 30))
+	for slot in Champion.SLOTS:
+		var ab := mage.get_ability(slot)
+		ind.update_for(mage, slot, mage.global_position + Vector3(4, 0, 0), null, null)
+		var want: String = {"point": "point", "target_unit": "target", "self": ""}[str(ab.get("cast", "self"))]
+		check(ind.mode == want, "indicator for %s %s (%s)" % [mage.champ_id, slot, ab.get("name", "")])
+	ind.clear()
+	check(not ind.visible, "indicator clears")
+	tree.wither()
+	for n in [c, mage, ind]:
+		n.queue_free()
+
+
+## v0.5: damage breakdowns, Thick Skin, tags, icons, scoreboard, tooltips.
+func test_v05_ui() -> void:
+	var c := _make("skiller", Combat.Team.SARADOMIN, Vector3(-30, 0, -60))
+	await get_tree().physics_frame
+	c.ranks["q"] = 2
+	var rows := AbilityInfo.breakdown(c, c.get_ability("q"), 2)
+	check(rows.size() == 1, "Timber! has one damage line in its tooltip")
+	var r: Dictionary = rows[0]
+	check(is_equal_approx(r["spell"], 70.0 + 40.0), "spell part uses the rank (70 + 40 at rank 2)")
+	check(is_equal_approx(r["items"], 0.0) and r["stats"] > 0.0, "no items yet: all ratio damage is from stats")
+	check(is_equal_approx(r["total"], r["spell"] + r["stats"] + r["items"]), "total = spell + stats + items")
+	c.gold = 99999
+	c.buy_item("bronze_axe")
+	c.buy_item("rune_axe")
+	var r2: Dictionary = AbilityInfo.breakdown(c, c.get_ability("q"), 2)[0]
+	check(r2["items"] > 0.0 and is_equal_approx(r2["stats"], r["stats"]), "buying an axe shows up as item damage")
+	var tip := AbilityInfo.tooltip(c, "q")
+	check(tip.contains("Total:") and tip.contains("Items:"), "ability tooltip shows the breakdown and total")
+	var longest := 0
+	for line in tip.split("\n"):
+		longest = maxi(longest, line.length())
+	check(longest <= UiStyle.TOOLTIP_WIDTH, "tooltips wrap to %d characters (longest %d)" % [UiStyle.TOOLTIP_WIDTH, longest])
+	var dh := _make("dharok", Combat.Team.ZAMORAK, Vector3(-30, 0, -50))
+	await get_tree().physics_frame
+	for slot in Champion.SLOTS:
+		check(AbilityInfo.tooltip(dh, slot) != "", "Dharok %s tooltip builds" % slot)
+
+	check(c.offensive_prayer_name() == "Thick Skin", "the Skiller's special prayer is Thick Skin (Prayer 1)")
+	check(c.activate_offensive_prayer() and c.has_status("damage_taken_mult"), "Thick Skin reduces damage taken")
+	check(Champion.prayer_effect_text(dh.offensive_prayer()).begins_with("+"), "prayer effect text")
+	var chest := c.find_child("ChestTag", true, false) as Label3D
+	check(chest != null and chest.text == "SK" and c.find_child("BackTag", true, false) != null, "two-letter tag on chest and back")
+	var missing: Array[String] = []
+	for id in GameData.item_order:
+		if Icons.item(id) == null:
+			missing.append(id)
+	check(missing.is_empty(), "every item has an OSRS icon (missing: %s)" % ", ".join(missing))
+	check(Icons.prayer("Thick Skin") != null and Icons.prayer("Piety") != null, "prayer icons load")
+
+	# Scoreboard: enemy items are only updated while seen.
+	var fake_main := Node.new()
+	fake_main.set_script(_ScoreMain)
+	add_child(fake_main)
+	fake_main.set("champions", [c, dh])
+	var holder := Control.new()
+	add_child(holder)
+	var sb := MatchScoreboard.create(holder, fake_main)
+	sb.viewer_team = c.team
+	sb._update_seen()
+	check(sb.shown_items(dh).is_empty(), "scoreboard starts with what was seen (nothing)")
+	dh.global_position = Vector3(-900, 0, -900)       # far from every Saradomin unit
+	dh.gold = 99999
+	dh.buy_item("rune_platebody")
+	sb._update_seen()
+	check(sb.shown_items(dh).is_empty(), "items bought out of sight aren't shown")
+	dh.global_position = c.global_position + Vector3(4, 0, 0)
+	sb._update_seen()
+	check(sb.shown_items(dh).has("rune_platebody"), "items show once the enemy is seen")
+	check(sb.shown_items(c).has("rune_axe"), "your own team's items are always current")
+	sb.refresh()
+	for n in [c, dh, fake_main, holder]:
+		n.queue_free()
+	await get_tree().process_frame
+
+
+const _ScoreMain := preload("res://tests/score_main_stub.gd")
+
+
+## Attack and ability effects: data is valid and every effect plays without errors.
+func test_combat_fx() -> void:
+	const KINDS := ["swipe", "multi_slash", "projectile", "volley", "burst", "ring", "glow", "ice_block", "slam", "streak", "sparks"]
+	var bad: Array[String] = []
+	var fx_lists: Array = []
+	for id in GameData.champion_order:
+		var c: Dictionary = GameData.champion(id)
+		check(c.has("attack_fx"), "%s has an attack look" % id)
+		for slot in c.get("abilities", {}):
+			var ab: Dictionary = c["abilities"][slot]
+			fx_lists.append([id + ":" + slot, ab.get("fx", [])])
+			for form in ab.get("forms", {}).values():
+				fx_lists.append([id + ":" + slot, form.get("fx", [])])
+	for item_id in GameData.item_order:
+		fx_lists.append([item_id, GameData.item(item_id).get("spec_active", {}).get("fx", [])])
+	for pair in fx_lists:
+		for e in pair[1]:
+			if not KINDS.has(str(e.get("kind", ""))):
+				bad.append("%s: %s" % [pair[0], e.get("kind", "?")])
+	check(bad.is_empty(), "every fx entry has a known kind %s" % str(bad))
+	check(CombatFx.color("ice") == CombatFx.ELEMENTS["ice"] and CombatFx.color("#ff0000") == Color(1, 0, 0), "fx colours parse")
+	# Play every ability and spec effect once between two champions.
+	var a := _make("zerker", Combat.Team.SARADOMIN, Vector3(80, 0, -80))
+	var b := _make("dharok", Combat.Team.ZAMORAK, Vector3(84, 0, -80))
+	b.spawn_point = MapLayout.ZAMORAK_BASE
+	await get_tree().physics_frame
+	var before := get_child_count()
+	for pair in fx_lists:
+		if not (pair[1] as Array).is_empty():
+			CombatFx.ability(a, {"fx": pair[1], "cast": "target_unit"}, b, b.global_position)
+	for style in [Combat.Style.MELEE, Combat.Style.RANGED, Combat.Style.MAGIC]:
+		a.attack_style = style
+		a._attack_visuals(b)
+		Projectile.launch(a, b, a.get_attack_fx(), Callable())
+	await get_tree().physics_frame
+	check(get_child_count() > before, "effects spawn into the world")
+	await get_tree().create_timer(2.5).timeout
+	check(get_child_count() <= before + 2, "and clean themselves up (%d left)" % (get_child_count() - before))
+	a.queue_free()
+	b.queue_free()
+	await get_tree().process_frame
+
+
+## The private OSRS model pack (skipped when it isn't installed).
+func test_osrs_models() -> void:
+	OsrsModels.enabled = true
+	if not OsrsModels.available():
+		print("SKIP: OSRS model pack not installed (private_assets/osrs)")
+		OsrsModels.enabled = false
+		return
+	check(OsrsModels.clips().has_animation("special_attack_7514"), "baked OSRS clip library has the claws special")
+	var z := _make("zerker", Combat.Team.SARADOMIN, Vector3(60, 0, 60))
+	var dummy := _make("dharok", Combat.Team.ZAMORAK, Vector3(61.5, 0, 60))
+	dummy.spawn_point = MapLayout.ZAMORAK_BASE
+	await get_tree().physics_frame
+	check(z.osrs != null and z.osrs.is_player and not z._model.visible, "champions wear their OSRS model instead of the whitebox capsule")
+	check(z.osrs.weapon_id == 6528 and z.osrs._shield == null, "the Zerker holds a Tzhaar-ket-om, no shield")
+	check(z.find_child("ChestTag", true, false) != null, "tags sit on the OSRS model's chest")
+	z.gold = 99999
+	z.buy_item("dragon_claws")
+	z.spec = 100.0
+	check(z.use_item(z.inventory.find("dragon_claws"), dummy, dummy.global_position), "Dragon claws spec fires")
+	check(z.osrs.weapon_id == 13652 and z.osrs.is_busy(), "the spec swaps the claws into the Zerker's hand")
+	await get_tree().create_timer(2.2).timeout
+	check(z.osrs.weapon_id == 6528 and not z.osrs.is_busy(), "after the spec the Tzhaar-ket-om is back")
+	var j := _make("justiciar", Combat.Team.SARADOMIN, Vector3(64, 0, 60))
+	await get_tree().physics_frame
+	j._cast_visuals("r")
+	check(j.osrs.weapon_id == 11802 and not j.osrs._shield.visible, "Warstrike swaps in a godsword and lowers the two-handed shield")
+	await get_tree().create_timer(2.2).timeout
+	check(j.osrs.weapon_id == 1333 and j.osrs._shield.visible, "then the scimitar and shield come back")
+	var h := _make("hybrid", Combat.Team.SARADOMIN, Vector3(66, 0, 60))
+	await get_tree().physics_frame
+	var before := h.osrs.weapon_id
+	h.toggle_form()
+	check(before == 21902 and h.osrs.weapon_id == 4675, "the Hybrid's form switch swaps crossbow for staff")
+	h.toggle_form()
+	check(h.osrs.weapon_id == 21902, "and back")
+	z.die(null)
+	check(z.osrs._dead and z.visible, "a dying champion plays its death animation before vanishing")
+	z.respawn()
+	check(not z.osrs._dead, "and stands back up on respawn")
+	var jad := Monster.new()
+	jad.init_monster("tztok_jad", GameData.unit_def("monsters", "tztok_jad"), Vector3(70, 0, 70), "test", 12)
+	add_child(jad)
+	check(jad.osrs != null and jad.osrs.has_clip("attack_magic"), "TzTok-Jad uses his OSRS model and clips")
+	OsrsModels.enabled = false
+	var plain := _make("dharok", Combat.Team.SARADOMIN, Vector3(70, 0, 60))
+	check(plain.osrs == null and plain._model.visible, "without the pack champions keep the whitebox shape")
+	for n in [z, dummy, j, h, jad, plain]:
+		n.queue_free()
 	await get_tree().process_frame
 
 
@@ -427,6 +724,8 @@ func test_every_ability() -> void:
 				foe.global_position = Vector3(1.8, 0, 0)
 			caster.global_position = Vector3.ZERO
 		await get_tree().create_timer(0.6).timeout
+		for t in caster.standing_trees():
+			t.wither()
 		caster.queue_free()
 		ally.queue_free()
 		foe.queue_free()

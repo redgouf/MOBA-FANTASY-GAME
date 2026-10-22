@@ -74,10 +74,13 @@ var _has_move_target := false
 var _move_point := Vector3.ZERO
 var _queued_cast: Dictionary = {}
 var _repath_timer := 0.0
+var _path_iteration := -1       # navigation map iteration our current path was computed on
 var _bot_think := 0.0
 var _last_cmd_point := Vector3(INF, 0.0, INF)
 var _bot_waypoint := 1
 var _skill_casts := 0
+## Timber! yews this champion has standing, oldest first.
+var planted_trees: Array[PlantedTree] = []
 
 
 ## Call before adding to the tree (team decides groups and colours).
@@ -95,6 +98,7 @@ func setup(id: String, p_team: int, spawn: Vector3, bot: bool) -> void:
 	forms = def.get("forms", [])
 	configure_from_def(def.get("base", {}))
 	attack_style = Combat.style_from_string(str(def.get("style", "melee")))
+	attack_fx = def.get("attack_fx", {})
 	display_name = str(def.get("name", id))
 	gold = float(GameData.rule("starting_gold", 500))
 	prayer_max = float(GameData.rule("prayer_points_max", 99))
@@ -119,7 +123,75 @@ func _ready() -> void:
 	add_child(_nav)
 	var body_color := Unit.team_color(team).lerp(Color.WHITE, 0.15)
 	setup_visuals(body_color, 2.2, _label_text())
+	_setup_osrs_model()
+	_add_body_tags(str(def.get("tag", display_name.substr(0, 2).to_upper())), 2.2)
 	damaged.connect(_on_damaged)
+
+
+## The build's OSRS model (private pack installed): fixed gear for the whole
+## match; only specs swap the weapon briefly (and the Hybrid's form).
+func _setup_osrs_model() -> void:
+	if not OsrsModels.available():
+		return
+	var cfg := OsrsModels.champion_config(champ_id)
+	if cfg.is_empty():
+		return
+	var actor := OsrsActor.player(cfg)
+	if actor == null:
+		return
+	actor.scale = Vector3.ONE * float(OsrsModels.config().get("player_scale", 1.4))
+	attach_osrs(actor)
+	if not forms.is_empty():
+		_osrs_form()
+
+
+func _osrs_form() -> void:
+	var f: Dictionary = OsrsModels.champion_config(champ_id).get("forms", {}).get(form_name(), {})
+	if osrs != null and not f.is_empty():
+		osrs.set_base_weapon(int(f.get("weapon", 0)), str(f.get("attack", "slash")))
+
+
+## Animation and effects for an ability or item spec as it goes off.
+func _cast_visuals(slot: String, target: Unit = null, point: Vector3 = Vector3.ZERO) -> void:
+	CombatFx.ability(self, get_action(slot), target, point)
+	if osrs == null:
+		return
+	if slot.begins_with("item:"):
+		var spec := OsrsModels.spec_config(slot.substr(5))
+		if not spec.is_empty():
+			osrs.spec(int(spec.get("weapon", 0)), str(spec.get("clip", "")), bool(spec.get("two_handed", false)))
+		return
+	var a: Dictionary = OsrsModels.champion_config(champ_id).get("abilities", {}).get(slot, {})
+	if a.has("spec"):
+		var spec2 := OsrsModels.spec_config(str(a["spec"]))
+		osrs.spec(int(spec2.get("weapon", 0)), str(spec2.get("clip", "")), bool(spec2.get("two_handed", false)))
+	elif a.has("clip"):
+		osrs.play(str(a["clip"]), 1.2)
+	else:
+		osrs.play_attack(0.8, attack_style)
+
+
+## The champion's two-letter tag ("DH", "SK") printed on its chest and back,
+## like a jersey, so builds are easy to tell apart. With an OSRS model they
+## sit smaller, just off its (slimmer) chest and back.
+func _add_body_tags(tag: String, height: float) -> void:
+	for back in [false, true]:
+		var l := Label3D.new()
+		l.name = "BackTag" if back else "ChestTag"
+		l.text = tag
+		l.font_size = 64
+		l.pixel_size = 0.011
+		l.outline_size = 16
+		l.modulate = Color(1, 1, 1)
+		l.outline_modulate = Color(0.05, 0.04, 0.03)
+		l.double_sided = false
+		l.position = Vector3(0.0, height * 0.6, (radius + 0.02) * (-1.0 if back else 1.0))
+		l.rotation.y = PI if back else 0.0
+		if osrs != null:
+			l.pixel_size = 0.0062
+			l.outline_size = 12
+			l.position = Vector3(0.0, 1.45, 0.3 * (-1.0 if back else 1.0))
+		add_child(l)
 
 
 func _label_text() -> String:
@@ -201,6 +273,15 @@ func offensive_prayer() -> Dictionary:
 
 func offensive_prayer_name() -> String:
 	return str(offensive_prayer().get("name", "None"))
+
+
+## What the prayer does, for tooltips and the scoreboard ("+12% damage").
+static func prayer_effect_text(p: Dictionary) -> String:
+	if p.is_empty():
+		return "no prayer"
+	if p.has("text"):
+		return str(p["text"])
+	return "+%d%% damage" % int(round(float(p.get("bonus", 0.0)) * 100.0))
 
 
 ## Item requirements use real OSRS levels: a 1 Defence Pure can't wear Bandos.
@@ -400,7 +481,9 @@ func activate_offensive_prayer() -> bool:
 		return false
 	prayer -= cost
 	offensive_prayer_cd = float(cfg.get("cooldown", 60))
-	add_status("offensive_prayer", "damage_mult", float(p.get("bonus", 0.1)), float(cfg.get("duration", 6)), self)
+	# Most are damage boosts; low-level ones like Thick Skin (the Skiller's,
+	# Prayer 1) set their own "kind" (Thick Skin: take 5% less damage).
+	add_status("offensive_prayer", str(p.get("kind", "damage_mult")), float(p.get("bonus", 0.1)), float(cfg.get("duration", 6)), self)
 	return true
 
 
@@ -457,7 +540,10 @@ func _set_move_target(point: Vector3) -> void:
 
 
 func _nav_ready() -> bool:
-	return _nav != null and NavigationServer3D.map_get_iteration_id(_nav.get_navigation_map()) > 0
+	if _nav == null:
+		return false
+	var nav_map := _nav.get_navigation_map()
+	return NavigationServer3D.map_get_iteration_id(nav_map) > 0 and not NavigationServer3D.map_get_regions(nav_map).is_empty()
 
 
 # --- Abilities ---------------------------------------------------------------
@@ -507,6 +593,8 @@ func try_cast(slot: String, target: Unit, point: Vector3) -> bool:
 		return false
 	if has_status("tele_block") and _has_effect(ab, "dash"):
 		return false
+	if ab.has("planter"):
+		return _try_planter(slot, ab, point)
 	var cast := str(ab.get("cast", "self"))
 	if cast == "target_unit":
 		var want_ally := bool(ab.get("target_ally", false))
@@ -544,6 +632,7 @@ func _execute_cast(slot: String, ab: Dictionary, target: Unit, point: Vector3) -
 	elif str(ab.get("cast", "self")) == "point":
 		face_toward(point)
 	AbilityRunner.execute(self, ab, target, point, ability_rank(slot))
+	_cast_visuals(slot, target, point)
 	ability_cast.emit(self, slot)
 	_on_ability_used(slot)
 	var aim := target.global_position if target != null and target != self else point
@@ -561,6 +650,9 @@ func _has_effect(ab: Dictionary, effect_type: String) -> bool:
 
 func _process_queued_cast() -> void:
 	var slot := str(_queued_cast.get("slot", ""))
+	if _queued_cast.has("tree"):
+		_process_queued_chop(slot)
+		return
 	var t: Variant = _queued_cast.get("target")
 	if not is_instance_valid(t) or t.is_dead:
 		_queued_cast = {}
@@ -578,11 +670,152 @@ func _process_queued_cast() -> void:
 		_chase(t.global_position)
 
 
+# --- Planter abilities (Timber!) -----------------------------------------------
+# Q on open ground plants a solid yew; Q on one of your yews chops it, and it
+# falls straight away from where you stand.
+
+func planter_config(slot: String) -> Dictionary:
+	return get_action(slot).get("planter", {})
+
+
+## Your standing yew nearest `point`, if the point is on (or close to) one.
+func planter_tree_at(point: Vector3, cfg: Dictionary) -> PlantedTree:
+	var best: PlantedTree = null
+	var best_d := float(cfg.get("hover_radius", 1.8))
+	for t in planted_trees:
+		if not is_instance_valid(t) or not t.is_standing():
+			continue
+		var d := flat_distance(point, t.global_position)
+		if d <= best_d:
+			best_d = d
+			best = t
+	return best
+
+
+func chop_range(cfg: Dictionary) -> float:
+	return float(cfg.get("chop_range", 3.5))
+
+
+func standing_trees() -> Array[PlantedTree]:
+	var out: Array[PlantedTree] = []
+	for t in planted_trees:
+		if is_instance_valid(t) and t.is_standing():
+			out.append(t)
+	return out
+
+
+## The yew a new plant would replace (the oldest, when at the limit), or null.
+func tree_to_replace(cfg: Dictionary) -> PlantedTree:
+	var trees := standing_trees()
+	return trees[0] if trees.size() >= int(cfg.get("max", 3)) else null
+
+
+## Where a yew aimed at `point` would actually be planted: within range, on
+## walkable ground, and clear of towers and other structures.
+func plant_spot(point: Vector3, ab: Dictionary) -> Vector3:
+	var cfg: Dictionary = ab.get("planter", {})
+	var d := point - global_position
+	d.y = 0.0
+	var p := global_position + (d.limit_length(ability_range(ab)))
+	p.y = 0.0
+	if is_inside_tree():
+		var nav_map := get_world_3d().navigation_map
+		if NavigationServer3D.map_get_iteration_id(nav_map) > 0 and not NavigationServer3D.map_get_regions(nav_map).is_empty():
+			var q := NavigationServer3D.map_get_closest_point(nav_map, p)
+			p = Vector3(q.x, 0.0, q.z)
+		var r := float(cfg.get("block_radius", 0.8))
+		for n in get_tree().get_nodes_in_group("units"):
+			var u := n as Unit
+			if u == null or u.is_dead or not u.is_structure():
+				continue
+			var to := p - u.global_position
+			to.y = 0.0
+			var need := u.radius + r + 0.2
+			if to.length() < need:
+				p = u.global_position + (to.normalized() if to.length() > 0.05 else Vector3.RIGHT) * need
+	return p
+
+
+func _try_planter(slot: String, ab: Dictionary, point: Vector3) -> bool:
+	var cfg: Dictionary = ab.get("planter", {})
+	var tree := planter_tree_at(point, cfg)
+	if tree == null:
+		_execute_plant(slot, ab, plant_spot(point, ab))
+	elif flat_distance_to(tree) <= chop_range(cfg):
+		_execute_chop(slot, ab, tree)
+	else:
+		# Walk up to the tree first; the approach decides which way it falls.
+		_cancel_recall()
+		_queued_cast = {"slot": slot, "tree": tree}
+	return true
+
+
+func _execute_plant(slot: String, ab: Dictionary, point: Vector3) -> void:
+	var cfg: Dictionary = ab.get("planter", {})
+	_cancel_recall()
+	var oldest := tree_to_replace(cfg)
+	while oldest != null:
+		oldest.wither()
+		oldest = tree_to_replace(cfg)
+	planted_trees = standing_trees()
+	planted_trees.append(PlantedTree.plant(self, point, cfg))
+	cooldowns[slot] = float(cfg.get("cooldown", 1.5))
+	face_toward(point)
+	if osrs != null:
+		osrs.play("unarmed_attack_stab_422", 0.5)
+	ability_cast.emit(self, slot)
+	_last_cmd_point = point
+	command_issued.emit(self, "cast", point, slot.to_upper())
+
+
+func _execute_chop(slot: String, ab: Dictionary, tree: PlantedTree) -> void:
+	_cancel_recall()
+	cooldowns[slot] = ability_cooldown(slot, ab)
+	var at := tree.global_position
+	face_toward(at)
+	tree.fall(PlantedTree.fall_direction(global_position, at, forward()))
+	# The ability's line starts at the tree ("origin": "point") and runs along
+	# the chopper -> tree direction, locked now.
+	AbilityRunner.execute(self, ab, null, at, ability_rank(slot))
+	_cast_visuals(slot, null, at)
+	ability_cast.emit(self, slot)
+	_on_ability_used(slot)
+	_last_cmd_point = at
+	command_issued.emit(self, "cast", at, slot.to_upper())
+
+
+func _process_queued_chop(slot: String) -> void:
+	var tree: Variant = _queued_cast.get("tree")
+	var ab := get_action(slot)
+	if not is_instance_valid(tree) or not (tree as PlantedTree).is_standing() \
+			or ab.is_empty() or cooldowns.get(slot, 0.0) > 0.0 or not can_act():
+		_queued_cast = {}
+		return
+	var t := tree as PlantedTree
+	if flat_distance_to(t) <= chop_range(ab.get("planter", {})):
+		_queued_cast = {}
+		_has_move_target = false
+		velocity = Vector3.ZERO
+		_execute_chop(slot, ab, t)
+	else:
+		_chase(t.global_position)
+
+
+## Length and width of a planter ability's fall line (for bots and indicators).
+func planter_fall_size(ab: Dictionary) -> Vector2:
+	for e in ab.get("effects", []):
+		var area: Dictionary = e.get("area", {})
+		if str(area.get("shape", "")) == "line":
+			return Vector2(float(area.get("length", 8.0)), float(area.get("width", 2.0)))
+	return Vector2(8.0, 2.0)
+
+
 func toggle_form() -> void:
 	if forms.size() < 2:
 		return
 	_apply_form((form_index + 1) % forms.size())
 	_switch_bonus_ready = true
+	_osrs_form()
 
 
 func _apply_form(index: int) -> void:
@@ -590,6 +823,8 @@ func _apply_form(index: int) -> void:
 	var f: Dictionary = forms[index]
 	attack_style = Combat.style_from_string(str(f.get("style", "melee")))
 	base_attack_range = float(f.get("attack_range", base_attack_range))
+	if f.has("attack_fx"):
+		attack_fx = f["attack_fx"]
 
 
 func form_name() -> String:
@@ -739,6 +974,12 @@ func _follow_path() -> void:
 		return
 	var next_point := _move_point
 	if _nav_ready():
+		# Re-query the path whenever the navmesh changed (the first bake landing,
+		# or a rebake after a Timber! yew is planted or felled).
+		var iteration := NavigationServer3D.map_get_iteration_id(_nav.get_navigation_map())
+		if iteration != _path_iteration:
+			_path_iteration = iteration
+			_nav.target_position = _move_point
 		if _nav.is_navigation_finished():
 			_has_move_target = false
 			velocity = Vector3.ZERO
@@ -752,9 +993,18 @@ func _follow_path() -> void:
 	d.y = 0.0
 	if d.length() < 0.01:
 		return
-	velocity = d.normalized() * get_move_speed()
+	velocity = steer_around_trees(d.normalized()) * get_move_speed()
 	move_and_slide()
 	face_toward(next_point)
+	# Pressed against something for a while: ask for a fresh path.
+	if get_real_velocity().length() < get_move_speed() * 0.25:
+		_blocked_time += get_physics_process_delta_time()
+		if _blocked_time > 0.75:
+			_blocked_time = 0.0
+			if _nav_ready():
+				_nav.target_position = _move_point
+	else:
+		_blocked_time = 0.0
 
 
 # --- Death -------------------------------------------------------------------
@@ -767,8 +1017,15 @@ func _on_death(_killer: Unit) -> void:
 	recall_timer = -1.0
 	_stacks = 0
 	respawn_timer = float(GameData.rule("respawn_base_sec", 6)) + float(GameData.rule("respawn_per_level", 2)) * level
-	visible = false
 	collision_layer = 0
+	if osrs != null and is_inside_tree():
+		# Play the death animation, then vanish until respawn.
+		osrs.die()
+		get_tree().create_timer(1.6, false).timeout.connect(func() -> void:
+			if is_dead:
+				visible = false)
+	else:
+		visible = false
 
 
 func _dead_process(delta: float) -> void:
@@ -786,6 +1043,8 @@ func respawn() -> void:
 	global_position = spawn_point
 	visible = true
 	collision_layer = LAYER_UNITS
+	if osrs != null:
+		osrs.revive()
 	_bot_waypoint = 1
 	respawned.emit(self)
 
@@ -904,6 +1163,8 @@ func _bot_try_ability(slot: String, target: Unit) -> bool:
 	var use := str(ab.get("bot_use", "combat"))
 	if use == "never" or (use == "low_health" and health_ratio() > 0.5) or (use == "high_health" and health_ratio() < 0.7):
 		return false
+	if ab.has("planter"):
+		return _bot_timber(slot, ab, target)
 	var dist := flat_distance_to(target)
 	match str(ab.get("cast", "self")):
 		"self":
@@ -921,6 +1182,31 @@ func _bot_try_ability(slot: String, target: Unit) -> bool:
 				return false
 			return try_cast(slot, target, target.global_position)
 	return false
+
+
+## Timber! for bots: chop a yew whose fall line covers the target; otherwise
+## plant one between itself and the target so the next cast fells it onto them.
+func _bot_timber(slot: String, ab: Dictionary, target: Unit) -> bool:
+	var cfg: Dictionary = ab.get("planter", {})
+	var size := planter_fall_size(ab)
+	for t in standing_trees():
+		if flat_distance_to(t) > chop_range(cfg):
+			continue
+		var dir := PlantedTree.fall_direction(global_position, t.global_position, forward())
+		var to := target.global_position - t.global_position
+		to.y = 0.0
+		var along := to.dot(dir)
+		if along > 0.0 and along <= size.x and (to - dir * along).length() <= size.y * 0.5 + target.radius:
+			return try_cast(slot, target, t.global_position)
+	var dist := flat_distance_to(target)
+	if dist < 3.0 or dist > size.x:
+		return false
+	var toward := target.global_position - global_position
+	toward.y = 0.0
+	var spot := global_position + toward.normalized() * 1.9
+	if planter_tree_at(spot, cfg) != null:
+		return false     # a yew is already there; wait to line it up
+	return try_cast(slot, target, spot)
 
 
 func _bot_support_allies() -> void:

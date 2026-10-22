@@ -18,6 +18,7 @@ var _plus: Button
 var _ready_style: StyleBoxFlat
 var _locked_style: StyleBoxFlat
 var _pip_count := -1
+var _tip_timer := 0.0
 
 
 static func create(parent: Control, p_slot: String, size: float) -> AbilitySlot:
@@ -118,15 +119,8 @@ func refresh(champ: Champion, allow_level_up: bool = true) -> void:
 		_cd.text = ""
 	_plus.visible = allow_level_up and champ.can_rank_up(slot)
 
-	var lines: Array[String] = ["%s  (rank %d/%d)" % [ab.get("name", ""), rank, max_rank]]
-	lines.append(str(ab.get("text", "")))
-	var parts: Array[String] = []
-	if total > 0.0:
-		parts.append("Cooldown %.1fs" % total)
-	if cost > 0.0:
-		parts.append("Costs %d%% special attack energy" % int(cost))
-	if not parts.is_empty():
-		lines.append(", ".join(parts))
-	if slot == "r":
-		lines.append("Ranks unlock at levels 6, 11 and 16.")
-	tooltip_text = "\n".join(lines)
+	# Rebuilt a few times a second, not every frame (it does the damage maths).
+	_tip_timer -= get_process_delta_time()
+	if _tip_timer <= 0.0:
+		_tip_timer = 0.25
+		tooltip_text = AbilityInfo.tooltip(champ, slot)

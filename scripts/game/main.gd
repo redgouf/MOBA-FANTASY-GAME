@@ -12,7 +12,8 @@ extends Node3D
 ##   --smoke-test        headless all-bot run for CI; exits with a summary
 ##   --smoke-seconds=N   game seconds to simulate in smoke-test mode (default 150)
 ##   --screenshot=PATH   save a PNG of the game at --screenshot-at=SECONDS, then quit
-##   --shot-ui=NAME      before the screenshot: target | menu | settings | controls | shop
+##   --no-osrs           ignore the private OSRS model pack (whitebox shapes)
+##   --shot-ui=NAME      before the screenshot: target | menu | settings | controls | shop | kit | skills | aim-chop | aim-plant | scoreboard | tooltip
 ##   --demo-level=N      raise the viewed champion to level N with items (for screenshots)
 
 const ASSIST_WINDOW_SEC := 10.0
@@ -50,13 +51,18 @@ var _smoke_seconds := 150.0
 var _shot_path := ""
 var _shot_at := 0.0
 var _shot_taken := false
+var _stuck_probe := {}          # smoke test: champion -> [position, game time it was last seen moving]
+var _stuck_reports: Array[String] = []
 var _stats := {"minions_killed": 0, "structures_destroyed": 0, "champion_kills": 0, "monsters_killed": 0, "casts": 0}
 
 
 func _ready() -> void:
 	Combat.clock = 0.0
+	UiStyle.install_tooltip_theme()
 	_args = _parse_args()
 	_smoke = _args.has("smoke-test")
+	if _args.has("no-osrs"):
+		OsrsModels.enabled = false     # whitebox shapes even with the private pack installed
 	_smoke_seconds = float(_args.get("smoke-seconds", 150))
 	_shot_path = str(_args.get("screenshot", ""))
 	_shot_at = float(_args.get("screenshot-at", 20))
@@ -339,6 +345,20 @@ func select_unit(u: Unit) -> void:
 	selection_ring.target = u
 
 
+## The focus ring (and inspect panel) jumps to whatever you start attacking,
+## replacing a unit you had left-clicked; left-click still inspects anything.
+var _attack_focus: Unit
+
+func _follow_attack_focus() -> void:
+	if player == null:
+		return
+	var t: Unit = player.attack_target if is_instance_valid(player.attack_target) and not player.attack_target.is_dead else null
+	if t != _attack_focus:
+		_attack_focus = t
+		if t != null:
+			select_unit(t)
+
+
 ## Spectator lock-on: show this champion's HUD and follow it with the camera.
 func focus(c: Champion) -> void:
 	if c == null:
@@ -527,6 +547,7 @@ func _physics_process(delta: float) -> void:
 		return
 	game_time += delta
 	Combat.clock = game_time
+	_follow_attack_focus()
 	if _shot_path != "" and not _shot_taken and game_time >= _shot_at:
 		_take_screenshot()
 	if game_over:
@@ -538,6 +559,8 @@ func _physics_process(delta: float) -> void:
 		for c in champions:
 			c.gold += rate * delta
 	_update_camps()
+	if _smoke:
+		_probe_stuck()
 	if _smoke and game_time >= _smoke_seconds:
 		_finish_smoke()
 
@@ -568,8 +591,29 @@ func _take_screenshot() -> void:
 			focused.spec = 100.0
 			focused.try_cast("w", null, p + Vector3(-5.0, 0.0, -4.0))
 			focused.try_cast("r", null, p + Vector3(5.5, 0.0, 2.0))
-			focused.try_cast("q", null, p + Vector3(7.0, 0.0, -5.0))
+			focused.try_cast("q", null, p + Vector3(2.4, 0.0, -1.8))
+			if focused.get_ability("q").has("planter"):
+				# Timber!: plant, then chop the yew so it is mid-fall in the shot.
+				focused.cooldowns["q"] = 0.0
+				focused.try_cast("q", null, focused.standing_trees()[0].global_position)
 			hud.force_skills_popups = true
+		"aim-chop", "aim-plant":
+			# Timber!'s indicator: three yews planted, the cursor on one (chop:
+			# its fall path) or on open ground (plant: the oldest will be replaced).
+			focused.global_position = Vector3(-37.0, 0.0, 37.0)     # mid lane, in the open
+			camera_rig.center_on(focused.global_position)
+			await get_tree().process_frame
+			var p := focused.global_position
+			focused.ranks["q"] = maxi(1, int(focused.ranks["q"]))
+			for off in [Vector3(3.0, 0, -2.0), Vector3(-3.5, 0, -1.0), Vector3(-0.5, 0, -4.5)]:
+				focused.cooldowns["q"] = 0.0
+				focused.try_cast("q", null, p + off)
+			focused.cooldowns["q"] = 0.0
+			var aim_at := focused.standing_trees()[0].global_position if _args["shot-ui"] == "aim-chop" else p + Vector3(-1.0, 0, -5.5)
+			get_viewport().warp_mouse(camera_rig.camera.unproject_position(aim_at + Vector3.UP * (2.0 if _args["shot-ui"] == "aim-chop" else 0.0)))
+			await get_tree().process_frame
+			controller.begin_action("q", "ability_q")
+			await get_tree().process_frame
 		"skills":
 			for c in champions:
 				if c.team != focused.team:
@@ -594,6 +638,80 @@ func _take_screenshot() -> void:
 			pause_menu._show_page("controls")
 		"shop":
 			hud.toggle_shop()
+		"lineup":
+			# Every champion in a row in mid lane, close up (model checks).
+			var origin := Vector3(-30.0, 0.0, 30.0)
+			var i := 0
+			for c in champions:
+				c.is_bot = false
+				c.command_stop()
+				c.global_position = origin + Vector3(1.0, 0.0, 0.0) * (float(i) - 4.5) * 1.6
+				c.rotation.y = float(_args.get("shot-rot", 0.0))
+				i += 1
+			camera_rig.zoom = float(_args.get("shot-zoom", 16))
+			camera_rig._apply_zoom()
+			camera_rig.center_on(origin)
+			await get_tree().create_timer(0.3).timeout
+		"fx":
+			# Two rows facing each other; everyone attacks and casts at once.
+			var origin := Vector3(-30.0, 0.0, 30.0)
+			var rows := [[], []]
+			for c in champions:
+				c.is_bot = false
+				c.command_stop()
+				rows[c.team].append(c)
+			for team in 2:
+				for i in rows[team].size():
+					var c: Champion = rows[team][i]
+					c.global_position = origin + Vector3((float(i) - 2.0) * 3.2, 0.0, -4.5 if team == 0 else 4.5)
+			camera_rig.zoom = float(_args.get("shot-zoom", 18))
+			camera_rig._apply_zoom()
+			camera_rig.center_on(origin)
+			await get_tree().create_timer(0.3).timeout
+			var slot := str(_args.get("shot-slot", "attack"))
+			Engine.time_scale = 0.1      # slow motion, so effects are mid-flight in the shot
+			for team in 2:
+				for i in rows[team].size():
+					var c: Champion = rows[team][i]
+					var foe: Champion = rows[1 - team][i]
+					c.face_toward(foe.global_position)
+					c.health = c.max_health
+					if slot == "attack":
+						c.perform_attack(foe)
+					else:
+						for s2 in Champion.SLOTS:
+							c.ranks[s2] = 1
+						c.spec = 100.0
+						c.cooldowns[slot] = 0.0
+						c.try_cast(slot, foe, foe.global_position)
+			await get_tree().create_timer(float(_args.get("shot-delay", 0.15))).timeout
+			Engine.time_scale = 0.0001
+		"bosses":
+			# TzTok-Jad, the Giant Mole and a dragon side by side.
+			var origin := Vector3(-30.0, 0.0, 30.0)
+			var i := 0
+			for id in ["tztok_jad", "giant_mole", "chromatic_dragon", "baby_mole"]:
+				var m := Monster.new()
+				m.init_monster(id, GameData.unit_def("monsters", id), origin + Vector3(-9.0 + 6.0 * i, 0, 0), "shot", 12)
+				units_root.add_child(m)
+				m.global_position = origin + Vector3(-9.0 + 6.0 * i, 0, 0)
+				m.rotation.y = 0.4
+				i += 1
+			camera_rig.zoom = float(_args.get("shot-zoom", 20))
+			camera_rig._apply_zoom()
+			camera_rig.center_on(origin)
+			await get_tree().create_timer(0.4).timeout
+		"scoreboard":
+			hud.force_scoreboard = true
+			hud.scoreboard.refresh()
+		"tooltip":
+			# Hover the Q slot so its damage-breakdown tooltip shows.
+			var slot: Control = hud._ability_slots[str(_args.get("shot-slot", "q"))]
+			get_viewport().warp_mouse(slot.get_global_rect().get_center())
+			for i in 90:
+				await get_tree().process_frame
+			get_viewport().warp_mouse(slot.get_global_rect().get_center() + Vector2(1, 0))
+			await get_tree().create_timer(1.0).timeout
 	for i in 4:
 		await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
@@ -604,15 +722,31 @@ func _take_screenshot() -> void:
 
 # --- Smoke test --------------------------------------------------------------
 
+## Smoke test: flags a living bot that hasn't moved 1 m in 45 s while away
+## from its fountain (stuck on terrain, a Timber! yew or a bad path).
+func _probe_stuck() -> void:
+	for c in champions:
+		var probe: Array = _stuck_probe.get(c, [c.global_position, game_time])
+		if c.is_dead or c.is_recalling() or (Unit.flat_distance(c.global_position, c.spawn_point) < 14.0 and c.health_ratio() < 0.99) \
+				or Unit.flat_distance(c.global_position, probe[0]) > 1.0:
+			probe = [c.global_position, game_time]
+		elif game_time - float(probe[1]) > 45.0:
+			_stuck_reports.append("%s stuck at %s around %.0fs" % [c.display_name, c.global_position, game_time])
+			probe = [c.global_position, game_time]
+		_stuck_probe[c] = probe
+
+
 func _finish_smoke() -> void:
 	var lines: Array[String] = []
 	lines.append("[smoke] simulated %.0fs of game time" % game_time)
-	lines.append("[smoke] navigation baked: %s" % map.is_navigation_ready)
+	lines.append("[smoke] navigation baked: %s (%d rebakes for Timber! yews, %d navmesh reloads)" % [map.is_navigation_ready, map.rebake_count, map.resubmits])
 	lines.append("[smoke] waves: %d, %s" % [spawner.wave, str(_stats)])
 	for c in champions:
 		lines.append("[smoke] %-8s %-15s lvl %2d  ranks %s  K/D/A %d/%d/%d  CS %3d  gold %4d  items %s" % [
 			Combat.TEAM_NAMES[c.team], c.display_name, c.level, _ranks_text(c), c.kills, c.deaths, c.assists,
 			c.creep_score, int(c.gold), str(c.inventory)])
+	lines.append("[smoke] OSRS models: %s" % ("on" if OsrsModels.available() else "off (whitebox)"))
+	lines.append("[smoke] stuck bots: %s" % ("none" if _stuck_reports.is_empty() else "; ".join(_stuck_reports)))
 	for line in lines:
 		print(line)
 	get_tree().quit(0 if map.is_navigation_ready and spawner.wave > 0 else 1)

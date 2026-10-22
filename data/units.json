@@ -3,6 +3,7 @@
 
   "minions": {
     "goblin": {
+      "attack_fx": {"kind": "swipe", "arc": "stab", "color": "#c8d0a0", "size": 0.8},
       "name": "Goblin", "lol_name": "Melee minion", "role": "melee", "style": "melee",
       "health": [430, 35, 1550],
       "damage": [9.5, 1.5, 80, 4, 15],
@@ -13,6 +14,7 @@
       "bonus_vs_minions_pct_current": 0.02
     },
     "dark_wizard": {
+      "attack_fx": {"kind": "projectile", "shape": "orb", "color": "#c03050", "size": 0.15, "impact": "splash"},
       "name": "Dark wizard", "lol_name": "Caster minion", "role": "caster", "style": "magic",
       "health": [275, 9, 600],
       "damage": [19.5, 1.5, 125, 4, 15],
@@ -22,6 +24,7 @@
       "bonus_vs_minions_pct_current": 0.035
     },
     "cannon_cart": {
+      "attack_fx": {"kind": "projectile", "shape": "cannonball", "impact": "dust"},
       "name": "Dwarf cannon cart", "lol_name": "Siege minion", "role": "siege", "style": "ranged",
       "health": [750, 85, 5850],
       "damage": [36, 1.5, 126, 4, 15],
@@ -30,6 +33,7 @@
       "radius": 0.8, "gold": [50, 1, 999], "xp": 75
     },
     "knight": {
+      "attack_fx": {"kind": "swipe", "arc": "slash", "color": "#e0e4ff"},
       "name": "Knight", "lol_name": "Super minion", "role": "super", "style": "melee",
       "names_by_team": ["White Knight", "Black Knight"],
       "health": [1600, 200, 7500],
@@ -48,6 +52,7 @@
 
   "structures": {
     "tower_outer": {
+      "attack_fx": {"kind": "projectile", "shape": "orb", "size": 0.32, "impact": "splash", "team_color": true},
       "name_saradomin": "White Knight watchtower", "name_zamorak": "Dark Wizard tower", "lol_name": "Outer turret",
       "style": "ranged", "max_health": 9000, "damage": 182, "damage_per_minute": 12, "damage_max": 350,
       "armor": 60, "magic_resist": 60, "attack_speed": 0.833, "attack_range_lol": 750,
@@ -55,6 +60,7 @@
       "minion_damage_pct": { "melee": 0.45, "caster": 0.70, "siege": 0.14, "super": 0.07 }
     },
     "tower_inner": {
+      "attack_fx": {"kind": "projectile", "shape": "orb", "size": 0.32, "impact": "splash", "team_color": true},
       "name_saradomin": "White Knight watchtower", "name_zamorak": "Dark Wizard tower", "lol_name": "Inner turret",
       "style": "ranged", "max_health": 5000, "damage": 187, "damage_per_minute": 12, "damage_max": 427,
       "armor": 60, "magic_resist": 60, "attack_speed": 0.833, "attack_range_lol": 750,
@@ -62,6 +68,7 @@
       "minion_damage_pct": { "melee": 0.45, "caster": 0.70, "siege": 0.11, "super": 0.07 }
     },
     "tower_inhibitor": {
+      "attack_fx": {"kind": "projectile", "shape": "orb", "size": 0.32, "impact": "splash", "team_color": true},
       "name_saradomin": "Saradomin altar tower", "name_zamorak": "Chaos altar tower", "lol_name": "Inhibitor turret",
       "style": "ranged", "max_health": 4750, "damage": 187, "damage_per_minute": 12, "damage_max": 427,
       "armor": 60, "magic_resist": 60, "attack_speed": 0.833, "attack_range_lol": 750,
@@ -70,6 +77,7 @@
       "minion_damage_pct": { "melee": 0.45, "caster": 0.70, "siege": 0.08, "super": 0.07 }
     },
     "tower_nexus": {
+      "attack_fx": {"kind": "projectile", "shape": "orb", "size": 0.36, "impact": "splash", "team_color": true},
       "name_saradomin": "Standard guard tower", "name_zamorak": "Standard guard tower", "lol_name": "Nexus turret",
       "style": "ranged", "max_health": 3500, "damage": 165, "damage_per_minute": 12, "damage_max": 405,
       "armor": 60, "magic_resist": 60, "attack_speed": 0.833, "attack_range_lol": 750,
@@ -100,6 +108,7 @@
 
   "monsters": {
     "abyssal_demon": {
+      "attack_fx": {"kind": "swipe", "arc": "slash", "color": "#c060ff"},
       "name": "Abyssal demon", "lol_name": "Blue Sentinel", "style": "melee",
       "health": [2300, 6210], "damage": [66, 198], "attack_speed": 0.493, "attack_range_lol": 150,
       "armor": 42, "magic_resist": 42, "gold": 90, "xp": [95, 142.5],
@@ -107,6 +116,7 @@
       "buff": { "kind": "spec_regen_mult", "amount": 1.0, "duration": 120, "label": "Abyssal surge (Crest of Insight)" }
     },
     "fire_giant": {
+      "attack_fx": {"kind": "swipe", "arc": "crush", "color": "#ff8040", "size": 1.3},
       "name": "Fire giant", "lol_name": "Red Brambleback", "style": "melee",
       "health": [2300, 6210], "damage": [66, 198], "attack_speed": 0.493, "attack_range_lol": 150,
       "armor": 42, "magic_resist": 42, "gold": 90, "xp": [95, 142.5],
@@ -114,6 +124,7 @@
       "buff": { "kind": "crest_of_cinders", "amount": 1.0, "duration": 120, "label": "Giant's ember (Crest of Cinders)" }
     },
     "moss_giant": {
+      "attack_fx": {"kind": "swipe", "arc": "crush", "color": "#90c060", "size": 1.3},
       "name": "Moss giant", "lol_name": "Gromp", "style": "melee",
       "health": [2050, 4817.5], "damage": [70, 210], "attack_speed": 0.425, "attack_range_lol": 150,
       "armor": 42, "magic_resist": 42, "gold": 80, "xp": [120, 180],
@@ -144,12 +155,14 @@
       "move_speed": 5.0, "radius": 0.35, "leash": 14
     },
     "ogre_chieftain": {
+      "attack_fx": {"kind": "swipe", "arc": "crush", "color": "#c0a080", "size": 1.3},
       "name": "Ogre chieftain", "lol_name": "Ancient Krug", "style": "melee",
       "health": [1350, 3172.5], "damage": [57, 171], "attack_speed": 0.613, "attack_range_lol": 150,
       "armor": 42, "magic_resist": 42, "gold": 15, "xp": [15, 22.5],
       "move_speed": 4.8, "radius": 1.1, "leash": 14
     },
     "ogre": {
+      "attack_fx": {"kind": "swipe", "arc": "crush", "color": "#c0a080"},
       "name": "Ogre", "lol_name": "Krug", "style": "melee",
       "health": [650, 1527.5], "damage": [20, 60], "attack_speed": 0.613, "attack_range_lol": 110,
       "armor": 20, "magic_resist": 20, "gold": 10, "xp": [10, 15],
@@ -163,18 +176,21 @@
       "buff": { "kind": "haste", "amount": 0.3, "duration": 20, "label": "Crab scuttle (Speed Shrine, approximated)" }
     },
     "baby_mole": {
+      "attack_fx": {"kind": "projectile", "shape": "rock", "color": "#6a5440", "size": 0.12, "impact": "dust"},
       "name": "Baby mole", "lol_name": "Voidgrub", "style": "ranged", "start_level": 7,
       "health": [2269, 4700], "damage": [21.69, 46], "attack_speed": 0.5, "attack_range_lol": 500,
       "armor": [72.76, 170], "magic_resist": [51.38, 100], "gold": 30, "xp": 65,
       "move_speed": 4.5, "radius": 0.8, "epic": true, "leash": 10
     },
     "giant_mole": {
+      "attack_fx": {"kind": "swipe", "arc": "crush", "color": "#b09070", "size": 1.4},
       "name": "Giant Mole", "lol_name": "Rift Herald", "style": "melee", "start_level": 9,
       "health": [11718, 18900], "damage": [99.5, 250], "attack_speed": 0.4, "attack_range_lol": 250,
       "armor": [87.92, 170], "magic_resist": [58.96, 100], "gold": 100, "xp": 240,
       "move_speed": 4.5, "radius": 1.6, "epic": true, "leash": 10
     },
     "tztok_jad": {
+      "attack_fx": {"melee": {"kind": "swipe", "arc": "crush", "color": "#ff7030", "size": 1.6}, "ranged": {"kind": "projectile", "shape": "rock", "color": "#7a3a20", "size": 0.45, "arc": 5.0, "impact": "dust", "speed": 16}, "magic": {"kind": "projectile", "shape": "fireball", "color": "fire", "size": 0.5, "impact": "splash", "speed": 16}},
       "name": "TzTok-Jad", "lol_name": "Baron Nashor", "style": "magic", "start_level": 12,
       "cycle_styles": ["melee", "ranged", "magic"],
       "health": [17791.75, 19190], "damage": [350.5, 515], "attack_speed": 0.625, "attack_range_lol": 955,
@@ -183,6 +199,7 @@
       "team_buff": { "kind": "damage_mult", "amount": 0.12, "duration": 180, "label": "Fire cape (Hand of Baron, approximated)" }
     },
     "chromatic_dragon": {
+      "attack_fx": {"kind": "projectile", "shape": "fireball", "color": "fire", "size": 0.45, "impact": "splash"},
       "name": "Chromatic dragon", "lol_name": "Elemental Drake", "style": "magic", "start_level": 6,
       "health": [5106.25, 10000], "damage": [70, 70], "attack_speed": 0.5, "attack_range_lol": 500,
       "armor": [65.6, 170], "magic_resist": [47.8, 100], "gold": 75, "xp": [160, 400],
@@ -193,6 +210,7 @@
 
   "summons": {
     "dwarf_multicannon": {
+      "attack_fx": {"kind": "projectile", "shape": "cannonball", "impact": "dust", "speed": 34},
       "name": "Dwarf multicannon", "style": "ranged", "max_health": 400, "damage": 35,
       "defence": { "melee": 20, "ranged": 20, "magic": 20 },
       "attack_range": 7, "attack_ticks": 3, "radius": 0.7, "gold": 30

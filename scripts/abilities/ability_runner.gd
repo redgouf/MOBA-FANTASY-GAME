@@ -8,7 +8,12 @@ extends RefCounted
 ## Effects run in order. "delay" postpones one; "repeat": n with
 ## "repeat_interval": s runs it n times (ground zones like Bonfire).
 static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vector3, rank: int = 1) -> void:
-	var ctx := {"self_cost": 0.0, "rank": maxi(rank, 1)}
+	# The aim direction is locked at cast time, so delayed lines and cones
+	# (Timber!'s falling yew) don't swing around if the caster moves.
+	var aim := point - caster.global_position
+	aim.y = 0.0
+	var ctx := {"self_cost": 0.0, "rank": maxi(rank, 1),
+		"dir": aim.normalized() if aim.length() > 0.01 else caster.forward()}
 	for effect in ab.get("effects", []):
 		var delay := float(effect.get("delay", 0.0))
 		var repeats := maxi(1, int(effect.get("repeat", 1)))
@@ -41,7 +46,7 @@ static func apply_effect(caster: Champion, e: Dictionary, target: Unit, point: V
 			caster.health = maxf(1.0, caster.health - cost)
 			ctx["self_cost"] = cost
 		"status":
-			for u in _status_targets(caster, e, target, point):
+			for u in _status_targets(caster, e, target, point, ctx):
 				if randf() <= float(e.get("chance", 1.0)):
 					u.add_status(_status_id(caster, e), str(e.get("kind", "")), float(e.get("amount", 0.0)),
 						float(e.get("duration", 1.0)), caster, e.get("data", {}))
@@ -81,7 +86,7 @@ static func apply_effect(caster: Champion, e: Dictionary, target: Unit, point: V
 		"toggle_form":
 			caster.toggle_form()
 		"taunt":
-			for u in collect_area(caster, e.get("area", {}), target, point, false):
+			for u in collect_area(caster, e.get("area", {}), target, point, false, _ctx_dir(ctx)):
 				u.add_status("taunt", "taunt", 0.0, float(e.get("duration", 1.0)), caster)
 		_:
 			push_warning("AbilityRunner: unknown effect type '%s'" % e.get("type", ""))
@@ -97,7 +102,7 @@ static func _damage(caster: Champion, e: Dictionary, target: Unit, point: Vector
 		if _valid(target) and target.team != caster.team:
 			targets.append(target)
 	else:
-		targets = collect_area(caster, area, target, point, false)
+		targets = collect_area(caster, area, target, point, false, _ctx_dir(ctx))
 	var hits := maxi(1, int(e.get("hits", 1)))
 	var interval := float(e.get("hit_interval", 0.15))
 	for t in targets:
@@ -199,7 +204,7 @@ static func _heal(caster: Champion, e: Dictionary, target: Unit, point: Vector3,
 	var area: Dictionary = e.get("area", {})
 	if not area.is_empty():
 		# Area heals only reach allied champions, not minions or structures.
-		for u in collect_area(caster, area, target, point, true):
+		for u in collect_area(caster, area, target, point, true, _ctx_dir(ctx)):
 			if u is Champion:
 				recipients.append(u)
 	elif str(e.get("on", "self")) == "target" and _valid(target):
@@ -267,7 +272,11 @@ static func _status_id(caster: Champion, e: Dictionary) -> String:
 	return str(e.get("status_id", "%s:%d" % [e.get("kind", ""), caster.get_instance_id()]))
 
 
-static func _status_targets(caster: Champion, e: Dictionary, target: Unit, point: Vector3) -> Array[Unit]:
+static func _ctx_dir(ctx: Dictionary) -> Vector3:
+	return ctx.get("dir", Vector3.ZERO)
+
+
+static func _status_targets(caster: Champion, e: Dictionary, target: Unit, point: Vector3, ctx: Dictionary = {}) -> Array[Unit]:
 	var out: Array[Unit] = []
 	match str(e.get("on", "self")):
 		"self":
@@ -276,9 +285,9 @@ static func _status_targets(caster: Champion, e: Dictionary, target: Unit, point
 			if _valid(target):
 				out.append(target)
 		"area_allies":
-			out = collect_area(caster, e.get("area", {}), target, point, true)
+			out = collect_area(caster, e.get("area", {}), target, point, true, _ctx_dir(ctx))
 		"area_enemies":
-			out = collect_area(caster, e.get("area", {}), target, point, false)
+			out = collect_area(caster, e.get("area", {}), target, point, false, _ctx_dir(ctx))
 	return out
 
 
@@ -291,17 +300,24 @@ static func area_center(caster: Unit, area: Dictionary, target: Unit, point: Vec
 	return point
 
 
-## Units inside a circle, cone (from the caster toward the point) or line.
-static func collect_area(caster: Unit, area: Dictionary, target: Unit, point: Vector3, allies: bool) -> Array[Unit]:
+## Units inside a circle, cone or line. Cones and lines point from the caster
+## toward the point (or along `fixed_dir`, the direction locked at cast time).
+## A line with "origin": "point" starts at the point instead of the caster
+## (Timber!: the yew falls from where it stands).
+static func collect_area(caster: Unit, area: Dictionary, target: Unit, point: Vector3, allies: bool,
+		fixed_dir: Vector3 = Vector3.ZERO) -> Array[Unit]:
 	var out: Array[Unit] = []
 	if area.is_empty():
 		return out
 	var center := area_center(caster, area, target, point)
 	var shape := str(area.get("shape", "circle"))
 	var r := float(area.get("radius", 3.0))
-	var dir := point - caster.global_position
-	dir.y = 0.0
-	dir = dir.normalized() if dir.length() > 0.01 else caster.forward()
+	var dir := fixed_dir
+	if dir.length() < 0.01:
+		dir = point - caster.global_position
+		dir.y = 0.0
+		dir = dir.normalized() if dir.length() > 0.01 else caster.forward()
+	var origin := point if str(area.get("origin", "self")) == "point" else caster.global_position
 	for n in caster.get_tree().get_nodes_in_group("units"):
 		var u := n as Unit
 		if u == null or u.is_dead:
@@ -311,7 +327,7 @@ static func collect_area(caster: Unit, area: Dictionary, target: Unit, point: Ve
 				continue
 		elif u.team == caster.team or not u.is_damageable():
 			continue
-		var to := u.global_position - caster.global_position
+		var to := u.global_position - origin
 		to.y = 0.0
 		match shape:
 			"circle":

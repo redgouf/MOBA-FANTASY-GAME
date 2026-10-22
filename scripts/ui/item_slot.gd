@@ -1,12 +1,13 @@
 class_name ItemSlot
 extends Panel
-## One inventory square: item name (full or abbreviated), hotkey,
+## One inventory square: the item's OSRS icon (or its name), hotkey,
 ## and a cooldown shade for spec weapons. Hover for the full description.
 
 var item_id := ""
 var compact := false
 
 var _name: Label
+var _icon: TextureRect
 var _key: Label
 var _shade: ColorRect
 var _cd: Label
@@ -36,6 +37,8 @@ func _build(key_text: String) -> void:
 	_name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_name.add_theme_constant_override("line_spacing", -3)
+	_icon = Icons.rect(self, null, Vector2.ZERO)
+	UiStyle.fill(_icon, 3, 3, 3, 3)
 	_shade = ColorRect.new()
 	_shade.color = Color(0, 0, 0, 0.62)
 	_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -55,8 +58,10 @@ func set_item(id: String, cooldown_left: float = 0.0, cooldown_total: float = 0.
 		item_id = id
 		var it := GameData.item(id)
 		var item_name := str(it.get("name", ""))
-		_name.text = UiStyle.short_name(item_name) if compact else item_name
-		tooltip_text = _tooltip(it) if id != "" else ""
+		_icon.texture = Icons.item(id)
+		# The OSRS icon when there is one; the (short) name otherwise.
+		_name.text = "" if _icon.texture != null else (UiStyle.short_name(item_name) if compact else item_name)
+		tooltip_text = UiStyle.wrap(_tooltip(it)) if id != "" else ""
 		if id == "":
 			add_theme_stylebox_override("panel", _empty_style)
 		elif it.has("spec_active"):

@@ -1,27 +1,24 @@
 class_name PropFx
 extends Node3D
 ## Short-lived whitebox props for skilling actions (the Skiller's kit):
-##   tree      a yew planted ahead of the caster that falls toward the cursor
 ##   fire      logs and flickering flames for the bonfire's duration
 ##   anvil     an anvil dropping from the sky, with a shadow telegraph
 ##   harpoon   a line from the caster to the target
 ##   fireworks an OSRS-style level-up burst
 ## Purely visual: damage comes from the ability's own effects.
+## (Timber!'s yews are real obstacles, so they live in PlantedTree.)
 
 const BARK := Color(0.42, 0.27, 0.13)
-const LEAVES := Color(0.18, 0.45, 0.16)
 const IRON := Color(0.3, 0.31, 0.34)
 
 
-static func spawn(parent: Node, shape: String, at: Vector3, dir: Vector3, duration: float, from: Vector3) -> void:
+static func spawn(parent: Node, shape: String, at: Vector3, _dir: Vector3, duration: float, from: Vector3) -> void:
 	if parent == null:
 		return
 	var fx := PropFx.new()
 	parent.add_child(fx)
 	fx.global_position = Vector3(at.x, 0.0, at.z)
 	match shape:
-		"tree":
-			fx._tree(dir, from)
 		"fire":
 			fx._fire(duration)
 		"anvil":
@@ -53,29 +50,6 @@ func _mesh(mesh: Mesh, color: Color, pos: Vector3, parent: Node3D = null, glow: 
 
 func _free_after(t: float) -> void:
 	get_tree().create_timer(t, false).timeout.connect(queue_free)
-
-
-## Planted 1.5 m ahead of the caster; tips over along the aim direction.
-func _tree(dir: Vector3, from: Vector3) -> void:
-	global_position = Vector3(from.x, 0.0, from.z) + dir * 1.5
-	var pivot := Node3D.new()
-	add_child(pivot)
-	pivot.rotation.y = atan2(dir.x, dir.z)
-	var trunk := CylinderMesh.new()
-	trunk.top_radius = 0.25
-	trunk.bottom_radius = 0.35
-	trunk.height = 5.0
-	_mesh(trunk, BARK, Vector3(0, 2.5, 0), pivot)
-	var crown := SphereMesh.new()
-	crown.radius = 1.6
-	crown.height = 3.0
-	_mesh(crown, LEAVES, Vector3(0, 5.6, 0), pivot)
-	var tween := create_tween()
-	tween.tween_interval(0.35)
-	tween.tween_property(pivot, "rotation:x", PI * 0.5, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tween.tween_interval(0.6)
-	tween.tween_property(pivot, "scale", Vector3(0.01, 0.01, 0.01), 0.3)
-	_free_after(1.7)
 
 
 func _fire(duration: float) -> void:

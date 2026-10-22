@@ -98,3 +98,55 @@ static func short_name(item_name: String) -> String:
 		if out.length() < 3:
 			out += w.substr(0, 1).to_upper()
 	return out
+
+
+# --- Tooltips ------------------------------------------------------------------
+
+const TOOLTIP_BG := Color(0.1, 0.085, 0.065, 1.0)
+const TOOLTIP_WIDTH := 46          # characters per line before wrapping
+
+static var _tooltips_installed := false
+
+
+## Gives every hover tooltip in the game a solid OSRS-style background
+## (by restyling the default theme's TooltipPanel and TooltipLabel).
+static func install_tooltip_theme() -> void:
+	if _tooltips_installed:
+		return
+	_tooltips_installed = true
+	var t := ThemeDB.get_default_theme()
+	var sb := box(TOOLTIP_BG, BORDER_HI, 2, 4)
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 7
+	sb.content_margin_bottom = 7
+	t.set_stylebox("panel", "TooltipPanel", sb)
+	t.set_color("font_color", "TooltipLabel", TEXT)
+	t.set_color("font_outline_color", "TooltipLabel", Color(0, 0, 0, 1))
+	t.set_constant("outline_size", "TooltipLabel", 0)
+	t.set_font_size("font_size", "TooltipLabel", 14)
+
+
+## Word-wraps text to `width` characters per line, keeping existing line breaks,
+## so tooltips never run off as one long line.
+static func wrap(text: String, width: int = TOOLTIP_WIDTH) -> String:
+	var out: Array[String] = []
+	for para in text.split("\n"):
+		# Keep a paragraph's indent (tooltip sub-lines like "  Items: +40").
+		var indent := para.substr(0, para.length() - para.lstrip(" ").length())
+		var line := ""
+		for word in para.split(" ", false):
+			if line.is_empty():
+				line = indent + word
+			elif line.length() + 1 + word.length() <= width:
+				line += " " + word
+			else:
+				out.append(line)
+				line = word
+		out.append(line)
+	return "\n".join(out)
+
+
+## A solid panel style for custom hover popups (Skills tab, scoreboard rows).
+static func solid_box() -> StyleBoxFlat:
+	return box(TOOLTIP_BG, BORDER_HI, 2, 4)

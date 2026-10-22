@@ -2,33 +2,110 @@
   "tick_seconds": 0.25,
   "lol_units_per_meter": 75,
   "triangle_bonus": 0.15,
-  "protect_prayer_reduction": 0.40,
+  "protect_prayer_reduction": 0.4,
   "resist_constant": 100,
-
   "prayer_points_max": 99,
   "protect_prayer_drain_per_sec": 1.0,
-  "offensive_prayer": { "cost": 10, "duration": 6, "cooldown": 60 },
+  "offensive_prayer": {
+    "cost": 10,
+    "duration": 6,
+    "cooldown": 60
+  },
   "offensive_prayers": {
     "melee": [
-      { "name": "Piety", "level": 70, "bonus": 0.12 },
-      { "name": "Chivalry", "level": 60, "bonus": 0.09 },
-      { "name": "Ultimate Strength", "level": 31, "bonus": 0.06 },
-      { "name": "Superhuman Strength", "level": 13, "bonus": 0.04 }
+      {
+        "name": "Piety",
+        "level": 70,
+        "bonus": 0.12
+      },
+      {
+        "name": "Chivalry",
+        "level": 60,
+        "bonus": 0.09
+      },
+      {
+        "name": "Ultimate Strength",
+        "level": 31,
+        "bonus": 0.06
+      },
+      {
+        "name": "Superhuman Strength",
+        "level": 13,
+        "bonus": 0.04
+      },
+      {
+        "name": "Burst of Strength",
+        "level": 4,
+        "bonus": 0.02
+      },
+      {
+        "name": "Thick Skin",
+        "level": 1,
+        "kind": "damage_taken_mult",
+        "bonus": -0.05,
+        "text": "+5% Defence: take 5% less damage"
+      }
     ],
     "ranged": [
-      { "name": "Rigour", "level": 74, "bonus": 0.12 },
-      { "name": "Eagle Eye", "level": 44, "bonus": 0.08 },
-      { "name": "Hawk Eye", "level": 26, "bonus": 0.05 }
+      {
+        "name": "Rigour",
+        "level": 74,
+        "bonus": 0.12
+      },
+      {
+        "name": "Eagle Eye",
+        "level": 44,
+        "bonus": 0.08
+      },
+      {
+        "name": "Hawk Eye",
+        "level": 26,
+        "bonus": 0.05
+      },
+      {
+        "name": "Sharp Eye",
+        "level": 8,
+        "bonus": 0.02
+      },
+      {
+        "name": "Thick Skin",
+        "level": 1,
+        "kind": "damage_taken_mult",
+        "bonus": -0.05,
+        "text": "+5% Defence: take 5% less damage"
+      }
     ],
     "magic": [
-      { "name": "Augury", "level": 77, "bonus": 0.12 },
-      { "name": "Mystic Might", "level": 45, "bonus": 0.08 },
-      { "name": "Mystic Lore", "level": 27, "bonus": 0.05 }
+      {
+        "name": "Augury",
+        "level": 77,
+        "bonus": 0.12
+      },
+      {
+        "name": "Mystic Might",
+        "level": 45,
+        "bonus": 0.08
+      },
+      {
+        "name": "Mystic Lore",
+        "level": 27,
+        "bonus": 0.05
+      },
+      {
+        "name": "Mystic Will",
+        "level": 9,
+        "bonus": 0.02
+      },
+      {
+        "name": "Thick Skin",
+        "level": 1,
+        "kind": "damage_taken_mult",
+        "bonus": -0.05,
+        "text": "+5% Defence: take 5% less damage"
+      }
     ]
   },
-
   "spec_regen_per_sec": 1.0,
-
   "team_size": 5,
   "starting_gold": 500,
   "passive_gold_per_sec": 2.0,
@@ -38,23 +115,24 @@
   "item_slots": 6,
   "consumable_slots": 4,
   "shop_radius": 14,
-
   "max_level": 18,
   "starting_skill_points": 1,
   "basic_max_rank": 5,
   "ultimate_max_rank": 3,
-  "ultimate_rank_levels": [6, 11, 16],
+  "ultimate_rank_levels": [
+    6,
+    11,
+    16
+  ],
   "basic_cooldown_reduction_per_rank": 0.06,
   "xp_base": 280,
   "xp_step": 100,
   "xp_share_radius": 14,
-
   "respawn_base_sec": 6,
   "respawn_per_level": 2,
   "recall_channel_sec": 4,
   "fountain_radius": 12,
-  "fountain_heal_pct_per_sec": 0.10,
-
+  "fountain_heal_pct_per_sec": 0.1,
   "first_wave_sec": 30,
   "wave_interval_sec": 30,
   "minion_upgrade_interval_sec": 90,

@@ -15,6 +15,7 @@ Champion abilities (`data/champions.json`) and item spec actives (`data/items.js
 | `bot_use` | Bot hint: `combat` (default), `low_health`, `high_health`, `never` |
 | `forms` | Per-form overrides (used by the Hybrid's Q) |
 | `effects` | List of effects, applied in order. Any effect may add `delay` (seconds). |
+| `planter` | Plant-and-chop ability (Timber!): `max`, `cooldown` (plant cooldown), `block_radius`, `chop_range`, `hover_radius`, `lifetime` (0 = permanent). Q on open ground plants a solid yew; Q on your own yew chops it and runs `effects` with the point at the yew, aimed from the caster through it. |
 
 ## Effect types
 
@@ -31,9 +32,31 @@ Champion abilities (`data/champions.json`) and item spec actives (`data/items.js
 | `toggle_form` | Switches champion form (Hybrid) |
 | `taunt` | `area`, `duration` |
 | `pull` | `distance` (reels the target toward the caster) |
-| `prop` | `shape` (`tree`, `fire`, `anvil`, `harpoon`, `fireworks`), `at` (`self`/`point`/`target`), `duration`. Visual only. |
+| `prop` | `shape` (`fire`, `anvil`, `harpoon`, `fireworks`), `at` (`self`/`point`/`target`), `duration`. Visual only. |
 
 Any effect can also take `delay` (seconds) and `repeat` + `repeat_interval` (a ground zone that ticks, like Bonfire).
+
+## Effects (`fx`)
+
+Visual only. An ability or item `spec_active` lists effects under `fx`; each plays when it's cast (`CombatFx.ability`).
+
+| `kind` | What it draws | Extra fields |
+| --- | --- | --- |
+| `swipe` | A glowing arc toward the target or point | `arc` (`slash`, `crush`, `stab`), `size`, `sweep` (degrees) |
+| `multi_slash` | Several quick swipes (claws, DDS) | `count` |
+| `projectile` | A projectile to the target or point | `shape` (`arrow`, `bolt`, `dart`, `javelin`, `rock`, `cannonball`, `orb`, `fireball`), `impact` (`spark`, `splash`, `dust`), `size`, `arc`, `speed` |
+| `volley` | Several projectiles fanned along a line | `count`, `spread`, `shape` |
+| `burst` | Spell explosion: dome, ring, sparks (`"color": "ice"` adds ice shards) | `radius` (defaults to the ability's area) |
+| `ring` | Expanding ground ring | `radius`, `thickness`, `duration` |
+| `glow` | Rising sparkles on a unit (heals, buffs) | `duration` |
+| `ice_block` | Ice block around the target (or everyone in the area at a point) | `duration` |
+| `slam` | Ground shockwave, dust and debris | `radius` |
+| `streak` | A bright line from the caster to the target or point (dashes) | `width` |
+| `sparks` | A burst of sparks | `count` |
+
+Every effect takes `at` (`target`, `point`, `self`; defaults to the cast's target), `color` (an element name such as `ice`, `blood`, `shadow`, `fire`, `venom`, `holy`, `heal`, `lunar`, or `"#rrggbb"`) and `delay` (seconds).
+
+Basic attacks use `attack_fx` on the champion (or form, or unit in `units.json`): a `swipe` or a `projectile` entry, optionally keyed by style (`{"melee": ..., "ranged": ..., "magic": ...}`, as TzTok-Jad does). Towers use `"team_color": true`.
 
 ## Areas
 
@@ -43,7 +66,7 @@ Any effect can also take `delay` (seconds) and `repeat` + `repeat_interval` (a g
 { "shape": "line", "length": 200, "width": 2.5 }
 ```
 
-`center` is `point` (cursor), `self` or `target`. Add `max_targets` to cap hits.
+`center` is `point` (cursor), `self` or `target`. Add `max_targets` to cap hits. A line can take `"origin": "point"` to start at the point instead of the caster (a felled yew). Lines and cones keep the direction they had at cast time, even if an effect is delayed.
 
 ## Status kinds
 
@@ -52,6 +75,10 @@ Any effect can also take `delay` (seconds) and `repeat` + `repeat_interval` (a g
 ## Passive types
 
 Set in a champion's `passive.type`: `missing_health_damage`, `glass_cannon`, `nth_hit_bonus`, `form_switch`, `target_magic_scaling`, `monster_bonus`, `venom`, `stacking_damage`, `flat_reduction`, `skilling_level_up` (every Nth ability runs the passive's own `effects`), `rune_pouch` (placeholder). Implemented in `Champion.modify_outgoing`, `modify_incoming` and `on_attack_landed`.
+
+## Offensive prayers
+
+`rules.json` → `offensive_prayers` lists each style's prayers, best first; a build gets the first its Prayer level allows. Entries are `+bonus` damage unless they set `kind` (Thick Skin, Prayer 1: `"kind": "damage_taken_mult", "bonus": -0.05`) and a `text` for tooltips.
 
 ## Item requirements
 

@@ -14,6 +14,8 @@ extends CanvasLayer
 var main: Node
 var champ: Champion
 var spectator := false
+var scoreboard: MatchScoreboard
+var force_scoreboard := false        # screenshots: keep the TAB scoreboard open
 var ghost_cursor: GhostCursor
 
 var target_frame: TargetFrame
@@ -43,6 +45,7 @@ var _passive: Panel
 var _passive_label: Label
 var _ability_slots: Dictionary = {}
 var _offensive: Panel
+var _offensive_icon: TextureRect
 var _offensive_name: Label
 var _offensive_shade: ColorRect
 var _overheads: Array[Button] = []
@@ -101,6 +104,7 @@ func _ready() -> void:
 	_build_bottom_center(root)
 	_build_minimap(root)
 	_build_shop(root)
+	scoreboard = MatchScoreboard.create(root, main)
 
 	_message = UiStyle.label(root, "", 28, UiStyle.TITLE)
 	UiStyle.place(_message, Control.PRESET_CENTER_TOP, Vector2(-450, 64 if not spectator else 52), Vector2(900, 40))
@@ -241,10 +245,13 @@ func _build_bottom_center(root: Control) -> void:
 	p.add_child(_offensive)
 	var vkey := UiStyle.label(_offensive, "V", 12, UiStyle.TITLE)
 	vkey.position = Vector2(4, 1)
-	_offensive_name = UiStyle.label(_offensive, "", 10)
-	UiStyle.fill(_offensive_name, 0, 8)
+	_offensive_icon = Icons.rect(_offensive, null, Vector2(30, 30))
+	_offensive_icon.position = Vector2(15, 6)
+	_offensive_icon.size = Vector2(30, 30)
+	_offensive_name = UiStyle.label(_offensive, "", 9)
+	UiStyle.fill(_offensive_name, 0, 36)
 	_offensive_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_offensive_name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_offensive_name.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_offensive_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_offensive_shade = ColorRect.new()
 	_offensive_shade.color = Color(0, 0, 0, 0.6)
@@ -380,7 +387,10 @@ func _rebuild_shop() -> void:
 			line += "   [requires %s]" % ", ".join(missing)
 		var b := UiStyle.button(_shop_list, line, 14)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.tooltip_text = ItemSlot._tooltip(it)
+		b.icon = Icons.item(id)
+		b.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		b.add_theme_constant_override("icon_max_width", 32)
+		b.tooltip_text = UiStyle.wrap(ItemSlot._tooltip(it))
 		b.disabled = not champ.in_shop_range() or not champ.can_buy(id)
 		b.pressed.connect(_on_buy.bind(id))
 
@@ -428,6 +438,8 @@ func _process(delta: float) -> void:
 	_score.text = "Saradomin %d – %d Zamorak    %02d:%02d    KDA %d/%d/%d    CS %d%s" % [
 		tk[0], tk[1], t / 60, t % 60, champ.kills, champ.deaths, champ.assists, champ.creep_score, fps]
 
+	scoreboard.viewer_team = -1 if spectator else champ.team
+	scoreboard.visible = force_scoreboard or Input.is_action_pressed("scoreboard")
 	_update_bottom_left()
 	_update_bottom_center()
 	var sel: Variant = main.get("selected")
@@ -450,7 +462,7 @@ func _process(delta: float) -> void:
 
 
 func _update_bottom_left() -> void:
-	_portrait_initial.text = champ.display_name.substr(4, 1) if champ.display_name.begins_with("The ") else champ.display_name.substr(0, 1)
+	_portrait_initial.text = str(champ.def.get("tag", champ.display_name.substr(0, 1)))
 	_level_badge.text = str(champ.level)
 	_name.text = champ.display_name
 	var max_level := int(GameData.rule("max_level", 18))
@@ -477,6 +489,10 @@ func _update_bottom_left() -> void:
 		var left: float = champ.cooldowns.get(key, 0.0) if key != "" else 0.0
 		var total := float(GameData.item(id).get("spec_active", {}).get("cooldown", 0.0)) if key != "" else 0.0
 		_item_slots[i].set_item(id, left, total)
+		if key != "" and Engine.get_process_frames() % 15 == i:
+			# Spec weapons: add the live damage breakdown of their special attack.
+			var spec_tip := AbilityInfo.tooltip(champ, key)
+			_item_slots[i].tooltip_text = UiStyle.wrap(ItemSlot._tooltip(GameData.item(id))) + "\n\nSpecial attack:\n" + spec_tip
 	for i in 4:
 		_belt_slots[i].set_item(champ.consumables[i] if i < champ.consumables.size() else "")
 	_gold.text = "%d GP" % int(champ.gold)
@@ -527,15 +543,16 @@ func _update_bottom_center() -> void:
 	elif not champ.forms.is_empty():
 		ptext += "\n(%s)" % champ.form_name()
 	_passive_label.text = ptext
-	_passive.tooltip_text = "%s\n%s" % [p.get("name", ""), p.get("text", "")]
+	_passive.tooltip_text = UiStyle.wrap("%s\n%s" % [p.get("name", ""), p.get("text", "")])
 
 	for slot in Champion.SLOTS:
 		(_ability_slots[slot] as AbilitySlot).refresh(champ, not spectator)
 
 	var pray := champ.offensive_prayer()
 	_offensive_name.text = str(pray.get("name", "None"))
-	_offensive.tooltip_text = "%s: +%d%% damage for 6s (V). Set by your Prayer level (%d)." % [
-		pray.get("name", "No offensive prayer"), int(float(pray.get("bonus", 0.0)) * 100.0), champ.skill("prayer")]
+	_offensive_icon.texture = Icons.prayer(str(pray.get("name", "")))
+	_offensive.tooltip_text = UiStyle.wrap("%s: %s for 6s (V). Set by your Prayer level (%d)." % [
+		pray.get("name", "No prayer"), Champion.prayer_effect_text(pray), champ.skill("prayer")])
 	var cd_total := float(GameData.rule("offensive_prayer", {}).get("cooldown", 60))
 	var h := 60.0 * clampf(champ.offensive_prayer_cd / cd_total, 0.0, 1.0)
 	_offensive_shade.position = Vector2(0, 60.0 - h)

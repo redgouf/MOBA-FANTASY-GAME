@@ -1,0 +1,80 @@
+{
+  "_comment": "How each unit looks when the private OSRS model pack is installed (private_assets/osrs, never committed). Numbers are OSRS item ids from the pack's manifest; clip names are the pack's animation names. Without the pack the game uses its whitebox shapes and ignores this file.",
+  "player_scale": 1.4,
+  "default_cast_clip": "magic_cast_1162",
+  "eat_clip": "a829",
+  "death_clip": "death_836",
+  "anim_overrides": {
+    "6528": {"stab": "a2661", "slash": "a2661", "crush": "a2661"}
+  },
+  "champions": {
+    "dharok": {
+      "gear": [4716, 4720, 4722, 6585, 6570, 7462, 11840], "weapon": 4718, "attack": "crush",
+      "abilities": {"q": {"clip": "dharok_axe_attack_stab_2066"}, "w": {"clip": "a829"}, "e": {"clip": "a829"}, "r": {"spec": "granite_maul"}}
+    },
+    "pure": {
+      "gear": [1169, 544, 2497, 2491, 3105, 6570, 1725], "weapon": 4587, "attack": "slash",
+      "abilities": {"q": {"clip": "sword_attack_slash_390"}, "w": {"clip": "special_attack_1872"}, "e": {"clip": "sword_attack_stab_386"}, "r": {"spec": "dragon_dagger"}}
+    },
+    "ancient_mage": {
+      "gear": [4708, 4712, 4714, 12002, 2414, 7462, 4097, 3842], "weapon": 4675, "attack": "cast",
+      "abilities": {"q": {"clip": "magic_cast_1979"}, "w": {"clip": "magic_cast_1979"}, "e": {"clip": "magic_cast_1979"}, "r": {"spec": "volatile_nightmare_staff"}}
+    },
+    "hybrid": {
+      "gear": [4089, 4091, 1079, 1704, 7462, 4097, 2414, 3842], "weapon": 21902, "attack": "stab",
+      "forms": {"ranged": {"weapon": 21902, "attack": "stab"}, "magic": {"weapon": 4675, "attack": "cast"}},
+      "abilities": {"w": {"clip": "magic_cast_1167"}, "e": {"clip": "a829"}, "r": {"spec": "armadyl_crossbow"}}
+    },
+    "max_ranger": {
+      "gear": [4732, 4736, 4738, 6585, 7462, 4131, 2412], "weapon": 861, "attack": "stab",
+      "abilities": {"q": {"clip": "a829"}, "w": {"clip": "a7618"}, "e": {"clip": "a829"}, "r": {"clip": "special_attack_1074"}}
+    },
+    "blowpiper": {
+      "gear": [1169, 2503, 2497, 2491, 3105, 1704, 2414], "weapon": 861, "attack": "stab",
+      "abilities": {"q": {"clip": "bow_attack_426"}, "w": {"clip": "a7618"}, "e": {"clip": "a829"}, "r": {"clip": "special_attack_1074"}}
+    },
+    "slayer": {
+      "gear": [10828, 21793, 1704, 4736, 12954, 4751, 7462, 31088], "weapon": 4151, "attack": "slash",
+      "abilities": {"q": {"clip": "whip_attack_1658"}, "w": {"clip": "a829"}, "r": {"spec": "dragon_warhammer"}}
+    },
+    "zerker": {
+      "gear": [3751, 21793, 11128, 2503, 1079, 7462, 3105], "weapon": 6528, "attack": "crush",
+      "abilities": {"q": {"clip": "a2661"}, "w": {"clip": "a829"}, "r": {"spec": "dragon_claws"}}
+    },
+    "justiciar": {
+      "gear": [4745, 4749, 4751, 6585, 7462, 11840, 12829], "weapon": 1333, "attack": "slash",
+      "abilities": {"q": {"clip": "shield_block_1156"}, "w": {"clip": "magic_cast_1167"}, "e": {"clip": "shield_block_1156"}, "r": {"spec": "bandos_godsword"}}
+    },
+    "lunar": {
+      "gear": [4089, 4091, 542, 2412, 7462, 4097, 6889], "weapon": 4675, "attack": "cast",
+      "abilities": {"q": {"clip": "magic_cast_1167"}, "w": {"clip": "magic_cast_1167"}, "e": {"clip": "magic_cast_711"}, "r": {"clip": "magic_cast_1979"}}
+    },
+    "skiller": {
+      "gear": [], "weapon": 0, "attack": "stab",
+      "abilities": {"q": {"clip": "a2846"}, "w": {"clip": "a733"}, "e": {"clip": "a618"}, "r": {"clip": "a898"}},
+      "passive_clip": "a862"
+    }
+  },
+  "spec_weapons": {
+    "dragon_dagger": {"weapon": 5698, "clip": "special_attack_1062"},
+    "granite_maul": {"weapon": 4153, "clip": "special_attack_1667", "two_handed": true},
+    "dragon_warhammer": {"weapon": 0, "clip": "a1378"},
+    "dragon_claws": {"weapon": 13652, "clip": "special_attack_7514", "two_handed": true},
+    "magic_shortbow_i": {"weapon": 861, "clip": "special_attack_1074", "two_handed": true},
+    "armadyl_godsword": {"weapon": 11802, "clip": "special_attack_7644", "two_handed": true},
+    "bandos_godsword": {"weapon": 11802, "clip": "a7642", "two_handed": true},
+    "saradomin_godsword": {"weapon": 11802, "clip": "a7640", "two_handed": true},
+    "zamorak_godsword": {"weapon": 11802, "clip": "a7638", "two_handed": true},
+    "voidwaker": {"weapon": 0, "clip": "sword_attack_slash_390"},
+    "armadyl_crossbow": {"weapon": 21902, "clip": "crossbow_attack_4230"},
+    "toxic_staff_of_the_dead": {"weapon": 11791, "clip": "staff_attack_crush_414"},
+    "volatile_nightmare_staff": {"weapon": 4675, "clip": "magic_cast_1167"},
+    "dragon_axe": {"weapon": 0, "clip": "a2846"}
+  },
+  "monsters": {
+    "tztok_jad": {"model": "jad"},
+    "giant_mole": {"model": "giant_mole"},
+    "baby_mole": {"model": "giant_mole"},
+    "chromatic_dragon": {"model": "kbd"}
+  }
+}

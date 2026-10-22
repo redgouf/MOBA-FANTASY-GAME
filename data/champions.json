@@ -3,6 +3,7 @@
     {
       "id": "dharok",
       "name": "Dharok",
+      "tag": "DH",
       "title": "the Barrows Brute",
       "build": "Full Dharok's + granite maul",
       "role": "Top · juggernaut",
@@ -79,6 +80,14 @@
               "style": "melee",
               "missing_health_bonus": 0.5
             }
+          ],
+          "fx": [
+            {
+              "kind": "swipe",
+              "arc": "slash",
+              "color": "#d0c0a0",
+              "sweep": 110
+            }
           ]
         },
         "w": {
@@ -98,6 +107,13 @@
               "kind": "haste",
               "amount": 0.2,
               "duration": 3
+            }
+          ],
+          "fx": [
+            {
+              "kind": "glow",
+              "color": "#c08040",
+              "at": "self"
             }
           ]
         },
@@ -127,6 +143,13 @@
               "amount": -0.15,
               "duration": 2
             }
+          ],
+          "fx": [
+            {
+              "kind": "glow",
+              "color": "gold",
+              "at": "self"
+            }
           ]
         },
         "r": {
@@ -146,13 +169,33 @@
               },
               "style": "melee"
             }
+          ],
+          "fx": [
+            {
+              "kind": "slam",
+              "color": "#a09a90",
+              "radius": 1.6
+            },
+            {
+              "kind": "slam",
+              "color": "#a09a90",
+              "radius": 1.6,
+              "delay": 0.25
+            }
           ]
         }
+      },
+      "attack_fx": {
+        "kind": "swipe",
+        "arc": "crush",
+        "color": "#d9c8b0",
+        "size": 1.2
       }
     },
     {
       "id": "pure",
       "name": "The Pure",
+      "tag": "PU",
       "title": "1 Defence PKer",
       "build": "1 Def: DDS + whip / dragon scimitar",
       "role": "Jungle · assassin",
@@ -239,6 +282,13 @@
               "amount": 0.3,
               "duration": 2
             }
+          ],
+          "fx": [
+            {
+              "kind": "multi_slash",
+              "count": 2,
+              "color": "#7dff7d"
+            }
           ]
         },
         "w": {
@@ -263,6 +313,15 @@
                 }
               ]
             }
+          ],
+          "fx": [
+            {
+              "kind": "swipe",
+              "arc": "slash",
+              "color": "blood",
+              "size": 2.0,
+              "sweep": 170
+            }
           ]
         },
         "e": {
@@ -283,6 +342,13 @@
               "on": "self",
               "kind": "melee_immune",
               "duration": 0.75
+            }
+          ],
+          "fx": [
+            {
+              "kind": "streak",
+              "color": "#9ac0ff",
+              "at": "target"
             }
           ]
         },
@@ -305,13 +371,31 @@
               },
               "style": "melee"
             }
+          ],
+          "fx": [
+            {
+              "kind": "multi_slash",
+              "count": 2,
+              "color": "venom"
+            },
+            {
+              "kind": "sparks",
+              "color": "venom",
+              "delay": 0.15
+            }
           ]
         }
+      },
+      "attack_fx": {
+        "kind": "swipe",
+        "arc": "slash",
+        "color": "#ffe3e0"
       }
     },
     {
       "id": "ancient_mage",
       "name": "Ancient Mage",
+      "tag": "AM",
       "title": "Full Ahrim's + Ancients",
       "build": "Full Ahrim's + Ancient Magicks",
       "role": "Mid · control mage",
@@ -393,6 +477,17 @@
                 }
               ]
             }
+          ],
+          "fx": [
+            {
+              "kind": "burst",
+              "color": "ice"
+            },
+            {
+              "kind": "ice_block",
+              "at": "point",
+              "duration": 1.5
+            }
           ]
         },
         "w": {
@@ -416,6 +511,12 @@
               },
               "style": "magic",
               "lifesteal": 0.25
+            }
+          ],
+          "fx": [
+            {
+              "kind": "burst",
+              "color": "blood"
             }
           ]
         },
@@ -447,6 +548,12 @@
                 }
               ]
             }
+          ],
+          "fx": [
+            {
+              "kind": "burst",
+              "color": "shadow"
+            }
           ]
         },
         "r": {
@@ -470,13 +577,34 @@
                 "mult": 1.5
               }
             }
+          ],
+          "fx": [
+            {
+              "kind": "projectile",
+              "shape": "fireball",
+              "color": "fire",
+              "impact": "splash"
+            },
+            {
+              "kind": "burst",
+              "color": "fire",
+              "radius": 1.8,
+              "delay": 0.3
+            }
           ]
         }
+      },
+      "attack_fx": {
+        "kind": "projectile",
+        "shape": "orb",
+        "color": "shadow",
+        "impact": "splash"
       }
     },
     {
       "id": "hybrid",
       "name": "Hybrid",
+      "tag": "HY",
       "title": "Range + Mage PKer",
       "build": "Armadyl crossbow + ancient staff switcher",
       "role": "Bot or Mid · skirmisher",
@@ -504,12 +632,24 @@
         {
           "name": "ranged",
           "style": "ranged",
-          "attack_range": 7
+          "attack_range": 7,
+          "attack_fx": {
+            "kind": "projectile",
+            "shape": "bolt",
+            "color": "#e0303a",
+            "impact": "spark"
+          }
         },
         {
           "name": "magic",
           "style": "magic",
-          "attack_range": 7
+          "attack_range": 7,
+          "attack_fx": {
+            "kind": "projectile",
+            "shape": "orb",
+            "color": "ice",
+            "impact": "splash"
+          }
         }
       ],
       "base": {
@@ -564,6 +704,21 @@
                   "type": "self_cost",
                   "pct_current_health": 0.1
                 }
+              ],
+              "fx": [
+                {
+                  "kind": "projectile",
+                  "shape": "bolt",
+                  "color": "#ff2030",
+                  "impact": "spark"
+                },
+                {
+                  "kind": "burst",
+                  "color": "#ff3040",
+                  "radius": 1.0,
+                  "at": "target",
+                  "delay": 0.25
+                }
               ]
             },
             "magic": {
@@ -586,6 +741,19 @@
                     }
                   ]
                 }
+              ],
+              "fx": [
+                {
+                  "kind": "projectile",
+                  "shape": "orb",
+                  "color": "ice",
+                  "impact": "splash"
+                },
+                {
+                  "kind": "ice_block",
+                  "duration": 1.5,
+                  "delay": 0.25
+                }
               ]
             }
           }
@@ -602,6 +770,20 @@
               "on": "target",
               "kind": "tele_block",
               "duration": 4
+            }
+          ],
+          "fx": [
+            {
+              "kind": "projectile",
+              "shape": "orb",
+              "color": "#3040c0",
+              "impact": "splash"
+            },
+            {
+              "kind": "ring",
+              "color": "#4050ff",
+              "radius": 1.4,
+              "delay": 0.3
             }
           ]
         },
@@ -620,6 +802,14 @@
               "kind": "haste",
               "amount": 0.15,
               "duration": 0.75
+            }
+          ],
+          "fx": [
+            {
+              "kind": "ring",
+              "color": "#80e0ff",
+              "at": "self",
+              "radius": 1.6
             }
           ]
         },
@@ -648,13 +838,33 @@
               "style": "ranged",
               "crit_mult": 1.5
             }
+          ],
+          "fx": [
+            {
+              "kind": "ice_block",
+              "duration": 2.0
+            },
+            {
+              "kind": "projectile",
+              "shape": "bolt",
+              "color": "#40ff80",
+              "impact": "spark",
+              "delay": 0.2
+            }
           ]
         }
+      },
+      "attack_fx": {
+        "kind": "projectile",
+        "shape": "bolt",
+        "color": "#e0303a",
+        "impact": "spark"
       }
     },
     {
       "id": "max_ranger",
       "name": "Max Ranger",
+      "tag": "MR",
       "title": "Twisted bow main",
       "build": "Twisted bow + Masori",
       "role": "Bot · marksman",
@@ -723,6 +933,14 @@
               "amount": 0.3,
               "duration": 4
             }
+          ],
+          "fx": [
+            {
+              "kind": "ring",
+              "color": "#80ff60",
+              "at": "self",
+              "radius": 1.5
+            }
           ]
         },
         "w": {
@@ -746,6 +964,20 @@
                 "damage": 0.7
               },
               "style": "ranged"
+            }
+          ],
+          "fx": [
+            {
+              "kind": "projectile",
+              "shape": "rock",
+              "color": "#3a3030",
+              "arc": 2.2,
+              "size": 0.2
+            },
+            {
+              "kind": "burst",
+              "color": "fire",
+              "delay": 0.35
             }
           ]
         },
@@ -776,6 +1008,14 @@
               "amount": 0.2,
               "duration": 4
             }
+          ],
+          "fx": [
+            {
+              "kind": "ring",
+              "color": "#80ff60",
+              "at": "self",
+              "radius": 2.2
+            }
           ]
         },
         "r": {
@@ -800,13 +1040,29 @@
               },
               "style": "ranged"
             }
+          ],
+          "fx": [
+            {
+              "kind": "volley",
+              "shape": "arrow",
+              "count": 5,
+              "spread": 0.6,
+              "color": "#e0a040"
+            }
           ]
         }
+      },
+      "attack_fx": {
+        "kind": "projectile",
+        "shape": "arrow",
+        "color": "#e0a040",
+        "impact": "spark"
       }
     },
     {
       "id": "blowpiper",
       "name": "Blowpiper",
+      "tag": "BP",
       "title": "Toxic blowpipe ranger",
       "build": "Toxic blowpipe + venom",
       "role": "Bot · hyper-carry",
@@ -874,6 +1130,13 @@
               "amount": 0.25,
               "duration": 5
             }
+          ],
+          "fx": [
+            {
+              "kind": "glow",
+              "color": "venom",
+              "at": "self"
+            }
           ]
         },
         "w": {
@@ -914,6 +1177,20 @@
                 }
               ]
             }
+          ],
+          "fx": [
+            {
+              "kind": "projectile",
+              "shape": "rock",
+              "color": "#3fa060",
+              "arc": 1.6,
+              "size": 0.14
+            },
+            {
+              "kind": "burst",
+              "color": "venom",
+              "delay": 0.35
+            }
           ]
         },
         "e": {
@@ -936,6 +1213,13 @@
               "amount": 0.4,
               "duration": 2
             }
+          ],
+          "fx": [
+            {
+              "kind": "glow",
+              "color": "#ffd040",
+              "at": "self"
+            }
           ]
         },
         "r": {
@@ -956,13 +1240,34 @@
               "style": "ranged",
               "lifesteal": 0.5
             }
+          ],
+          "fx": [
+            {
+              "kind": "projectile",
+              "shape": "dart",
+              "color": "venom",
+              "impact": "spark"
+            },
+            {
+              "kind": "glow",
+              "color": "venom",
+              "at": "self",
+              "delay": 0.25
+            }
           ]
         }
+      },
+      "attack_fx": {
+        "kind": "projectile",
+        "shape": "dart",
+        "color": "venom",
+        "impact": "spark"
       }
     },
     {
       "id": "slayer",
       "name": "Slayer",
+      "tag": "SL",
       "title": "the Jungler",
       "build": "Slayer helm + abyssal tentacle + dwarf multicannon",
       "role": "Jungle · bruiser",
@@ -1040,6 +1345,16 @@
                 }
               ]
             }
+          ],
+          "fx": [
+            {
+              "kind": "swipe",
+              "arc": "slash",
+              "color": "#304030",
+              "size": 2.6,
+              "sweep": 120,
+              "duration": 0.25
+            }
           ]
         },
         "w": {
@@ -1052,6 +1367,14 @@
               "type": "summon",
               "unit": "dwarf_multicannon",
               "duration": 8
+            }
+          ],
+          "fx": [
+            {
+              "kind": "ring",
+              "color": "#b0b0b0",
+              "at": "self",
+              "radius": 1.8
             }
           ]
         },
@@ -1068,6 +1391,13 @@
               "distance": 7,
               "speed": 22,
               "ignore_walls": true
+            }
+          ],
+          "fx": [
+            {
+              "kind": "streak",
+              "color": "#d0c090",
+              "at": "point"
             }
           ]
         },
@@ -1095,13 +1425,28 @@
                 }
               ]
             }
+          ],
+          "fx": [
+            {
+              "kind": "slam",
+              "color": "#c0c0c8",
+              "radius": 1.8
+            }
           ]
         }
+      },
+      "attack_fx": {
+        "kind": "swipe",
+        "arc": "slash",
+        "color": "#c9d0d8",
+        "size": 1.3,
+        "duration": 0.18
       }
     },
     {
       "id": "zerker",
       "name": "Zerker",
+      "tag": "ZK",
       "title": "Berserker build",
       "build": "Berserker helm + Tzhaar weapons + berserker necklace",
       "role": "Top or Jungle · diver",
@@ -1184,6 +1529,21 @@
                 }
               ]
             }
+          ],
+          "fx": [
+            {
+              "kind": "swipe",
+              "arc": "crush",
+              "color": "#ff9040",
+              "size": 2.2
+            },
+            {
+              "kind": "slam",
+              "color": "#ff9040",
+              "at": "point",
+              "radius": 2.4,
+              "delay": 0.15
+            }
           ]
         },
         "w": {
@@ -1206,6 +1566,13 @@
               "amount": 0.15,
               "duration": 5
             }
+          ],
+          "fx": [
+            {
+              "kind": "glow",
+              "color": "#ff5050",
+              "at": "self"
+            }
           ]
         },
         "e": {
@@ -1221,6 +1588,19 @@
               "distance": 8,
               "teleport": true,
               "delay": 0.5
+            }
+          ],
+          "fx": [
+            {
+              "kind": "ring",
+              "color": "shadow",
+              "at": "self",
+              "radius": 1.5
+            },
+            {
+              "kind": "streak",
+              "color": "shadow",
+              "at": "point"
             }
           ]
         },
@@ -1244,13 +1624,27 @@
               },
               "style": "melee"
             }
+          ],
+          "fx": [
+            {
+              "kind": "multi_slash",
+              "count": 4,
+              "color": "blood"
+            }
           ]
         }
+      },
+      "attack_fx": {
+        "kind": "swipe",
+        "arc": "crush",
+        "color": "#ffb070",
+        "size": 1.2
       }
     },
     {
       "id": "justiciar",
       "name": "Justiciar Tank",
+      "tag": "JT",
       "title": "the Main Account",
       "build": "Justiciar + Elysian + Dinh's bulwark",
       "role": "Support or Top · tank",
@@ -1328,6 +1722,19 @@
               "kind": "stun",
               "duration": 0.75
             }
+          ],
+          "fx": [
+            {
+              "kind": "slam",
+              "color": "holy",
+              "radius": 1.2
+            },
+            {
+              "kind": "swipe",
+              "arc": "crush",
+              "color": "holy",
+              "size": 1.6
+            }
           ]
         },
         "w": {
@@ -1348,6 +1755,12 @@
               "data": {
                 "chance": 0.7
               }
+            }
+          ],
+          "fx": [
+            {
+              "kind": "glow",
+              "color": "gold"
             }
           ]
         },
@@ -1379,6 +1792,15 @@
               "kind": "planted",
               "duration": 1.5
             }
+          ],
+          "fx": [
+            {
+              "kind": "ring",
+              "color": "gold",
+              "at": "self",
+              "thickness": 0.2,
+              "duration": 0.8
+            }
           ]
         },
         "r": {
@@ -1406,13 +1828,32 @@
               "shred_ratio": 0.1,
               "shred_duration": 6
             }
+          ],
+          "fx": [
+            {
+              "kind": "streak",
+              "color": "gold",
+              "at": "target"
+            },
+            {
+              "kind": "slam",
+              "color": "gold",
+              "radius": 2.0,
+              "delay": 0.15
+            }
           ]
         }
+      },
+      "attack_fx": {
+        "kind": "swipe",
+        "arc": "slash",
+        "color": "holy"
       }
     },
     {
       "id": "lunar",
       "name": "Lunar",
+      "tag": "LU",
       "title": "the Support",
       "build": "Lunar spellbook",
       "role": "Support · enchanter",
@@ -1486,6 +1927,12 @@
               },
               "from_self_cost_mult": 1.5
             }
+          ],
+          "fx": [
+            {
+              "kind": "glow",
+              "color": "heal"
+            }
           ]
         },
         "w": {
@@ -1504,6 +1951,12 @@
               "amount": 0.75,
               "duration": 5
             }
+          ],
+          "fx": [
+            {
+              "kind": "glow",
+              "color": "#ff6a3a"
+            }
           ]
         },
         "e": {
@@ -1521,6 +1974,19 @@
             {
               "type": "spec_transfer",
               "amount": 25
+            }
+          ],
+          "fx": [
+            {
+              "kind": "projectile",
+              "shape": "orb",
+              "color": "gold",
+              "impact": "splash"
+            },
+            {
+              "kind": "glow",
+              "color": "gold",
+              "delay": 0.3
             }
           ]
         },
@@ -1555,13 +2021,35 @@
               "kind": "negate_hit",
               "duration": 3
             }
+          ],
+          "fx": [
+            {
+              "kind": "ring",
+              "color": "lunar",
+              "at": "self",
+              "thickness": 0.25,
+              "duration": 0.9
+            },
+            {
+              "kind": "burst",
+              "color": "lunar",
+              "at": "self"
+            }
           ]
         }
+      },
+      "attack_fx": {
+        "kind": "projectile",
+        "shape": "orb",
+        "color": "lunar",
+        "size": 0.16,
+        "impact": "splash"
       }
     },
     {
       "id": "skiller",
       "name": "Skiller",
+      "tag": "SK",
       "title": "the Level-3",
       "build": "Level-3 skiller: 1 combat, 99 skilling",
       "role": "Mid or Support · zone control",
@@ -1668,25 +2156,29 @@
           "cast": "point",
           "range": 8,
           "cooldown": 8,
-          "text": "Plants a yew and chops it down toward the cursor. The falling tree hits everything in a line and slows them 30% for 1.5s.",
+          "planter": {
+            "max": 3,
+            "cooldown": 1.5,
+            "block_radius": 0.8,
+            "chop_range": 3.5,
+            "hover_radius": 1.8,
+            "lifetime": 60
+          },
+          "text": "Press Q to plant a yew at the cursor. Yews are solid: nothing walks or dashes through them. Up to 3 at once (a 4th replaces your oldest); each lasts 60s. Press Q with the cursor on one of your yews to chop it (you walk over if needed): it falls straight away from where you stand, hitting everything along its length and slowing them 30% for 1.5s. Planting has a 1.5s cooldown; chopping uses the full cooldown.",
           "effects": [
             {
-              "type": "prop",
-              "shape": "tree",
-              "at": "self"
-            },
-            {
               "type": "damage",
-              "delay": 0.6,
+              "delay": 0.5,
               "area": {
                 "shape": "line",
+                "origin": "point",
                 "length": 8,
                 "width": 2.6
               },
               "base": 70,
               "base_per_rank": 40,
               "ratio": {
-                "skill_power": 0.7
+                "skill_power": 0.8
               },
               "style": "melee",
               "target_statuses": [
@@ -1696,6 +2188,15 @@
                   "duration": 1.5
                 }
               ]
+            }
+          ],
+          "fx": [
+            {
+              "kind": "sparks",
+              "color": "#c8a060",
+              "at": "point",
+              "count": 8,
+              "delay": 0.5
             }
           ]
         },
@@ -1817,8 +2318,23 @@
                 }
               ]
             }
+          ],
+          "fx": [
+            {
+              "kind": "slam",
+              "color": "#a0a0a8",
+              "at": "point",
+              "radius": 3.0,
+              "delay": 0.8
+            }
           ]
         }
+      },
+      "attack_fx": {
+        "kind": "projectile",
+        "shape": "rock",
+        "color": "#8a7f72",
+        "impact": "dust"
       }
     }
   ]

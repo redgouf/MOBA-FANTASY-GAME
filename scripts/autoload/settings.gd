@@ -11,6 +11,13 @@ var drag_pan_speed := 1.0      # multiplier for middle-mouse drag panning
 var fullscreen := false
 var show_fps := true
 
+## How Q/W/E/R and item actives cast (League of Legends' three modes):
+const CAST_QUICK_INDICATOR := 0   # hold the key to aim with an indicator, release to cast
+const CAST_NORMAL := 1            # press the key to aim, left-click to cast (right-click/Esc cancels)
+const CAST_QUICK := 2             # cast at the cursor the moment the key is pressed
+const CAST_MODE_NAMES := ["Quick cast with indicator", "Normal cast (click to confirm)", "Quick cast (no indicator)"]
+var cast_mode := CAST_QUICK_INDICATOR
+
 ## What the next scene load should start (set by the ESC menu):
 ## pending_mode "" = champion select, "play" = play pending_champion,
 ## "spectate" = NPC vs NPC.
@@ -32,6 +39,7 @@ func load_settings() -> void:
 	drag_pan_speed = float(cfg.get_value("camera", "drag_pan_speed", drag_pan_speed))
 	fullscreen = bool(cfg.get_value("video", "fullscreen", fullscreen))
 	show_fps = bool(cfg.get_value("video", "show_fps", show_fps))
+	cast_mode = clampi(int(cfg.get_value("controls", "cast_mode", cast_mode)), 0, CAST_MODE_NAMES.size() - 1)
 
 
 func save_settings() -> void:
@@ -41,6 +49,7 @@ func save_settings() -> void:
 	cfg.set_value("camera", "drag_pan_speed", drag_pan_speed)
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("video", "show_fps", show_fps)
+	cfg.set_value("controls", "cast_mode", cast_mode)
 	cfg.save(PATH)
 
 
