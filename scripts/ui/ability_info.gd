@@ -173,6 +173,8 @@ static func per_rank_text(ab: Dictionary, key: String = "") -> String:
 	var out: Array[String] = []
 	for e in ab.get("effects", []):
 		_collect_per_rank(e, str(e.get("kind", e.get("type", ""))), out)
+		for st in e.get("statuses", []):     # a stance's effects (Rapid, Longrange)
+			_collect_per_rank(st, str(st.get("kind", "")), out)
 	for f in ab.get("forms", {}).values():
 		for e in f.get("effects", []):
 			_collect_per_rank(e, str(e.get("kind", e.get("type", ""))), out)

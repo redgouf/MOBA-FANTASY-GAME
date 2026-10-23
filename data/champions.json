@@ -127,10 +127,19 @@
         "w": {
           "name": "Rock Cake",
           "cast": "self",
-          "cooldown": 12,
+          "cooldown": 2,
           "bot_use": "high_health",
-          "text": "Eat it to lose 15% of current health (can't drop below 1) and gain 20% move speed for 3s.",
+          "text": "Eat a rock cake: lose 15% of current health (can't drop below 1). The first cake of a run also gives +20% move speed for 3s; cakes eaten within 5 of each other stack up (shown as Rock cake x1, x2, x3 on your buff bar) and don't give speed again until the stack runs out.",
           "effects": [
+            {
+              "type": "status",
+              "on": "self",
+              "kind": "haste",
+              "amount": 0.2,
+              "duration": 3,
+              "amount_per_rank": 0.03,
+              "unless_self_status": "rock_cake"
+            },
             {
               "type": "self_cost",
               "pct_current_health": 0.15
@@ -138,10 +147,11 @@
             {
               "type": "status",
               "on": "self",
-              "kind": "haste",
-              "amount": 0.2,
-              "duration": 3,
-              "amount_per_rank": 0.03
+              "kind": "rock_cake",
+              "amount": 1,
+              "duration": 5,
+              "stacks": true,
+              "max_stacks": 99
             }
           ],
           "fx": [
@@ -1128,22 +1138,31 @@
         "q": {
           "name": "Rapid",
           "cast": "self",
-          "cooldown": 10,
-          "text": "Switch to the Rapid attack style: +30% attack speed for 8s.",
+          "cooldown": 2,
+          "text": "Switch to the Rapid attack style. It stays on until you change it: +30% attack speed, but 15% less damage. Cast it again to go back to Accurate. (OSRS: Rapid is the faster bow style.)",
           "effects": [
             {
-              "type": "status",
-              "on": "self",
-              "kind": "attack_speed",
-              "amount": 0.3,
-              "duration": 8,
-              "amount_per_rank": 0.05
+              "type": "stance",
+              "name": "rapid",
+              "title": "Rapid",
+              "icon": "rapid",
+              "statuses": [
+                {
+                  "kind": "attack_speed",
+                  "amount": 0.3,
+                  "amount_per_rank": 0.05
+                },
+                {
+                  "kind": "damage_mult",
+                  "amount": -0.15
+                }
+              ]
             }
           ],
           "fx": [
             {
               "kind": "ring",
-              "color": "#80ff60",
+              "color": "#ffa040",
               "at": "self",
               "radius": 1.5
             }
@@ -1190,31 +1209,30 @@
         "e": {
           "name": "Longrange",
           "cast": "self",
-          "cooldown": 14,
-          "text": "Switch to Longrange: +2 tiles of range and +15% defence for 4s, but 20% slower.",
+          "cooldown": 2,
+          "text": "Switch to the Longrange attack style. It stays on until you change it: +2m attack range and +15% defence, but attacks 15% slower. Cast it again to go back to Accurate. (OSRS: Longrange adds range and Defence.)",
           "effects": [
             {
-              "type": "status",
-              "on": "self",
-              "kind": "range_bonus",
-              "amount": 2,
-              "duration": 4,
-              "amount_per_rank": 0.25
-            },
-            {
-              "type": "status",
-              "on": "self",
-              "kind": "armor_mult",
-              "amount": 0.15,
-              "duration": 4,
-              "amount_per_rank": 0.02
-            },
-            {
-              "type": "status",
-              "on": "self",
-              "kind": "slow",
-              "amount": 0.2,
-              "duration": 4
+              "type": "stance",
+              "name": "longrange",
+              "title": "Longrange",
+              "icon": "longrange",
+              "statuses": [
+                {
+                  "kind": "range_bonus",
+                  "amount": 2,
+                  "amount_per_rank": 0.25
+                },
+                {
+                  "kind": "armor_mult",
+                  "amount": 0.15,
+                  "amount_per_rank": 0.02
+                },
+                {
+                  "kind": "attack_speed",
+                  "amount": -0.15
+                }
+              ]
             }
           ],
           "fx": [

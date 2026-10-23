@@ -2,6 +2,12 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.13.0
+
+- The stats panel (bottom left) shows live values: buffs and debuffs from spells, items, prayers and potions change Dmg, Magic, Atk, Range, Move and the defences at once. Raised stats turn green and lowered ones red; hover for the base value.
+- Max Ranger: Rapid and Longrange are attack styles that stay on until you change them. Rapid: +30% attack speed, 15% less damage. Longrange: +2m range and +15% defence, attacks 15% slower. Cast the active one again to go back to Accurate. Each has its own buff icon (arrows and the twisted bow) and ring colour (orange and green), and no more potion-drinking animation.
+- Dharok: Rock Cake has a 2s cooldown. Cakes eaten within 5s stack on the buff bar (Rock cake x1, x2, x3...), and only the first cake of a run gives the speed boost.
+
 ## 0.12.0
 
 - Movement and orders are instant again: right-click moves the moment you click, so you can dodge.

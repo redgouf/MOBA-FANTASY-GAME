@@ -258,6 +258,9 @@
   "crest_of_cinders": "infernalCape",
   "antipoison": "antipoison4",
   "spec_regen_mult": "lightbearer",
-  "skill_power_mult": "dragonAxe"
+  "skill_power_mult": "dragonAxe",
+  "rapid": "dragonArrow5",
+  "longrange": "twistedBow",
+  "rock_cake": "dwarvenRockCakeHot"
  }
 }

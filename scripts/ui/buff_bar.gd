@@ -22,12 +22,36 @@ static func create(parent: Control, rect: Rect2) -> BuffBar:
 	return b
 
 
+## One effect of a stance in words: "+30% attack speed", "-15% damage".
+static func stance_part(kind: String, a: float) -> String:
+	var sign := "+" if a >= 0.0 else "-"
+	match kind:
+		"attack_speed":
+			return "%s%d%% attack speed" % [sign, roundi(absf(a) * 100.0)]
+		"damage_mult":
+			return "%s%d%% damage" % [sign, roundi(absf(a) * 100.0)]
+		"armor_mult":
+			return "%s%d%% defence" % [sign, roundi(absf(a) * 100.0)]
+		"range_bonus":
+			return "%s%sm attack range" % [sign, str(snappedf(absf(a), 0.01))]
+		"haste":
+			return "%s%d%% move speed" % [sign, roundi(absf(a) * 100.0)]
+	return "%s %s" % [kind.replace("_", " "), str(snappedf(a, 0.01))]
+
+
 ## Icon, title and explanation for a status: {icon, title, text, debuff}.
 static func describe(st: Dictionary) -> Dictionary:
 	var kind := str(st.get("kind", ""))
 	var a := float(st.get("amount", 0.0))
 	var pct := "%d%%" % roundi(absf(a) * 100.0)
+	var data: Dictionary = st.get("data", {})
+	if str(data.get("stance", "")) != "":
+		# An attack style (Rapid, Longrange): one icon for the whole stance.
+		return {"icon": str(data.get("icon", "")), "title": str(data.get("title", "")), "text": str(data.get("text", "")), "debuff": false}
 	match kind:
+		"rock_cake":
+			return {"icon": "rock_cake", "title": "Rock cake x%d" % roundi(a), "count": roundi(a),
+				"text": "Rock cakes eaten in the last 5s. Only the first one of a run gives the speed boost.", "debuff": false}
 		"damage_mult":
 			return {"icon": "damage_up" if a >= 0.0 else "damage_down", "title": "Damage %s%s" % ["+" if a >= 0.0 else "−", pct],
 				"text": "Deals %s %s damage." % [pct, "more" if a >= 0.0 else "less"], "debuff": a < 0.0}
@@ -121,6 +145,9 @@ func refresh() -> void:
 			var st: Dictionary = unit.statuses[id]
 			if HIDDEN.has(str(st["kind"])):
 				continue
+			var d: Dictionary = st.get("data", {})
+			if str(d.get("stance", "")) != "" and not bool(d.get("primary", false)):
+				continue     # one icon per stance
 			live[id] = st
 	for id in _slots.keys():
 		if not live.has(id):
@@ -148,6 +175,7 @@ class BuffIcon extends Control:
 	var left := 0.0
 	var total := 1.0
 	var permanent := false
+	var count := 0              # stacks shown in the corner ("x3")
 	var _tip := ""
 
 	func _init() -> void:
@@ -159,6 +187,7 @@ class BuffIcon extends Control:
 		tex = load("res://assets/icons/status/%s.png" % key) if key != "" and ResourceLoader.exists("res://assets/icons/status/%s.png" % key) else null
 		debuff = bool(info.get("debuff", false))
 		permanent = bool(st.get("permanent", false))
+		count = int(info.get("count", 0))
 		left = float(st.get("remaining", 0.0))
 		total = maxf(float(st.get("total", left)), 0.01)
 		var tip := "%s\n%s%s" % [info.get("title", ""), info.get("text", ""), "" if permanent else "\n%.1fs left" % left]
@@ -184,3 +213,9 @@ class BuffIcon extends Control:
 					pts.append(c + Vector2(cos(ang), sin(ang)) * size.x)
 				draw_colored_polygon(pts, Color(0, 0, 0, 0.55))
 		draw_rect(r, Color(0.85, 0.2, 0.15) if debuff else Color(0.3, 0.85, 0.35), false, 2.0)
+		if count > 0:
+			var font := get_theme_default_font()
+			var txt := "x%d" % count
+			var pos := Vector2(size.x - 4.0 - font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x, size.y - 4.0)
+			draw_string(font, pos + Vector2(1, 1), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.BLACK)
+			draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 0.9, 0.3))

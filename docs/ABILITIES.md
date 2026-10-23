@@ -24,7 +24,8 @@ Champion abilities (`data/champions.json`) and item spec actives (`data/items.js
 | `damage` | `base`, `base_per_rank` (kit abilities), `base_per_level` (champion level), `ratio` {`damage`, `magic_power`, `skill_power`}, `style`, `hits` + `hit_interval`, `cascade` (dragon claws), `pct_current_health` / `pct_max_health` + `cap`, `missing_health_bonus`, `bonus_below_health` {`threshold`, `mult`}, `low_health_area` {`threshold`, `radius`} (below that much of the caster's health, hit everything around the target), `lifesteal`, `crit_mult`, `armor_pen`, `true`, `ignores_prayer`, `falloff`, `shred_ratio` + `shred_duration`, `target_statuses` [...], `area` |
 | `heal` | `base`, `base_per_level`, `ratio.magic_power`, `pct_missing`, `pct_max`, `from_self_cost_mult`, `over_time`, `on` (`self`/`target`), `area` (heals allies) |
 | `self_cost` | `pct_current_health` (never drops below 1) |
-| `status` | `on` (`self`, `target`, `area_allies`, `area_enemies`), `kind`, `amount`, `duration`, `chance`, `data`, `area` |
+| `status` | `on` (`self`, `target`, `area_allies`, `area_enemies`), `kind`, `amount`, `duration`, `chance`, `data`, `area`; `stacks` + `max_stacks` (each use adds `amount` to one counter and restarts its `duration`, shown as "x3" on the buff bar: Dharok's rock cakes); `unless_self_status` (skip while the caster has that status kind) |
+| `stance` | `name`, `title`, `icon` (a status icon), `statuses` [{`kind`, `amount`, `amount_per_rank`}]: an attack style that stays on until changed (Max Ranger's Rapid and Longrange). Casting the stance that's on goes back to the default style; another stance replaces it. It survives death and gets stronger at once when ranked up. |
 | `dash` | `to` (`point`/`target`), `distance`, `speed`, `stop_distance`, `ignore_walls`, `teleport` |
 | `knockback` | `distance` (pushes the target away) |
 | `spec_transfer` | `amount` (gives an ally spec energy) |

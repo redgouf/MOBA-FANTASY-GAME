@@ -4,7 +4,7 @@ extends Node
 ## Exits with code 0 when every check passes, 1 otherwise.
 
 const KNOWN_EFFECTS := ["damage", "heal", "self_cost", "status", "dash", "knockback",
-	"spec_transfer", "summon", "toggle_form", "taunt", "pull", "prop", "max_stacks"]
+	"spec_transfer", "summon", "toggle_form", "taunt", "pull", "prop", "max_stacks", "stance"]
 const KNOWN_CASTS := ["self", "target_unit", "point"]
 
 var _passed := 0
@@ -44,6 +44,7 @@ func _ready() -> void:
 	await test_v09()
 	await test_v010()
 	await test_updates()
+	await test_v013()
 	test_potions()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
@@ -1505,3 +1506,93 @@ func test_potions() -> void:
 	var tip := ItemSlot._tooltip(GameData.item("super_strength"), c)
 	check(tip.contains("Use: Strength +") and tip.contains("'perfect' (55 Herblore): Strength +"), "potion tooltips show the levels for you, then 'perfect' (%s)" % tip)
 	c.queue_free()
+
+
+## v0.13: live stats, Max Ranger's attack-style stances, Dharok's rock cakes.
+func test_v013() -> void:
+	GameData.load_all(1.0)
+	var mr := _make("max_ranger", Combat.Team.SARADOMIN, Vector3(120, 0, -120))
+	mr.spawn_point = Vector3(500, 0, 500)
+	mr.ranks["q"] = 1
+	mr.ranks["e"] = 1
+	var base_int := mr.get_attack_interval()
+	var base_dmg := mr.effective_damage()
+	check(mr.try_cast("q", null, mr.global_position), "Rapid casts")
+	check(mr.stance == "rapid" and mr.get_attack_interval() < base_int and mr.effective_damage() < base_dmg,
+		"Rapid: faster attacks, less damage")
+	var stance_ids := 0
+	for id in mr.statuses:
+		if str(mr.statuses[id]["data"].get("stance", "")) == "rapid":
+			stance_ids += 1
+			check(bool(mr.statuses[id]["permanent"]), "the Rapid stance doesn't wear off")
+	check(stance_ids == 2, "Rapid is two effects (speed and damage)")
+	var holder := Control.new()
+	add_child(holder)
+	var bar := BuffBar.create(holder, Rect2(0, 0, 300, 34))
+	bar.unit = mr
+	bar.refresh()
+	check(bar._slots.size() == 1, "one buff icon for the stance (got %d)" % bar._slots.size())
+	var info := BuffBar.describe(mr.statuses[mr.statuses.keys()[0]])
+	check(info["icon"] == "rapid" and info["title"] == "Rapid" and str(info["text"]).contains("+30% attack speed"), "it shows as Rapid with an arrow icon, not a potion")
+	holder.queue_free()
+	mr.cooldowns["e"] = 0.0
+	mr.try_cast("e", null, mr.global_position)
+	check(mr.stance == "longrange" and mr.get_attack_range() > mr.base_attack_range + 1.9 and mr.get_attack_interval() > base_int
+		and mr.get_defence(1) > mr.base_defence[1], "Longrange replaces Rapid: more range and defence, slower attacks")
+	check(not mr.has_status("damage_mult"), "Rapid's damage penalty is gone")
+	mr.cooldowns["e"] = 0.0
+	mr.try_cast("e", null, mr.global_position)
+	check(mr.stance == "" and is_equal_approx(mr.get_attack_range(), mr.base_attack_range), "casting it again goes back to Accurate")
+	mr.cooldowns["q"] = 0.0
+	mr.try_cast("q", null, mr.global_position)
+	mr.level = 3
+	mr.skill_points = 1
+	var fast := mr.get_attack_interval()
+	mr.rank_up("q")
+	check(mr.get_attack_interval() < fast, "ranking up Rapid strengthens the stance already on")
+	mr.die(null)
+	mr.respawn()
+	check(mr.stance == "rapid" and mr.has_status("attack_speed"), "the attack style survives death")
+	mr.queue_free()
+
+	# Dharok: rock cakes stack; only the first of a run gives speed.
+	var dh := _make("dharok", Combat.Team.SARADOMIN, Vector3(124, 0, -120))
+	dh.spawn_point = Vector3(500, 0, 500)
+	dh.ranks["w"] = 1
+	check(float(dh.get_ability("w")["cooldown"]) <= 3.0, "Rock Cake has a short cooldown")
+	dh.try_cast("w", null, dh.global_position)
+	check(dh.has_status("haste") and is_equal_approx(dh.status_sum("rock_cake"), 1.0), "the first cake gives speed and a x1 stack")
+	dh.remove_status(dh.find_status_id("haste"))
+	dh.cooldowns["w"] = 0.0
+	dh.try_cast("w", null, dh.global_position)
+	dh.cooldowns["w"] = 0.0
+	dh.try_cast("w", null, dh.global_position)
+	check(is_equal_approx(dh.status_sum("rock_cake"), 3.0) and not dh.has_status("haste"), "more cakes stack to x3 with no new speed")
+	var cake := BuffBar.describe(dh.statuses["stack:rock_cake"])
+	check(cake["title"] == "Rock cake x3" and int(cake["count"]) == 3, "the buff bar shows Rock cake x3")
+	dh._tick_statuses(5.1)
+	check(not dh.has_status("rock_cake"), "the stack ends 5s after the last cake")
+	dh.cooldowns["w"] = 0.0
+	dh.try_cast("w", null, dh.global_position)
+	check(dh.has_status("haste"), "then the next cake gives speed again")
+
+	# Live stats: buffs show in the bottom-left panel at once.
+	var hud := Hud.new()
+	hud.setup(self, dh, false)
+	add_child(hud)
+	hud.set_process(false)   # (no match here: only the panel update is tested)
+	hud.scoreboard.set_process(false)
+	dh.statuses.clear()
+	hud._update_bottom_left()
+	var move_before := (hud._stats["move"] as Label).text
+	dh.add_status("probe", "haste", 0.5, 3.0)
+	hud._update_bottom_left()
+	var move_l := hud._stats["move"] as Label
+	check(move_l.text != move_before and move_l.get_theme_color("font_color").g > 0.9 and move_l.get_theme_color("font_color").r < 0.5,
+		"a speed boost shows at once, in green (%s -> %s)" % [move_before, move_l.text])
+	dh.add_status("probe2", "damage_mult", 0.2, 3.0)
+	hud._update_bottom_left()
+	check((hud._stats["damage"] as Label).text == "Dmg %d" % int(dh.effective_damage()) and dh.effective_damage() > dh.base_damage * 1.19,
+		"damage buffs show in Dmg")
+	hud.queue_free()
+	dh.queue_free()

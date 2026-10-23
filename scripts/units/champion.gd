@@ -84,6 +84,11 @@ var _move_point := Vector3.ZERO
 var _queued_cast: Dictionary = {}
 var _repath_timer := 0.0
 var _path_iteration := -1       # navigation map iteration our current path was computed on
+## An attack-style stance that stays on (Max Ranger's Rapid / Longrange):
+## the "stance" effect it came from and its rank; "" = the default style.
+var stance := ""
+var _stance_def: Dictionary = {}
+var _stance_rank := 1
 var _recall_started := -1          # GameTick tick the recall began (timers count from the next tick)
 var _pray_started := -1
 var _died_tick := -1
@@ -291,6 +296,24 @@ func boosted_skill(name: String) -> int:
 	return maxi(1, skill(name) + skill_boost(name))
 
 
+## Damage (or magic power) with every buff applied right now: damage
+## statuses, prayers and potion boosts. The HUD shows these live.
+func effective_damage(magic: bool = false) -> float:
+	var style := Combat.Style.MAGIC if magic else attack_style
+	if not magic and style == Combat.Style.MAGIC:
+		style = Combat.Style.MELEE
+	var v := get_magic_power() if magic else get_damage()
+	v *= maxf(0.0, 1.0 + status_sum("damage_mult"))
+	v *= 1.0 + prayer_effect("damage_" + Combat.style_name(style))
+	v *= maxf(0.0, 1.0 + potion_damage_bonus(style))
+	return v
+
+
+## Attack interval without any buffs or debuffs (items and levels only).
+func base_attack_interval() -> float:
+	return Combat.ticks_to_seconds(attack_ticks) / maxf(0.2, 1.0 + bonus_attack_speed)
+
+
 ## What boosted levels do for a style's damage (Strength, Attack, Ranged, Magic).
 func potion_damage_bonus(style: int) -> float:
 	var v: Dictionary = GameData.rule("potion_level_value", {})
@@ -423,6 +446,9 @@ func rank_up(slot: String) -> bool:
 		return false
 	ranks[slot] = int(ranks[slot]) + 1
 	skill_points -= 1
+	for e in get_ability(slot).get("effects", []):
+		if str(e.get("type", "")) == "stance" and str(e.get("name", "")) == stance:
+			_apply_stance(e, int(ranks[slot]))    # a ranked-up stance gets stronger at once
 	ranks_changed.emit(self)
 	return true
 
@@ -554,6 +580,46 @@ func use_consumable(index: int) -> bool:
 	consumables.remove_at(index)
 	_consume_visuals(item_id)
 	return true
+
+
+# --- Stances (attack styles) ------------------------------------------------------
+
+## Switches to an attack-style stance, which stays on until changed; casting
+## the stance that's already on goes back to the default style.
+func set_stance(e: Dictionary, rank: int) -> void:
+	var name := str(e.get("name", ""))
+	if name == stance:
+		clear_stance()
+		return
+	_apply_stance(e, rank)
+
+
+func clear_stance() -> void:
+	for id in statuses.keys():
+		if str((statuses[id]["data"] as Dictionary).get("stance", "")) != "":
+			statuses.erase(id)
+	stance = ""
+	_stance_def = {}
+
+
+func _apply_stance(e: Dictionary, rank: int) -> void:
+	clear_stance()
+	stance = str(e.get("name", ""))
+	_stance_def = e
+	_stance_rank = rank
+	var parts: Array[String] = []
+	var list: Array = e.get("statuses", [])
+	for i in list.size():
+		var st: Dictionary = list[i]
+		var amt := float(st.get("amount", 0.0)) + float(st.get("amount_per_rank", 0.0)) * float(maxi(rank, 1) - 1)
+		parts.append(BuffBar.stance_part(str(st.get("kind", "")), amt))
+	var text := "Attack style (stays on): %s. Cast it again to switch back." % ", ".join(parts)
+	for i in list.size():
+		var st: Dictionary = list[i]
+		var amt := float(st.get("amount", 0.0)) + float(st.get("amount_per_rank", 0.0)) * float(maxi(rank, 1) - 1)
+		add_status("stance:%d" % i, str(st.get("kind", "")), amt, -1.0, self,
+			{"stance": stance, "primary": i == 0, "title": str(e.get("title", stance.capitalize())),
+			 "icon": str(e.get("icon", "")), "text": text})
 
 
 ## Eating or drinking: the OSRS eat/drink animation and a little burst in
@@ -1526,6 +1592,8 @@ func respawn() -> void:
 	if osrs != null:
 		osrs.revive()
 	_bot_waypoint = 1
+	if stance != "":
+		_apply_stance(_stance_def, _stance_rank)   # the attack style survives death
 	respawned.emit(self)
 
 
@@ -1680,6 +1748,9 @@ func _bot_try_ability(slot: String, target: Unit) -> bool:
 		return false
 	if slot == "r" and not (target is Champion or target.is_epic):
 		return false
+	for e in ab.get("effects", []):
+		if str(e.get("type", "")) == "stance" and str(e.get("name", "")) == stance:
+			return false     # already in that attack style
 	var use := str(ab.get("bot_use", "combat"))
 	if use == "never" or (use == "low_health" and health_ratio() > 0.5) or (use == "high_health" and health_ratio() < 0.7):
 		return false

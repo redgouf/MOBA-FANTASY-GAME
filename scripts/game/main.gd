@@ -810,6 +810,13 @@ func _take_screenshot() -> void:
 			focused.add_status("t4", "tele_block", 0.0, 6.0, null)
 			focused.add_status("t5", "poison", 2.0, 6.0, null)
 			focused.toggle_chosen_prayer()
+			for slot in Champion.SLOTS:
+				for e in focused.get_ability(slot).get("effects", []):
+					if str(e.get("type", "")) == "stance" and focused.stance == "":
+						focused.set_stance(e, 1)   # an attack style (Max Ranger)
+				if focused.get_ability(slot).get("name", "") == "Rock Cake":
+					for k in 3:
+						AbilityRunner.execute(focused, focused.get_ability(slot), null, focused.global_position, 1)
 			await get_tree().create_timer(1.5).timeout
 		"lineup":
 			# Every champion in a row in mid lane, close up (model checks).

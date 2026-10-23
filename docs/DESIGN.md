@@ -49,11 +49,11 @@ The living design doc (full kits, item tables, map breakdown, open questions) is
 
 | Champion | Role | Overheads | Signature |
 | --- | --- | --- | --- |
-| Dharok | Top juggernaut | No | Damage rises as health falls; granite maul double spec |
+| Dharok | Top juggernaut | No | Damage rises as health falls; rock cakes (2s cooldown, stacking) lower his own health on purpose; granite maul double spec |
 | The Pure | Jungle assassin | No | 1 Defence; Sever; four DDS specs |
 | Ancient Mage | Mid control mage | No | Ice/Blood/Shadow Barrage; Volatile staff |
 | Hybrid | Bot/mid skirmisher | No | Range/Mage form switching; Freeze & Spec |
-| Max Ranger | Bot marksman | No | Twisted bow scaling vs magic |
+| Max Ranger | Bot marksman | No | Twisted bow scaling vs magic. Q/E switch between the Rapid (faster, less damage) and Longrange (range and defence, slower) attack styles, which stay on |
 | Blowpiper | Bot hyper-carry | No | Escalating venom; Toxic Siphon |
 | Slayer | Jungle bruiser | Yes | Monster bonus; dwarf multicannon; DWH |
 | Zerker | Top/jungle diver | No | Berserker stacks; dragon claws |

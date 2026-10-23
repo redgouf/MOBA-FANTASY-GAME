@@ -235,6 +235,7 @@ func _build_bottom_left(root: Control) -> void:
 	for key in ["damage", "magic", "attack_speed", "range", "move", "melee_def", "ranged_def", "magic_def", "armor_pen", "combat"]:
 		var l := UiStyle.label(grid, "", 13)
 		l.custom_minimum_size = Vector2(80, 0)
+		l.mouse_filter = Control.MOUSE_FILTER_PASS   # hover: the base value
 		_stats[key] = l
 
 	var items := GridContainer.new()
@@ -478,6 +479,22 @@ func _process(delta: float) -> void:
 
 
 
+## One stat in the bottom-left panel: green when buffs raise it above its
+## base, red when debuffs lower it (for attack time, lower is better).
+func _stat(key: String, fmt: String, value: float, base: float, base_fmt: String, lower_is_better: bool = false) -> void:
+	var l: Label = _stats[key]
+	l.text = fmt % value
+	var col := UiStyle.TEXT
+	var diff := value - base
+	if absf(diff) > maxf(absf(base) * 0.005, 0.01):
+		var better := diff < 0.0 if lower_is_better else diff > 0.0
+		col = Color(0.4, 1.0, 0.4) if better else Color(1.0, 0.45, 0.4)
+	l.add_theme_color_override("font_color", col)
+	var tip := ("Base " + base_fmt) % base if col != UiStyle.TEXT else ""
+	if l.tooltip_text != tip:
+		l.tooltip_text = tip
+
+
 func _update_bottom_left() -> void:
 	_portrait_initial.text = str(champ.def.get("tag", champ.display_name.substr(0, 1)))
 	_level_badge.text = str(champ.level)
@@ -487,18 +504,20 @@ func _update_bottom_left() -> void:
 		_xp.set_values(1, 1, "MAX")
 	else:
 		_xp.set_values(champ.xp, champ.xp_to_next(), "XP")
-	_stats["damage"].text = "Dmg %d" % int(champ.get_damage())
-	_stats["magic"].text = "Magic %d" % int(champ.get_magic_power())
-	_stats["attack_speed"].text = "Atk %.1fs" % champ.get_attack_interval()
-	_stats["range"].text = "Range %.1f" % champ.get_attack_range()
-	_stats["move"].text = "Move %.1f" % champ.get_move_speed()
-	_stats["melee_def"].text = "Melee def %d" % int(champ.get_defence(0))
-	_stats["ranged_def"].text = "Range def %d" % int(champ.get_defence(1))
-	_stats["magic_def"].text = "Magic def %d" % int(champ.get_defence(2))
+	# Live values with every buff and debuff: green when raised, red when lowered.
+	_stat("damage", "Dmg %d", champ.effective_damage(false), champ.base_damage, "%d")
+	_stat("magic", "Magic %d", champ.effective_damage(true), champ.base_magic_power, "%d")
+	_stat("attack_speed", "Atk %.1fs", champ.get_attack_interval(), champ.base_attack_interval(), "%.1fs", true)
+	_stat("range", "Range %.1f", champ.get_attack_range(), champ.base_attack_range, "%.1f")
+	_stat("move", "Move %.1f", champ.get_move_speed(), champ.base_move_speed, "%.1f")
+	_stat("melee_def", "Melee def %d", champ.get_defence(0), champ.base_defence[0], "%d")
+	_stat("ranged_def", "Range def %d", champ.get_defence(1), champ.base_defence[1], "%d")
+	_stat("magic_def", "Magic def %d", champ.get_defence(2), champ.base_defence[2], "%d")
 	if champ.get_skill_power() > 0.0:
-		_stats["armor_pen"].text = "Skill %d" % int(champ.get_skill_power())
+		_stat("armor_pen", "Skill %d", champ.get_skill_power(), champ.skill_power, "%d")
 	else:
 		_stats["armor_pen"].text = "Pen %d%%" % int(champ.armor_pen * 100.0)
+		_stats["armor_pen"].add_theme_color_override("font_color", UiStyle.TEXT)
 	_stats["combat"].text = "Combat %d" % champ.combat_level()
 	for i in 6:
 		var id := champ.inventory[i] if i < champ.inventory.size() else ""

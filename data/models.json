@@ -28,7 +28,7 @@
     },
     "max_ranger": {
       "gear": [4732, 4736, 4738, 6585, 7462, 4131, 2412], "weapon": 861, "attack": "stab",
-      "abilities": {"q": {"clip": "a829"}, "w": {"clip": "a7618"}, "e": {"clip": "a829"}, "r": {"clip": "special_attack_1074"}}
+      "abilities": {"q": {"clip": "bow_attack_426"}, "w": {"clip": "a7618"}, "e": {"clip": "bow_attack_426"}, "r": {"clip": "special_attack_1074"}}
     },
     "blowpiper": {
       "gear": [1169, 2503, 2497, 2491, 3105, 1704, 2414], "weapon": 861, "attack": "stab",

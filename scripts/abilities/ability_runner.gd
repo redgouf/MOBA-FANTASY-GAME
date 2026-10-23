@@ -49,10 +49,24 @@ static func apply_effect(caster: Champion, e: Dictionary, target: Unit, point: V
 			caster.health = maxf(1.0, caster.health - cost)
 			ctx["self_cost"] = cost
 		"status":
+			# "unless_self_status": skip while the caster has that status
+			# (Rock Cake's speed only on the first cake of a run).
+			if e.has("unless_self_status") and caster.has_status(str(e["unless_self_status"])):
+				return
 			for u in _status_targets(caster, e, target, point, ctx):
-				if randf() <= float(e.get("chance", 1.0)):
-					u.add_status(_status_id(caster, e), str(e.get("kind", "")), float(e.get("amount", 0.0)),
-						float(e.get("duration", 1.0)), caster, e.get("data", {}))
+				if randf() > float(e.get("chance", 1.0)):
+					continue
+				var amount := float(e.get("amount", 0.0))
+				var id := _status_id(caster, e)
+				if bool(e.get("stacks", false)):
+					# A counter: each use adds a stack (up to max_stacks) and
+					# restarts the window.
+					id = "stack:" + str(e.get("kind", ""))
+					var held := float(u.statuses[id]["amount"]) if u.statuses.has(id) else 0.0
+					amount = minf(held + amount, float(e.get("max_stacks", 99)))
+				u.add_status(id, str(e.get("kind", "")), amount, float(e.get("duration", 1.0)), caster, e.get("data", {}))
+		"stance":
+			caster.set_stance(e, int(ctx.get("rank", 1)))
 		"dash":
 			_dash(caster, e, target, point)
 		"knockback":
