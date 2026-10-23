@@ -6,7 +6,7 @@ A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School Run
 
 Built with **Godot 4.7.2** (GDScript, Forward+).
 
-## Status: whitebox prototype (v0.11.1)
+## Status: whitebox prototype (v0.11.2)
 
 ![Playing the Pure: stats and items bottom-left, abilities centre, minimap bottom-right, inspected target top-left](docs/screenshots/play.png)
 
@@ -17,7 +17,7 @@ Playable today, with primitive shapes standing in for art:
 - **League of Legends mob and structure stats**: minions, turrets, altars (inhibitors), the standard (nexus) and every jungle camp use Summoner's Rift numbers, wave timings and turret rules. See [docs/LOL_VALUES.md](docs/LOL_VALUES.md).
 - **Champion select in the OSRS interface style** ([screenshot](docs/screenshots/champion_select.png)): portrait cards for every build; click one for its **Equipment Stats** view (gear slots, the figure slowly turning left and right, and its bonuses) and its abilities; **Skills** and **Prayer** tabs on the side; **LOCK IN** starts the game after a 5 second countdown. Nothing on the screen moves when you switch builds. With the private OSRS pack the portraits and figure are the real models; without it, a stand-in figure coloured from the build's gear.
 - **All 24 OSRS skills for every build**: combat levels are fixed per build; every non-combat skill is **rolled 20–75 each game**, and one **lucky skill** per build (marked with a gold star) can roll all the way to 99 (the Skiller is always 99; the Slayer rolls 60–85 Slayer). Hover a skill (champion select, or your portrait in-game) to see which items that level unlocks.
-- **Perfect food and potions**: anyone can buy and use any food or potion; with the Cooking (food) or Herblore (potions) level to make it, yours are **Perfect** and work 15% better (a Perfect shark heals 230 instead of 200). The Dragon harpoon adds another 15%.
+- **Food and potions, OSRS-style**: anyone can buy and use any food or potion. Potions boost their own skill like in OSRS (a ranging potion gives Ranged +4 +10%, a super strength Strength +5 +15%; a Saradomin brew boosts Defence but lowers Attack, Strength, Ranged and Magic, and a super restore undoes that), and boosted levels raise that style's damage or your defence. With the Cooking (food) or Herblore (potions) level to make it, yours are **'perfect'** and 15% stronger (a 'perfect' shark heals 230 instead of 200); nothing under level 20 has a 'perfect' version. The shop shows the normal effect with the 'perfect' one underneath. The Dragon harpoon adds another 15%.
 - **Skilling-gated items**: gear gated by Crafting, Smithing, Fletching, Slayer, Hunter, Thieving and Firemaking (leaf-bladed weapons hit monsters harder, chinchompas explode, the rogue outfit boosts last-hit gold, the bruma torch burns). Anything needing a skill above 75 is Skiller-only, unless a lucky roll gets there.
 - **Skilling tools for fighters**: skill power from tools adds 20% of itself to anyone's basic attacks, axes and the dragon pickaxe hit towers harder, the Imcando hammer gives armour penetration, the Dragon harpoon boosts food, and the infernal axe and pyromancer garb burn.
 - **Make your own gear**: with the level to make an item in OSRS (99 Smithing for a rune platebody, 80 for a godsword, 98 Crafting for an amulet of torture...) its combat requirements don't apply. That's how the Skiller (99 everything, 1 combat) wears combat gear, and a 1 Defence Pure with 63 Crafting can wear a green d'hide body.

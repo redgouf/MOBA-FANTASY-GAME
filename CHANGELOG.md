@@ -2,6 +2,13 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.11.2
+
+- Potions boost their own skill, as in OSRS: attack, strength, defence, ranging and magic potions (and the super and combat versions) raise that level, shown in green in the skills panel. Each boosted level adds damage for that style, or defence. The Saradomin brew boosts Defence and lowers Attack, Strength, Ranged and Magic; a super restore restores them.
+- Food and potions under level 20 (shrimps, trout, attack and strength potions, antipoison) have no 'perfect' version.
+- The shop and tooltips show a consumable's normal effect, then its 'perfect' version on the next line.
+- Darts (and any future arrows or knives) no longer need Fletching.
+
 ## 0.11.1
 
 - First version published as a GitHub release, so **Check for updates** on the splash screen can find and install new versions.

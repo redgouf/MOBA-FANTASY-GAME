@@ -778,6 +778,8 @@ func _take_screenshot() -> void:
 			hud.toggle_shop()
 			if _args.has("shot-tab"):
 				hud._shop.show_tab(str(_args["shot-tab"]))
+			if _args.has("shot-item"):
+				hud._shop.select(str(_args["shot-item"]))
 			await get_tree().process_frame
 		"death":
 			# The death screen, after a few buffs and debuffs went up.

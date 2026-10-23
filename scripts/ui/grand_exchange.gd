@@ -221,15 +221,14 @@ func details(it: Dictionary) -> String:
 	if not art.is_empty():
 		lines.append("[color=#ff981f]Make your own[/color] [color=%s]%s[/color]: waives the combat requirements%s" % [
 			"#4fd65a" if made else "#a8a39a", ItemSlot._levels(art), " (you can)" if made else ""])
-	var pot: Dictionary = it.get("potency", {})
-	if not pot.is_empty():
-		var perfect := champ != null and champ.is_perfect(id)
-		lines.append("[color=#ff981f]Perfect[/color] with [color=%s]%s[/color]: +%d%% stronger%s" % [
-			"#4fd65a" if perfect else "#a8a39a", ItemSlot._levels(pot), roundi(float(GameData.rule("potency_bonus", 0.15)) * 100.0),
-			" (yours are Perfect)" if perfect else " (anyone can use it)"])
 	var tip := ItemSlot._tooltip(it, champ).split("\n")
 	for i in range(1, tip.size()):
-		if tip[i].begins_with("Requires") or tip[i].begins_with("Make your own") or tip[i].begins_with("Anyone can use"):
+		if tip[i].begins_with("Requires") or tip[i].begins_with("Make your own"):
+			continue
+		if tip[i].begins_with("'perfect'"):
+			# The 'perfect' version on its own line: green when yours are.
+			var yours := champ != null and champ.is_perfect(id)
+			lines.append("[color=%s]%s[/color]" % ["#4fd65a" if yours else "#a8a39a", tip[i]])
 			continue
 		lines.append(tip[i])
 	if it.has("builds_from"):

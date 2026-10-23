@@ -44,6 +44,7 @@ func _ready() -> void:
 	await test_v09()
 	await test_v010()
 	await test_updates()
+	test_potions()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
 
@@ -1355,7 +1356,11 @@ func test_v010() -> void:
 	for id in GameData.item_order:
 		var it := GameData.item(id)
 		if it.get("consumable", false):
-			check(not it.has("requirements") and it.has("potency"), "%s has no requirement, only a Perfect level" % id)
+			var lowest := 99
+			for sk_name in it.get("potency", {}):
+				lowest = mini(lowest, int(it["potency"][sk_name]))
+			check(not it.has("requirements") and (it.has("potency") == (lowest >= 20 and lowest < 99)) and (not it.has("potency") or lowest >= 20),
+				"%s has no requirement, and a 'perfect' level only from 20 up" % id)
 	pu.skills["cooking"] = 20
 	sk.gold = 9999
 	pu.gold = 9999
@@ -1368,9 +1373,15 @@ func test_v010() -> void:
 	var hs := sk.status_sum("heal_over_time")
 	var hp := pu.status_sum("heal_over_time")
 	check(is_equal_approx(hs, hp * 1.15), "a Perfect shark heals 15%% more (%.1f vs %.1f a second)" % [hs, hp])
-	check(ItemSlot.perfect_name(GameData.item("shark")) == "Perfect shark", "it's called a Perfect shark")
-	check(ItemSlot._tooltip(GameData.item("shark"), sk).contains("Perfect shark") and ItemSlot._tooltip(GameData.item("shark"), sk).contains("Heals 230"),
-		"the tooltip shows the Perfect numbers")
+	var tip := ItemSlot._tooltip(GameData.item("shark"), sk).split("\n")
+	var use_i := -1
+	for i in tip.size():
+		if tip[i].begins_with("Use: "):
+			use_i = i
+	check(use_i >= 0 and tip[use_i].contains("Heals 200") and use_i + 1 < tip.size() and tip[use_i + 1].begins_with("'perfect' (80 Cooking): Heals 230"),
+		"the tooltip shows the normal effect, then the 'perfect' one on the next line (%s)" % str(tip))
+	check(not ItemSlot._tooltip(GameData.item("shrimps"), sk).contains("'perfect'") and not sk.is_perfect("trout") and not sk.is_perfect("attack_potion"),
+		"nothing under level 20 has a 'perfect' version")
 	pu.skills["herblore"] = 20
 	check(pu.buy_item("super_restore"), "anyone can buy a super restore")
 	pu.prayer = 0.0
@@ -1461,3 +1472,39 @@ func test_updates() -> void:
 	splash._on_failed("No published release was found.")
 	check((splash.find_child("Status", true, false) as Label).text.contains("No published release"), "failures are explained")
 	splash.queue_free()
+
+
+## Potions boost their own skill; ammo needs no Fletching.
+func test_potions() -> void:
+	GameData.load_all(1.0)
+	check(not GameData.item("mithril_darts").get("requirements", {}).has("fletching"), "darts need no Fletching")
+	var c := _make("max_ranger", Combat.Team.SARADOMIN, Vector3(90, 0, 90))
+	c.spawn_point = Vector3(500, 0, 500)
+	c.skills["herblore"] = 50
+	var base_r := c.skill("ranged")
+	var r_info := DamageInfo.make(100.0, Combat.Style.RANGED, c)
+	c.modify_outgoing(r_info, null)
+	var m_info := DamageInfo.make(100.0, Combat.Style.MELEE, c)
+	c.modify_outgoing(m_info, null)
+	c.gold = 9999
+	check(c.buy_item("ranging_potion") and c.use_consumable(0), "drink a ranging potion")
+	var want := 4 + int(floor(0.1 * base_r))
+	check(c.boosted_skill("ranged") == base_r + want and c.skill("ranged") == base_r, "Ranged %d -> %d (+4 +10%%), base unchanged" % [base_r, c.boosted_skill("ranged")])
+	var r2 := DamageInfo.make(100.0, Combat.Style.RANGED, c)
+	c.modify_outgoing(r2, null)
+	var m2 := DamageInfo.make(100.0, Combat.Style.MELEE, c)
+	c.modify_outgoing(m2, null)
+	check(r2.amount > r_info.amount and is_equal_approx(m2.amount, m_info.amount), "it raises ranged damage only")
+	c.skills["herblore"] = 99
+	check(c.buy_item("ranging_potion") and c.use_consumable(0) and c.skill_boost("ranged") > want, "a 'perfect' ranging potion boosts more (%d)" % c.skill_boost("ranged"))
+	var d0 := c.get_defence(0)
+	check(c.buy_item("saradomin_brew") and c.use_consumable(0), "drink a Saradomin brew")
+	check(c.skill_boost("defence") > 0 and c.get_defence(0) > d0 and c.skill_boost("attack") < 0 and c.skill_boost("magic") < 0,
+		"a brew boosts Defence and lowers Attack, Strength, Ranged and Magic")
+	var desc := BuffBar.describe(c.statuses[c.statuses.keys().filter(func(k): return str(k).contains("saradomin_brew:defence"))[0]])
+	check(str(desc["title"]).begins_with("Defence +") and not desc["debuff"], "the buff icon reads 'Defence +N'")
+	check(c.buy_item("super_restore") and c.use_consumable(0) and c.skill_boost("attack") == 0 and c.skill_boost("defence") > 0,
+		"a super restore undoes the drain but keeps the boost")
+	var tip := ItemSlot._tooltip(GameData.item("super_strength"), c)
+	check(tip.contains("Use: Strength +") and tip.contains("'perfect' (55 Herblore): Strength +"), "potion tooltips show the levels for you, then 'perfect' (%s)" % tip)
+	c.queue_free()

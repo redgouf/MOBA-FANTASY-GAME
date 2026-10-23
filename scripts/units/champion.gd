@@ -267,6 +267,49 @@ func spec_regen_mult() -> float:
 	return m
 
 
+## Levels a potion's skill_boost entry gives this champion: flat + pct of the
+## base level, times `mult` for boosts ('perfect' / Dragon harpoon).
+func potion_levels(st: Dictionary, mult: float = 1.0) -> int:
+	var raw := float(st.get("flat", 0.0)) + float(st.get("pct", 0.0)) * float(skill(str(st.get("skill", ""))))
+	if raw > 0.0:
+		raw *= mult
+	return int(floor(raw)) if raw >= 0.0 else -int(floor(-raw))
+
+
+## Levels added to (or taken from) a skill by potions right now.
+func skill_boost(name: String) -> int:
+	var total := 0.0
+	for st in statuses.values():
+		if st["kind"] == "skill_boost" and str((st["data"] as Dictionary).get("skill", "")) == name:
+			total += float(st["amount"])
+	return int(total)
+
+
+## A skill's level with potion boosts and drains (the skills panel shows it
+## as current / base, green when boosted).
+func boosted_skill(name: String) -> int:
+	return maxi(1, skill(name) + skill_boost(name))
+
+
+## What boosted levels do for a style's damage (Strength, Attack, Ranged, Magic).
+func potion_damage_bonus(style: int) -> float:
+	var v: Dictionary = GameData.rule("potion_level_value", {})
+	var per := float(v.get("damage", 0.005))
+	match style:
+		Combat.Style.MELEE:
+			return skill_boost("strength") * per + skill_boost("attack") * float(v.get("attack", 0.0025))
+		Combat.Style.RANGED:
+			return skill_boost("ranged") * per
+		Combat.Style.MAGIC:
+			return skill_boost("magic") * per
+	return 0.0
+
+
+func get_defence(style: int) -> float:
+	var v: Dictionary = GameData.rule("potion_level_value", {})
+	return super(style) * maxf(0.0, 1.0 + skill_boost("defence") * float(v.get("defence", 0.005)))
+
+
 func get_protected_style() -> int:
 	return -1 if has_status("disable_prayer") else protect_style
 
@@ -491,7 +534,19 @@ func use_consumable(index: int) -> bool:
 		for id in statuses.keys():
 			if statuses[id]["kind"] == kind:
 				statuses.erase(id)
+	if bool(use.get("restore_skills", false)):
+		# Super restore: lowered levels come back.
+		for id in statuses.keys():
+			if statuses[id]["kind"] == "skill_boost" and float(statuses[id]["amount"]) < 0.0:
+				statuses.erase(id)
 	for st in use.get("statuses", []):
+		if str(st["kind"]) == "skill_boost":
+			# OSRS potions: +flat + pct of your base level ('perfect' ones boost
+			# more; a drain is never made worse by being 'perfect').
+			var sk := str(st.get("skill", ""))
+			var levels := potion_levels(st, mult)
+			add_status("item:%s:%s" % [item_id, sk], "skill_boost", levels, float(st.get("duration", 60.0)) * keep, self, {"skill": sk})
+			continue
 		# Stronger buffs; buffs without an amount (antipoison) last longer instead.
 		var amt := float(st.get("amount", 0.0))
 		var dur2 := float(st.get("duration", 5.0)) * keep * (1.0 if amt != 0.0 else mult)
@@ -1192,6 +1247,7 @@ func modify_outgoing(info: DamageInfo, target: Unit) -> void:
 	super(info, target)
 	if not info.is_true:
 		info.amount *= 1.0 + prayer_effect("damage_" + Combat.style_name(info.style))
+		info.amount *= maxf(0.0, 1.0 + potion_damage_bonus(info.style))
 	if target != null and target.team == Combat.Team.NEUTRAL:
 		info.amount *= 1.0 + _item_stat("monster_damage")   # Black mask, leaf-bladed weapons
 	if target != null and target.is_structure():

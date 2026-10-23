@@ -183,6 +183,15 @@ func _update_live() -> void:
 	pr.current = ceili(float(pr.base) * champ.prayer / maxf(champ.prayer_max, 1.0))
 	hp.queue_redraw()
 	pr.queue_redraw()
+	# Potion boosts and drains: current / base, like OSRS.
+	for s in _tiles:
+		if s == "hitpoints" or s == "prayer":
+			continue
+		var t: SkillTile = _tiles[s]
+		var now := champ.boosted_skill(s)
+		if now != t.current:
+			t.current = now
+			t.queue_redraw()
 
 
 static func level_of(skills: Dictionary, skill: String) -> int:
@@ -238,7 +247,7 @@ static func skill_tooltip(def: Dictionary, skill: String) -> String:
 		if art.has(skill) and lvl >= int(art[skill]):
 			make.append(str(it.get("name", id)))
 	if not perfect.is_empty():
-		lines.append("Perfect (+%d%%): %s" % [roundi(float(GameData.rule("potency_bonus", 0.15)) * 100.0), ", ".join(perfect)])
+		lines.append("'perfect' (+%d%%): %s" % [roundi(float(GameData.rule("potency_bonus", 0.15)) * 100.0), ", ".join(perfect)])
 	if not make.is_empty():
 		lines.append("Make your own (no combat requirements): " + ", ".join(make))
 	if usable.is_empty() and locked.is_empty() and perfect.is_empty() and make.is_empty() and skill != "hitpoints" and skill != "prayer" and lines.size() == 1:
@@ -268,7 +277,7 @@ class SkillTile extends Control:
 		if lucky:
 			_star(Vector2(size.x - 9.0, 9.0), 6.0)
 		var font := get_theme_default_font()
-		var col := SkillsPanel.YELLOW if current >= base else Color(1.0, 0.55, 0.1)
+		var col := Color(0.2, 1.0, 0.2) if current > base else (SkillsPanel.YELLOW if current == base else Color(1.0, 0.55, 0.1))
 		_shadow_text(font, Vector2(46, 22), str(current), 17, col)
 		draw_line(Vector2(62, 34), Vector2(74, 14), Color(0.05, 0.05, 0.05), 3.0)
 		draw_line(Vector2(61, 33), Vector2(73, 13), SkillsPanel.YELLOW, 1.5)

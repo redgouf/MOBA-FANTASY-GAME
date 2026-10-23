@@ -80,15 +80,6 @@ func set_item(id: String, cooldown_left: float = 0.0, cooldown_total: float = 0.
 
 
 ## One stat line: "+12% attack speed", "+5 prayer bonus", "+25 damage".
-## "Perfect shark" for food, "Super restore (perfect)" for potions.
-static func perfect_name(it: Dictionary) -> String:
-	var n := str(it.get("name", ""))
-	var use: Dictionary = it.get("use", {})
-	if use.has("heal") or use.has("heal_over_time") or use.has("heal_pct_max"):
-		return "Perfect " + n.to_lower()
-	return n + " (perfect)"
-
-
 static func _levels(d: Dictionary) -> String:
 	var parts: Array[String] = []
 	for s in d:
@@ -119,7 +110,15 @@ static func stat_text(k: String, v: float) -> String:
 
 ## What a food or potion does: "Heals 160 over 5s", "+5% damage for 60s".
 ## `mult` scales the amounts (a Perfect item for you shows its real numbers).
-static func use_text(use: Dictionary, mult: float = 1.0) -> String:
+static func use_text(use: Dictionary, mult: float = 1.0, champ: Champion = null) -> String:
+	var parts := use_parts(use, mult, champ)
+	return ("Use: " + ", ".join(parts)) if not parts.is_empty() else "Consumable"
+
+
+## The effects of a food or potion, scaled by `mult`. With a champion,
+## skill boosts show its real levels ("Strength +14"); without, the OSRS
+## formula ("Strength +5 +15%").
+static func use_parts(use: Dictionary, mult: float = 1.0, champ: Champion = null) -> Array[String]:
 	var parts: Array[String] = []
 	if use.has("heal"):
 		parts.append("Heals %d" % roundi(float(use["heal"]) * mult))
@@ -129,19 +128,51 @@ static func use_text(use: Dictionary, mult: float = 1.0) -> String:
 		parts.append("Heals %d%% of max health" % roundi(float(use["heal_pct_max"]) * 100.0 * mult))
 	if use.has("prayer"):
 		parts.append("Restores %d prayer" % roundi(float(use["prayer"]) * mult))
+	var boosts: Array[String] = []
+	var boost_dur := 0
 	for st in use.get("statuses", []):
+		if str(st["kind"]) == "skill_boost":
+			var sk := str(st.get("skill", "")).capitalize()
+			boost_dur = int(st.get("duration", 60))
+			if champ != null:
+				var lv := champ.potion_levels(st, mult)
+				boosts.append("%s %s%d" % [sk, "+" if lv >= 0 else "", lv])
+			else:
+				var flat := float(st.get("flat", 0.0))
+				var pct := float(st.get("pct", 0.0))
+				var txt := "%s %s%d" % [sk, "+" if flat >= 0.0 else "", int(flat)]
+				if pct != 0.0:
+					txt += " %s%d%%" % ["+" if pct >= 0.0 else "", roundi(pct * 100.0)]
+				boosts.append(txt)
+			continue
 		var amt := float(st.get("amount", 0.0)) * mult
 		var what: String = {"damage_mult": "damage", "armor_mult": "armour", "haste": "move speed"}.get(str(st["kind"]), "")
 		if what != "":
 			parts.append("%s%d%% %s for %ds" % ["+" if amt >= 0.0 else "", roundi(amt * 100.0), what, int(st.get("duration", 0))])
-	return ("Use: " + ", ".join(parts)) if not parts.is_empty() else "Consumable"
+		elif str(st["kind"]) == "antipoison":
+			parts.append("poison immunity for %ds" % roundi(float(st.get("duration", 0)) * mult))
+	if not boosts.is_empty():
+		parts.append("%s for %ds" % [", ".join(boosts), boost_dur])
+	if bool(use.get("restore_skills", false)):
+		parts.append("restores lowered levels")
+	return parts
+
+
+## The 'perfect' line under a consumable's normal effect.
+static func perfect_text(it: Dictionary, champ: Champion = null) -> String:
+	var pot: Dictionary = it.get("potency", {})
+	if pot.is_empty() or not it.has("use"):
+		return ""
+	var bonus := float(GameData.rule("potency_bonus", 0.15))
+	var base := 1.0 + (champ._item_stat("consumable_bonus") if champ != null else 0.0)
+	var parts := use_parts(it["use"], base + bonus, champ)
+	var yours := champ != null and champ.is_perfect(str(it.get("id", "")))
+	return "'perfect' (%s): %s%s" % [_levels(pot), ", ".join(parts), "  (yours)" if yours else ""]
 
 
 static func _tooltip(it: Dictionary, champ: Champion = null) -> String:
 	var lines: Array[String] = [str(it.get("name", ""))]
 	var id := str(it.get("id", ""))
-	if champ != null and champ.is_perfect(id):
-		lines[0] = perfect_name(it)
 	var reqs: Dictionary = it.get("requirements", {})
 	if not reqs.is_empty():
 		var parts: Array[String] = []
@@ -151,9 +182,6 @@ static func _tooltip(it: Dictionary, champ: Champion = null) -> String:
 	var art: Dictionary = it.get("artisan", {})
 	if not art.is_empty():
 		lines.append("Make your own: %s waives the combat requirements" % _levels(art))
-	var pot: Dictionary = it.get("potency", {})
-	if not pot.is_empty():
-		lines.append("Anyone can use it. Perfect with %s: +%d%% stronger" % [_levels(pot), roundi(float(GameData.rule("potency_bonus", 0.15)) * 100.0)])
 	var stats: Dictionary = it.get("stats", {})
 	for k in stats:
 		if k == "elysian":
@@ -167,7 +195,12 @@ static func _tooltip(it: Dictionary, champ: Champion = null) -> String:
 		var sa: Dictionary = it["spec_active"]
 		lines.append("Spec: %s (%d%% energy, %ds cooldown)" % [sa.get("name", ""), int(sa.get("spec_cost", 0)), int(sa.get("cooldown", 0))])
 	if it.has("use"):
-		lines.append(use_text(it["use"], champ.consumable_mult(id) if champ != null else 1.0))
+		# The normal effect, then the 'perfect' one on the next line.
+		var normal := 1.0 + (champ._item_stat("consumable_bonus") if champ != null else 0.0)
+		lines.append(use_text(it["use"], normal, champ))
+		var perfect := perfect_text(it, champ)
+		if perfect != "":
+			lines.append(perfect)
 	if it.has("text"):
 		lines.append(str(it["text"]))
 	return "\n".join(lines)

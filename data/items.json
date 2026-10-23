@@ -1,5 +1,5 @@
 {
-  "_notes": "Requirements use real OSRS skill levels. Entries marked verify:true still need checking against the OSRS Wiki. Set bonuses and 'text' effects without code are planned, not yet implemented. Consumables have no requirement: 'potency' is the Cooking/Herblore level that makes them Perfect (+15%). 'artisan' is the level to make an item yourself, which waives its combat requirements.",
+  "_notes": "Requirements use real OSRS skill levels. Entries marked verify:true still need checking against the OSRS Wiki. Set bonuses and 'text' effects without code are planned, not yet implemented. Consumables have no requirement: 'potency' is the Cooking/Herblore level that makes them 'perfect' (+15%); items under level 20 have none. Ammo (arrows, darts, knives) never needs Fletching or Runecraft. Potions boost their OSRS skill ('skill_boost': flat + pct of the base level). 'artisan' is the level to make an item yourself, which waives its combat requirements.",
   "items": [
     {
       "id": "rune_scimitar",
@@ -1477,7 +1477,6 @@
       "tier": "component",
       "cost": 500,
       "requirements": {
-        "fletching": 52,
         "ranged": 20
       },
       "stats": {
@@ -1711,20 +1710,46 @@
         "heal_pct_max": 0.2,
         "statuses": [
           {
-            "kind": "armor_mult",
-            "amount": 0.2,
-            "duration": 5
+            "kind": "skill_boost",
+            "skill": "defence",
+            "flat": 2,
+            "pct": 0.2,
+            "duration": 60
           },
           {
-            "kind": "damage_mult",
-            "amount": -0.1,
-            "duration": 5
+            "kind": "skill_boost",
+            "skill": "attack",
+            "flat": -2,
+            "pct": -0.1,
+            "duration": 60
+          },
+          {
+            "kind": "skill_boost",
+            "skill": "strength",
+            "flat": -2,
+            "pct": -0.1,
+            "duration": 60
+          },
+          {
+            "kind": "skill_boost",
+            "skill": "ranged",
+            "flat": -2,
+            "pct": -0.1,
+            "duration": 60
+          },
+          {
+            "kind": "skill_boost",
+            "skill": "magic",
+            "flat": -2,
+            "pct": -0.1,
+            "duration": 60
           }
         ]
       },
       "potency": {
         "herblore": 81
-      }
+      },
+      "text": "Heals 20% of max health and boosts Defence by 2 + 20%, but lowers Attack, Strength, Ranged and Magic by 2 + 10%. A super restore undoes the drain."
     },
     {
       "id": "super_restore",
@@ -1732,11 +1757,13 @@
       "consumable": true,
       "cost": 150,
       "use": {
-        "prayer": 40
+        "prayer": 40,
+        "restore_skills": true
       },
       "potency": {
         "herblore": 63
-      }
+      },
+      "text": "Restores 40 prayer and any lowered levels (Saradomin brew)."
     },
     {
       "id": "prayer_potion",
@@ -1758,8 +1785,24 @@
       "use": {
         "statuses": [
           {
-            "kind": "damage_mult",
-            "amount": 0.08,
+            "kind": "skill_boost",
+            "skill": "attack",
+            "flat": 5,
+            "pct": 0.15,
+            "duration": 60
+          },
+          {
+            "kind": "skill_boost",
+            "skill": "strength",
+            "flat": 5,
+            "pct": 0.15,
+            "duration": 60
+          },
+          {
+            "kind": "skill_boost",
+            "skill": "defence",
+            "flat": 5,
+            "pct": 0.15,
             "duration": 60
           }
         ]
@@ -1793,9 +1836,6 @@
       "cost": 15,
       "use": {
         "heal": 50
-      },
-      "potency": {
-        "cooking": 1
       }
     },
     {
@@ -1806,9 +1846,6 @@
       "use": {
         "heal_over_time": 100,
         "duration": 5
-      },
-      "potency": {
-        "cooking": 15
       }
     },
     {
@@ -1936,10 +1973,7 @@
           }
         ]
       },
-      "text": "Cures poison and protects you from poison for 30s.",
-      "potency": {
-        "herblore": 5
-      }
+      "text": "Cures poison and protects you from poison for 30s."
     },
     {
       "id": "attack_potion",
@@ -1949,14 +1983,13 @@
       "use": {
         "statuses": [
           {
-            "kind": "damage_mult",
-            "amount": 0.03,
+            "kind": "skill_boost",
+            "skill": "attack",
+            "flat": 3,
+            "pct": 0.1,
             "duration": 60
           }
         ]
-      },
-      "potency": {
-        "herblore": 3
       }
     },
     {
@@ -1967,14 +2000,13 @@
       "use": {
         "statuses": [
           {
-            "kind": "damage_mult",
-            "amount": 0.04,
+            "kind": "skill_boost",
+            "skill": "strength",
+            "flat": 3,
+            "pct": 0.1,
             "duration": 60
           }
         ]
-      },
-      "potency": {
-        "herblore": 12
       }
     },
     {
@@ -2003,8 +2035,10 @@
       "use": {
         "statuses": [
           {
-            "kind": "armor_mult",
-            "amount": 0.06,
+            "kind": "skill_boost",
+            "skill": "defence",
+            "flat": 3,
+            "pct": 0.1,
             "duration": 60
           }
         ]
@@ -2021,13 +2055,17 @@
       "use": {
         "statuses": [
           {
-            "kind": "damage_mult",
-            "amount": 0.04,
+            "kind": "skill_boost",
+            "skill": "attack",
+            "flat": 3,
+            "pct": 0.1,
             "duration": 60
           },
           {
-            "kind": "armor_mult",
-            "amount": 0.04,
+            "kind": "skill_boost",
+            "skill": "strength",
+            "flat": 3,
+            "pct": 0.1,
             "duration": 60
           }
         ]
@@ -2044,8 +2082,10 @@
       "use": {
         "statuses": [
           {
-            "kind": "damage_mult",
-            "amount": 0.05,
+            "kind": "skill_boost",
+            "skill": "attack",
+            "flat": 5,
+            "pct": 0.15,
             "duration": 60
           }
         ]
@@ -2109,8 +2149,10 @@
       "use": {
         "statuses": [
           {
-            "kind": "damage_mult",
-            "amount": 0.06,
+            "kind": "skill_boost",
+            "skill": "strength",
+            "flat": 5,
+            "pct": 0.15,
             "duration": 60
           }
         ]
@@ -2127,8 +2169,10 @@
       "use": {
         "statuses": [
           {
-            "kind": "armor_mult",
-            "amount": 0.1,
+            "kind": "skill_boost",
+            "skill": "defence",
+            "flat": 5,
+            "pct": 0.15,
             "duration": 60
           }
         ]
@@ -2145,8 +2189,10 @@
       "use": {
         "statuses": [
           {
-            "kind": "damage_mult",
-            "amount": 0.08,
+            "kind": "skill_boost",
+            "skill": "ranged",
+            "flat": 4,
+            "pct": 0.1,
             "duration": 60
           }
         ]
@@ -2163,8 +2209,10 @@
       "use": {
         "statuses": [
           {
-            "kind": "damage_mult",
-            "amount": 0.08,
+            "kind": "skill_boost",
+            "skill": "magic",
+            "flat": 4,
+            "pct": 0.0,
             "duration": 60
           }
         ]

@@ -84,6 +84,23 @@ static func describe(st: Dictionary) -> Dictionary:
 			return {"icon": "spec_regen_mult", "title": "Abyssal surge", "text": "Special attack energy regenerates %s faster (blue buff)." % pct, "debuff": false}
 		"skill_power_mult":
 			return {"icon": "skill_power_mult", "title": "Skill power +%s" % pct, "text": "Skilling abilities hit %s harder." % pct, "debuff": false}
+		"skill_boost":
+			var sk := str((st.get("data", {}) as Dictionary).get("skill", ""))
+			var lv := roundi(a)
+			var v: Dictionary = GameData.rule("potion_level_value", {})
+			var what := ""
+			match sk:
+				"strength", "ranged", "magic":
+					what = "%s%s%% %s damage" % ["+" if lv >= 0 else "−", str(snappedf(absf(lv * float(v.get("damage", 0.005))) * 100.0, 0.1)),
+						{"strength": "melee", "ranged": "ranged", "magic": "magic"}[sk]]
+				"attack":
+					what = "%s%s%% melee damage" % ["+" if lv >= 0 else "−", str(snappedf(absf(lv * float(v.get("attack", 0.0025))) * 100.0, 0.1))]
+				"defence":
+					what = "%s%s%% defence" % ["+" if lv >= 0 else "−", str(snappedf(absf(lv * float(v.get("defence", 0.005))) * 100.0, 0.1))]
+			var up := lv >= 0
+			return {"icon": ("armor_up" if up else "armor_down") if sk == "defence" else ("damage_up" if up else "damage_down"),
+				"title": "%s %s%d" % [sk.capitalize(), "+" if up else "−", absi(lv)],
+				"text": "%s %s by %d levels: %s." % [sk.capitalize(), "boosted" if up else "lowered", absi(lv), what], "debuff": not up}
 		"antipoison":
 			return {"icon": "antipoison", "title": "Antipoison", "text": "Immune to poison for now.", "debuff": false}
 	return {"icon": "", "title": kind.replace("_", " ").capitalize(), "text": "", "debuff": false}
