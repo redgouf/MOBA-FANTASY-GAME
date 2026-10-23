@@ -1,14 +1,21 @@
 name: Release
 
-# Pushing a version tag (v0.11.1) builds the normal Windows exe and publishes
-# it as a GitHub release, which the game's "Check for updates" button reads.
-# The release notes are that version's section of CHANGELOG.md. Only the
-# "Windows Desktop" preset is built: it leaves out private_assets/, so the
-# personal (OSRS models) build is never published.
+# Publishes each new game version as a GitHub release, which the game's
+# "Check for updates" button reads. It runs whenever main changes the
+# version in project.godot (so a version bump publishes itself, no manual
+# tag needed), on a pushed version tag, or by hand (Actions > Release > Run).
+# If that version already has a release it does nothing; a stray tag with no
+# release (e.g. made on an older commit) is replaced. The release notes are
+# that version's section of CHANGELOG.md. Only the "Windows Desktop" preset
+# is built: it leaves out private_assets/, so the personal (OSRS models)
+# build is never published.
 
 on:
   push:
+    branches: [main]
+    paths: ["project.godot", ".github/workflows/release.yml"]
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,7 +29,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Work out the version
+        id: ver
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(sed -n 's/^config\/version="\(.*\)"/\1/p' project.godot)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "v$version is already released; nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download Godot and export templates
+        if: steps.ver.outputs.skip == 'false'
         run: |
           mkdir -p ~/godot
           curl -sSL -o /tmp/godot.zip \
@@ -37,32 +60,39 @@ jobs:
           unzip -q /tmp/templates.tpz -d /tmp/templates
           mv /tmp/templates/templates/* "$dir"/
 
-      - name: Check the tag matches the game version
+      - name: Check a pushed tag matches the game version
+        if: steps.ver.outputs.skip == 'false' && github.ref_type == 'tag'
         run: |
-          tag="${GITHUB_REF_NAME#v}"
-          version=$(sed -n 's/^config\/version="\(.*\)"/\1/p' project.godot)
-          echo "tag $tag, game $version"
-          test "$tag" = "$version"
+          echo "tag ${GITHUB_REF_NAME}, game ${{ steps.ver.outputs.tag }}"
+          test "${GITHUB_REF_NAME}" = "${{ steps.ver.outputs.tag }}"
 
       - name: Import and test
+        if: steps.ver.outputs.skip == 'false'
         run: |
           ~/godot/godot --headless --path . --import || true
           timeout 600 ~/godot/godot --headless --path . res://tests/test_runner.tscn
 
       - name: Export the Windows build
+        if: steps.ver.outputs.skip == 'false'
         run: |
           mkdir -p build/windows
           ~/godot/godot --headless --path . --export-release "Windows Desktop" build/windows/GielinorLegends.exe
           if grep -q "osrs_clips.res\|player_animations.glb" build/windows/GielinorLegends.exe; then
             echo "Private OSRS files ended up in the build"; exit 1
           fi
-          (cd build/windows && zip -q -9 "../../GielinorLegends-${GITHUB_REF_NAME}-windows.zip" GielinorLegends.exe)
+          (cd build/windows && zip -q -9 "../../GielinorLegends-${{ steps.ver.outputs.tag }}-windows.zip" GielinorLegends.exe)
 
       - name: Publish the release
+        if: steps.ver.outputs.skip == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          v="${GITHUB_REF_NAME#v}"
+          v="${{ steps.ver.outputs.version }}"
+          tag="${{ steps.ver.outputs.tag }}"
+          # A tag left on another commit without a release is replaced.
+          if [ "${{ github.ref_type }}" != "tag" ] && git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            git push origin ":refs/tags/$tag"
+          fi
           awk -v v="$v" '$0 == "## " v {f=1; next} /^## /{f=0} f' CHANGELOG.md > notes.md
-          gh release create "$GITHUB_REF_NAME" "GielinorLegends-${GITHUB_REF_NAME}-windows.zip" \
-            --title "Gielinor Legends $v" --notes-file notes.md
+          gh release create "$tag" "GielinorLegends-$tag-windows.zip" \
+            --target "$GITHUB_SHA" --title "Gielinor Legends $v" --notes-file notes.md

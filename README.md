@@ -131,7 +131,7 @@ The game opens on a small splash screen with its version, **Play**, **Check for 
 To publish an update:
 
 1. Bump `config/version` in `project.godot` (and the file/product version in `export_presets.cfg`).
-2. Add the version's section to `CHANGELOG.md`, commit, then push a tag: `git tag vX.Y.Z && git push origin vX.Y.Z`. The Release workflow (`.github/workflows/release.yml`) tests the game, exports the normal Windows build and publishes the release with that changelog section as its notes.
+2. Add the version's section to `CHANGELOG.md`, commit and push to `main`. The Release workflow (`.github/workflows/release.yml`) sees the new version, tests the game, exports the normal Windows build and publishes the `vX.Y.Z` release with that changelog section as its notes. No tag is needed (pushing one, or running the workflow from the Actions tab, also works).
 
 The game can only see public releases: GitHub hides a private repo's releases from anyone who isn't signed in. Never attach the personal (OSRS models) build to a release. The personal build checks for updates but doesn't download them.
 
