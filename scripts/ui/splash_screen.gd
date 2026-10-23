@@ -1,13 +1,18 @@
 class_name SplashScreen
 extends CanvasLayer
 ## The first screen: the game's name, this build's version, Play, Check for
-## updates and Quit. Checking asks GitHub for the latest release (Updater):
-## if it's newer, its changes are listed and "Download and install" fetches
-## it, closes the game, swaps in the new version and starts it again.
+## updates and Quit. On opening (with "Update automatically" on) and on
+## Check for updates it asks GitHub for the latest release (Updater); if
+## it's newer, it lists the changes, downloads it, closes the game, swaps in
+## the new version and starts it again, all in one go. Play skips it.
 
 signal play_pressed
 
 var updater: Updater
+## Main sets this: check (and update) as soon as the splash opens.
+var auto_check := false
+var _manual := false
+var _auto_box: CheckBox
 var _root: Control
 var _status: Label
 var _notes: RichTextLabel
@@ -40,7 +45,7 @@ func _ready() -> void:
 	title.clip_text = false
 	var sub := OsrsUi.text(p, "A Saradomin-vs-Zamorak MOBA of Old School RuneScape builds", 15, OsrsUi.MUTED, Rect2(0, 92, 600, 22))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var ver := OsrsUi.text(p, "Version %s%s" % [Updater.current_version(), "  ·  personal build" if Updater.is_personal_build() else ""],
+	var ver := OsrsUi.text(p, "Version %s%s" % [Updater.current_version(), "  ·  OSRS models" if Updater.is_personal_build() else ""],
 		14, OsrsUi.YELLOW, Rect2(0, 118, 600, 20))
 	ver.name = "Version"
 	ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -54,16 +59,28 @@ func _ready() -> void:
 	_check.pressed.connect(check_for_updates)
 	var quit := _button(p, "Quit", Rect2(150, 288, 300, 36), 15)
 	quit.pressed.connect(func() -> void: get_tree().quit())
+	_auto_box = CheckBox.new()
+	_auto_box.name = "AutoUpdate"
+	_auto_box.text = "Update automatically"
+	_auto_box.button_pressed = Settings.auto_update
+	_auto_box.focus_mode = Control.FOCUS_NONE
+	_auto_box.add_theme_font_size_override("font_size", 13)
+	_auto_box.add_theme_color_override("font_color", OsrsUi.MUTED)
+	_auto_box.position = Vector2(222, 330)
+	_auto_box.toggled.connect(func(on: bool) -> void:
+		Settings.auto_update = on
+		Settings.save_settings())
+	p.add_child(_auto_box)
 
-	_status = OsrsUi.text(p, "", 14, OsrsUi.WHITE, Rect2(24, 338, 552, 40))
+	_status = OsrsUi.text(p, "", 14, OsrsUi.WHITE, Rect2(24, 366, 552, 40))
 	_status.name = "Status"
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.clip_text = false
 	_notes = RichTextLabel.new()
 	_notes.bbcode_enabled = true
-	_notes.position = Vector2(24, 382)
-	_notes.size = Vector2(552, 150)
+	_notes.position = Vector2(24, 410)
+	_notes.size = Vector2(552, 124)
 	_notes.add_theme_font_size_override("normal_font_size", 13)
 	_notes.add_theme_color_override("default_color", Color(0.92, 0.88, 0.78))
 	_notes.add_theme_stylebox_override("normal", OsrsUi.slot_box())
@@ -90,6 +107,8 @@ func _ready() -> void:
 	updater.failed.connect(_on_failed)
 	updater.progress.connect(_on_progress)
 	updater.downloaded.connect(_on_downloaded)
+	if auto_check and Settings.auto_update:
+		check_for_updates(false)
 
 
 func _button(parent: Control, text: String, rect: Rect2, size: int) -> Button:
@@ -102,7 +121,11 @@ func _button(parent: Control, text: String, rect: Rect2, size: int) -> Button:
 	return b
 
 
-func check_for_updates() -> void:
+## Checks GitHub; a newer version downloads and installs straight away when
+## the check was clicked, or (automatic check) when "Update automatically"
+## is on.
+func check_for_updates(manual: bool = true) -> void:
+	_manual = manual
 	_check.disabled = true
 	_install.visible = false
 	_notes.visible = false
@@ -125,12 +148,14 @@ func _on_checked(r: Dictionary) -> void:
 	_status.text = "Version %s is out (you have %s). What's new:" % [r.get("version", "?"), Updater.current_version()]
 	_notes.text = _format_notes(str(r.get("notes", "")))
 	_notes.visible = true
-	if Updater.is_personal_build():
-		_status.text += "\nPersonal builds aren't published: ask for a new personal build."
+	if not Updater.can_install():
+		_status.text += "\nThis personal build has the models built in: ask for a new one."
 	elif str(r.get("download", "")) == "":
 		_status.text += "\nThis release has no Windows download yet."
+	elif _manual or Settings.auto_update:
+		_download()      # one step: download, install, restart
 	else:
-		_install.text = "Download and install (%s)" % _mb(int(r.get("size", 0)))
+		_install.text = "Update now (%s)" % _mb(int(r.get("size", 0)))
 		_install.visible = true
 
 
@@ -159,7 +184,8 @@ func _on_progress(done: int, total: int) -> void:
 
 func _on_downloaded(path: String) -> void:
 	_bar.value = _bar.max_value
-	_status.text = "Installing: the game will close and reopen on the new version."
+	_status.text = "Installing: the game will close and reopen on the new version%s." % (
+		" (your OSRS models stay)" if Updater.models_from_pack() else "")
 	if not updater.install(path):
 		_status.text = "Downloaded to %s. Unzip it over the game folder to update." % path.get_base_dir()
 		if str(_release.get("url", "")) != "":

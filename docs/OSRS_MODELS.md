@@ -18,11 +18,14 @@ The game can use real OSRS models and animations from the SkullSlayer asset pack
    ```
 
    Re-run it whenever `data/models.json` names new clips.
-4. Export the personal build:
+4. Build the models pack and put it next to the normal exe:
 
    ```bash
-   godot --headless --path . --export-release "Windows Desktop (personal, OSRS models)" build/windows-personal/GielinorLegends-personal.exe
+   godot --headless --path . --export-release "Windows Desktop" build/windows/GielinorLegends.exe
+   godot --headless --path . -s res://tools/pack_osrs_models.gd -- build/windows/osrs_models.pck
    ```
+
+   `osrs_models.pck` holds only the model files (and their imported forms), minus the unused ones the personal preset leaves out. At start-up the `ModelPack` autoload loads it from the exe's folder, and the models show. Because the models aren't inside the exe, the in-game updater can swap the exe for a public release and the pack stays: the personal setup updates itself. Never publish the pack. (The old `Windows Desktop (personal, OSRS models)` preset, which builds the models into the exe, still works, but that exe can't update itself.)
 
 ## How it fits together
 

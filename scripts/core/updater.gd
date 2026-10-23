@@ -6,8 +6,9 @@ extends Node
 ## latest release is read from the GitHub API; its tag ("v0.10.0") is compared
 ## with this build's version (project.godot → config/version), its notes are
 ## the change list, and its asset ending in "-windows.zip" is the download.
-## The personal build (OSRS models) never downloads: personal builds aren't
-## published, so it only reports that a new version exists.
+## The personal setup updates too when its models come from osrs_models.pck
+## (only the exe is replaced, the pack stays); an old personal exe with the
+## models built in only reports that a new version exists.
 ##
 ## Installing (exported Windows build): the zip is downloaded next to the exe,
 ## then a small script waits for the game to close, unzips it over the old
@@ -35,9 +36,23 @@ static func repo() -> String:
 	return str(GameData.rule("updates", {}).get("repo", ""))
 
 
-## The personal build carries the private OSRS models (export feature "personal").
+## The personal setup: the private OSRS models, either loaded from
+## osrs_models.pck next to the exe (ModelPack) or built into an old-style
+## personal exe (export feature "personal").
 static func is_personal_build() -> bool:
-	return OS.has_feature("personal")
+	return models_from_pack() or OS.has_feature("personal")
+
+
+## Models in osrs_models.pck survive an update (only the exe is replaced),
+## so this setup can install public releases.
+static func models_from_pack() -> bool:
+	return ModelPack.loaded
+
+
+## Whether installing a public release is safe here: everything but an
+## old-style personal exe with the models built in (it would lose them).
+static func can_install() -> bool:
+	return models_from_pack() or not OS.has_feature("personal")
 
 
 ## "v0.10.1" -> [0, 10, 1]; anything that isn't a number counts as 0.

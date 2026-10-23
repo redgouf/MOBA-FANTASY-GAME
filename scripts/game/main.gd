@@ -115,6 +115,7 @@ func _parse_args() -> Dictionary:
 func _show_splash() -> void:
 	Settings.splash_seen = true
 	var splash := SplashScreen.new()
+	splash.auto_check = _shot_path == ""   # (screenshots stay offline)
 	add_child(splash)
 	splash.play_pressed.connect(func() -> void:
 		splash.queue_free()

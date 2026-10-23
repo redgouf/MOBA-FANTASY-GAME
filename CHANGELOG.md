@@ -2,6 +2,11 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.14.0
+
+- Updates install themselves: the splash screen checks for a new version as it opens and, if there is one, downloads it, closes the game and reopens on the new version. Check for updates does the same in one click. An "Update automatically" box turns the automatic part off.
+- The OSRS models now live in `osrs_models.pck` beside the exe instead of inside it, so a personal setup updates like everyone else's and keeps its models.
+
 ## 0.13.1
 
 - Normal cast: right-clicking to move cancels the spell indicator again (and still moves). You can still bring an indicator up while you're walking.

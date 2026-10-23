@@ -23,6 +23,8 @@ var cast_mode := CAST_NORMAL
 ## "spectate" = NPC vs NPC.
 ## The splash screen shows once per session (not again on restart).
 var splash_seen := false
+## The splash screen checks for a new version and installs it by itself.
+var auto_update := true
 var pending_mode := ""
 var pending_champion := ""
 var pending_prayer := ""        # prayer id picked at champion select ("" = the build's default)
@@ -44,6 +46,7 @@ func load_settings() -> void:
 	show_fps = bool(cfg.get_value("video", "show_fps", show_fps))
 	# (v0.9 made normal cast the default; the key changed so older saves pick it up)
 	cast_mode = clampi(int(cfg.get_value("controls", "cast_mode_v2", cast_mode)), 0, CAST_MODE_NAMES.size() - 1)
+	auto_update = bool(cfg.get_value("updates", "auto_update", auto_update))
 
 
 func save_settings() -> void:
@@ -54,6 +57,7 @@ func save_settings() -> void:
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("video", "show_fps", show_fps)
 	cfg.set_value("controls", "cast_mode_v2", cast_mode)
+	cfg.set_value("updates", "auto_update", auto_update)
 	cfg.save(PATH)
 
 

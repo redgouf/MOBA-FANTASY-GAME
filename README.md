@@ -6,7 +6,7 @@ A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School Run
 
 Built with **Godot 4.7.2** (GDScript, Forward+).
 
-## Status: whitebox prototype (v0.13.1)
+## Status: whitebox prototype (v0.14)
 
 ![Playing the Pure: stats and items bottom-left, abilities centre, minimap bottom-right, inspected target top-left](docs/screenshots/play.png)
 
@@ -126,14 +126,14 @@ The preset in `export_presets.cfg` embeds the game into the .exe, packs `data/*.
 
 ## Updates (splash screen)
 
-The game opens on a small splash screen with its version, **Play**, **Check for updates** and **Quit**. Checking reads the latest **GitHub release** of the repo in `data/rules.json` → `updates.repo` and compares its tag with `config/version` in `project.godot`. If the release is newer, its notes are shown as the change list, and **Download and install** fetches its `-windows.zip`, closes the game, unzips it over the game folder and starts the new version.
+The game opens on a small splash screen with its version, **Play**, **Check for updates**, **Quit** and an **Update automatically** box (on by default). On opening, and whenever you click Check for updates, it reads the latest **GitHub release** of the repo in `data/rules.json` → `updates.repo` and compares its tag with `config/version` in `project.godot`. If the release is newer, it shows the release notes, downloads its `-windows.zip`, closes the game, unzips it over the game folder and starts the new version, all in one go. Play skips it. With the box off, the automatic check only offers **Update now**.
 
 To publish an update:
 
 1. Bump `config/version` in `project.godot` (and the file/product version in `export_presets.cfg`).
 2. Add the version's section to `CHANGELOG.md`, commit and push to `main`. The Release workflow (`.github/workflows/release.yml`) sees the new version, tests the game, exports the normal Windows build and publishes the `vX.Y.Z` release with that changelog section as its notes. No tag is needed (pushing one, or running the workflow from the Actions tab, also works).
 
-The game can only see public releases: GitHub hides a private repo's releases from anyone who isn't signed in. Never attach the personal (OSRS models) build to a release. The personal build checks for updates but doesn't download them.
+The game can only see public releases: GitHub hides a private repo's releases from anyone who isn't signed in. Never attach the private OSRS models to a release. The personal setup is the normal exe plus `osrs_models.pck` beside it (see [docs/OSRS_MODELS.md](docs/OSRS_MODELS.md)), so it updates like everyone else's: only the exe is replaced, and the models stay.
 
 ## Project layout
 
@@ -141,7 +141,7 @@ The game can only see public releases: GitHub hides a private repo's releases fr
 data/            All tunable game data (JSON) — champions, items, units, rules
 scenes/          main.tscn (everything else is built in code for now)
 scripts/
-  autoload/      GameData (loads JSON), Controls (input map), Settings, GameTick (the 0.6s game tick)
+  autoload/      GameData (loads JSON), Controls (input map), Settings, GameTick (the 0.6s game tick), ModelPack (loads osrs_models.pck)
   core/          Combat math, DamageInfo
   units/         Unit base class, Champion, Minion, Structure, Monster, visuals
   abilities/     AbilityRunner: executes data-driven ability effects

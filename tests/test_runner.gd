@@ -1463,9 +1463,16 @@ func test_updates() -> void:
 	var ver := splash.find_child("Version", true, false) as Label
 	check(ver != null and ver.text.contains(Updater.current_version()), "the splash shows this build's version")
 	check(splash.find_child("Play", true, false) != null and splash.find_child("CheckUpdates", true, false) != null, "Play and Check for updates buttons")
+	var old_auto := Settings.auto_update
+	Settings.auto_update = false
+	splash._manual = false
 	splash._on_checked(r)
 	var install := splash.find_child("Install", true, false) as Button
-	check(install.visible and splash._notes.visible and splash._notes.text.contains("Faster ticks"), "a newer version lists its changes and offers to install")
+	check(install.visible and splash._notes.visible and splash._notes.text.contains("Faster ticks"),
+		"with automatic updates off, a newer version lists its changes and offers Update now")
+	check(Updater.can_install() and not ModelPack.loaded, "a normal build can install releases")
+	check(splash.find_child("AutoUpdate", true, false) != null and not splash.auto_check, "an 'Update automatically' box; tests never auto-check")
+	Settings.auto_update = old_auto
 	splash._on_checked(Updater.read_release({"tag_name": "v" + Updater.current_version()}, Updater.current_version()))
 	check(not install.visible and (splash.find_child("Status", true, false) as Label).text.contains("latest"), "up to date says so")
 	splash._on_failed("No published release was found.")
