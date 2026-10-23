@@ -6,7 +6,9 @@ extends Control
 
 const ICON := 32.0
 const GAP := 4.0
-const HIDDEN: Array[String] = ["root_immune"]
+## Not shown: freeze immunity, and potions' skill levels (flavour: the skills
+## panel shows them; the potion's real effects have their own icons).
+const HIDDEN: Array[String] = ["root_immune", "skill_boost"]
 
 var unit: Unit
 var _slots: Dictionary = {}       # status id -> BuffIcon
@@ -49,6 +51,17 @@ static func describe(st: Dictionary) -> Dictionary:
 		# An attack style (Rapid, Longrange): one icon for the whole stance.
 		return {"icon": str(data.get("icon", "")), "title": str(data.get("title", "")), "text": str(data.get("text", "")), "debuff": false}
 	match kind:
+		"attack_damage_mult":
+			return {"icon": "damage_up" if a >= 0.0 else "damage_down", "title": "Attack Damage %s%s" % ["+" if a >= 0.0 else "−", pct],
+				"text": "Melee and ranged hits deal %s %s damage." % [pct, "more" if a >= 0.0 else "less"], "debuff": a < 0.0}
+		"magic_damage_mult":
+			return {"icon": "damage_up" if a >= 0.0 else "damage_down", "title": "Magic Damage %s%s" % ["+" if a >= 0.0 else "−", pct],
+				"text": "Magic hits deal %s %s damage." % [pct, "more" if a >= 0.0 else "less"], "debuff": a < 0.0}
+		"crit_chance":
+			return {"icon": "crit", "title": "Crit chance +%s" % pct,
+				"text": "%s of your hits crit for %d%% damage (a gold max-hit splat)." % [pct, roundi(float(GameData.rule("crit_mult", 1.5)) * 100.0)], "debuff": false}
+		"crit_damage_mult":
+			return {"icon": "crit", "title": "Crit Damage +%s" % pct, "text": "Your crits deal %s more damage." % pct, "debuff": false}
 		"rock_cake":
 			return {"icon": "rock_cake", "title": "Rock cake x%d" % roundi(a), "count": roundi(a),
 				"text": "Rock cakes eaten in the last 5s. Only the first one of a run gives the speed boost.", "debuff": false}
@@ -109,22 +122,13 @@ static func describe(st: Dictionary) -> Dictionary:
 		"skill_power_mult":
 			return {"icon": "skill_power_mult", "title": "Skill power +%s" % pct, "text": "Skilling abilities hit %s harder." % pct, "debuff": false}
 		"skill_boost":
+			# (hidden from the bar; kept for the inspect panel and tests)
 			var sk := str((st.get("data", {}) as Dictionary).get("skill", ""))
 			var lv := roundi(a)
-			var v: Dictionary = GameData.rule("potion_level_value", {})
-			var what := ""
-			match sk:
-				"strength", "ranged", "magic":
-					what = "%s%s%% %s damage" % ["+" if lv >= 0 else "−", str(snappedf(absf(lv * float(v.get("damage", 0.005))) * 100.0, 0.1)),
-						{"strength": "melee", "ranged": "ranged", "magic": "magic"}[sk]]
-				"attack":
-					what = "%s%s%% melee damage" % ["+" if lv >= 0 else "−", str(snappedf(absf(lv * float(v.get("attack", 0.0025))) * 100.0, 0.1))]
-				"defence":
-					what = "%s%s%% defence" % ["+" if lv >= 0 else "−", str(snappedf(absf(lv * float(v.get("defence", 0.005))) * 100.0, 0.1))]
 			var up := lv >= 0
 			return {"icon": ("armor_up" if up else "armor_down") if sk == "defence" else ("damage_up" if up else "damage_down"),
 				"title": "%s %s%d" % [sk.capitalize(), "+" if up else "−", absi(lv)],
-				"text": "%s %s by %d levels: %s." % [sk.capitalize(), "boosted" if up else "lowered", absi(lv), what], "debuff": not up}
+				"text": "%s level %s by %d." % [sk.capitalize(), "boosted" if up else "lowered", absi(lv)], "debuff": not up}
 		"antipoison":
 			return {"icon": "antipoison", "title": "Antipoison", "text": "Immune to poison for now.", "debuff": false}
 	return {"icon": "", "title": kind.replace("_", " ").capitalize(), "text": "", "debuff": false}

@@ -305,7 +305,7 @@ func effective_damage(magic: bool = false) -> float:
 	var v := get_magic_power() if magic else get_damage()
 	v *= maxf(0.0, 1.0 + status_sum("damage_mult"))
 	v *= 1.0 + prayer_effect("damage_" + Combat.style_name(style))
-	v *= maxf(0.0, 1.0 + potion_damage_bonus(style))
+	v *= maxf(0.0, 1.0 + style_damage_bonus(style))
 	return v
 
 
@@ -314,23 +314,19 @@ func base_attack_interval() -> float:
 	return Combat.ticks_to_seconds(attack_ticks) / maxf(0.2, 1.0 + bonus_attack_speed)
 
 
-## What boosted levels do for a style's damage (Strength, Attack, Ranged, Magic).
-func potion_damage_bonus(style: int) -> float:
-	var v: Dictionary = GameData.rule("potion_level_value", {})
-	var per := float(v.get("damage", 0.005))
-	match style:
-		Combat.Style.MELEE:
-			return skill_boost("strength") * per + skill_boost("attack") * float(v.get("attack", 0.0025))
-		Combat.Style.RANGED:
-			return skill_boost("ranged") * per
-		Combat.Style.MAGIC:
-			return skill_boost("magic") * per
-	return 0.0
+## Potion buffs by damage type: "Attack Damage" (melee and ranged hits) or
+## "Magic Damage" (magic hits).
+func style_damage_bonus(style: int) -> float:
+	return status_sum("magic_damage_mult") if style == Combat.Style.MAGIC else status_sum("attack_damage_mult")
 
 
-func get_defence(style: int) -> float:
-	var v: Dictionary = GameData.rule("potion_level_value", {})
-	return super(style) * maxf(0.0, 1.0 + skill_boost("defence") * float(v.get("defence", 0.005)))
+## Chance for a hit to crit (attack potions), and how hard crits hit.
+func crit_chance() -> float:
+	return clampf(status_sum("crit_chance"), 0.0, 1.0)
+
+
+func crit_multiplier() -> float:
+	return float(GameData.rule("crit_mult", 1.5)) * (1.0 + status_sum("crit_damage_mult"))
 
 
 func get_protected_style() -> int:
@@ -561,9 +557,9 @@ func use_consumable(index: int) -> bool:
 			if statuses[id]["kind"] == kind:
 				statuses.erase(id)
 	if bool(use.get("restore_skills", false)):
-		# Super restore: lowered levels come back.
+		# Super restore: lowered levels (and the damage they cost) come back.
 		for id in statuses.keys():
-			if statuses[id]["kind"] == "skill_boost" and float(statuses[id]["amount"]) < 0.0:
+			if str(id).begins_with("item:") and float(statuses[id]["amount"]) < 0.0:
 				statuses.erase(id)
 	for st in use.get("statuses", []):
 		if str(st["kind"]) == "skill_boost":
@@ -574,9 +570,10 @@ func use_consumable(index: int) -> bool:
 			add_status("item:%s:%s" % [item_id, sk], "skill_boost", levels, float(st.get("duration", 60.0)) * keep, self, {"skill": sk})
 			continue
 		# Stronger buffs; buffs without an amount (antipoison) last longer instead.
+		# A penalty (the brew's) is never made worse by being 'perfect'.
 		var amt := float(st.get("amount", 0.0))
 		var dur2 := float(st.get("duration", 5.0)) * keep * (1.0 if amt != 0.0 else mult)
-		add_status("item:%s:%s" % [item_id, st["kind"]], st["kind"], amt * mult, dur2, self, st.get("data", {}))
+		add_status("item:%s:%s" % [item_id, st["kind"]], st["kind"], amt * mult if amt > 0.0 else amt, dur2, self, st.get("data", {}))
 	consumables.remove_at(index)
 	_consume_visuals(item_id)
 	return true
@@ -1314,7 +1311,13 @@ func modify_outgoing(info: DamageInfo, target: Unit) -> void:
 	super(info, target)
 	if not info.is_true:
 		info.amount *= 1.0 + prayer_effect("damage_" + Combat.style_name(info.style))
-		info.amount *= maxf(0.0, 1.0 + potion_damage_bonus(info.style))
+		info.amount *= maxf(0.0, 1.0 + style_damage_bonus(info.style))
+		# Crits: a chance from attack potions (gold "max hit" splat); Crit
+		# Damage makes every crit, including abilities' own, hit harder.
+		if info.crit_mult > 1.0:
+			info.crit_mult *= 1.0 + status_sum("crit_damage_mult")
+		elif randf() < crit_chance():
+			info.crit_mult = crit_multiplier()
 	if target != null and target.team == Combat.Team.NEUTRAL:
 		info.amount *= 1.0 + _item_stat("monster_damage")   # Black mask, leaf-bladed weapons
 	if target != null and target.is_structure():

@@ -1710,6 +1710,21 @@
         "heal_pct_max": 0.2,
         "statuses": [
           {
+            "kind": "armor_mult",
+            "amount": 0.2,
+            "duration": 60
+          },
+          {
+            "kind": "attack_damage_mult",
+            "amount": -0.1,
+            "duration": 60
+          },
+          {
+            "kind": "magic_damage_mult",
+            "amount": -0.1,
+            "duration": 60
+          },
+          {
             "kind": "skill_boost",
             "skill": "defence",
             "flat": 2,
@@ -1749,7 +1764,7 @@
       "potency": {
         "herblore": 81
       },
-      "text": "Heals 20% of max health and boosts Defence by 2 + 20%, but lowers Attack, Strength, Ranged and Magic by 2 + 10%. A super restore undoes the drain."
+      "text": "Saradomin's blessing: you heal and harden, but your blows soften."
     },
     {
       "id": "super_restore",
@@ -1785,6 +1800,26 @@
       "use": {
         "statuses": [
           {
+            "kind": "attack_damage_mult",
+            "amount": 0.08,
+            "duration": 60
+          },
+          {
+            "kind": "crit_chance",
+            "amount": 0.1,
+            "duration": 60
+          },
+          {
+            "kind": "crit_damage_mult",
+            "amount": 0.2,
+            "duration": 60
+          },
+          {
+            "kind": "armor_mult",
+            "amount": 0.1,
+            "duration": 60
+          },
+          {
             "kind": "skill_boost",
             "skill": "attack",
             "flat": 5,
@@ -1809,7 +1844,8 @@
       },
       "potency": {
         "herblore": 90
-      }
+      },
+      "text": "Every combat sense heightened at once."
     },
     {
       "id": "stamina_potion",
@@ -1983,6 +2019,16 @@
       "use": {
         "statuses": [
           {
+            "kind": "crit_chance",
+            "amount": 0.05,
+            "duration": 60
+          },
+          {
+            "kind": "crit_damage_mult",
+            "amount": 0.1,
+            "duration": 60
+          },
+          {
             "kind": "skill_boost",
             "skill": "attack",
             "flat": 3,
@@ -1990,7 +2036,8 @@
             "duration": 60
           }
         ]
-      }
+      },
+      "text": "Steadies your aim: hits find the gaps in armour."
     },
     {
       "id": "strength_potion",
@@ -2000,6 +2047,11 @@
       "use": {
         "statuses": [
           {
+            "kind": "attack_damage_mult",
+            "amount": 0.04,
+            "duration": 60
+          },
+          {
             "kind": "skill_boost",
             "skill": "strength",
             "flat": 3,
@@ -2007,7 +2059,8 @@
             "duration": 60
           }
         ]
-      }
+      },
+      "text": "Brute strength puts more weight behind every hit."
     },
     {
       "id": "energy_potion",
@@ -2035,6 +2088,11 @@
       "use": {
         "statuses": [
           {
+            "kind": "armor_mult",
+            "amount": 0.06,
+            "duration": 60
+          },
+          {
             "kind": "skill_boost",
             "skill": "defence",
             "flat": 3,
@@ -2045,7 +2103,8 @@
       },
       "potency": {
         "herblore": 30
-      }
+      },
+      "text": "Your skin toughens against blows."
     },
     {
       "id": "combat_potion",
@@ -2054,6 +2113,21 @@
       "cost": 90,
       "use": {
         "statuses": [
+          {
+            "kind": "attack_damage_mult",
+            "amount": 0.04,
+            "duration": 60
+          },
+          {
+            "kind": "crit_chance",
+            "amount": 0.05,
+            "duration": 60
+          },
+          {
+            "kind": "crit_damage_mult",
+            "amount": 0.1,
+            "duration": 60
+          },
           {
             "kind": "skill_boost",
             "skill": "attack",
@@ -2072,7 +2146,8 @@
       },
       "potency": {
         "herblore": 36
-      }
+      },
+      "text": "Strength and accuracy in one sip."
     },
     {
       "id": "super_attack",
@@ -2081,6 +2156,16 @@
       "cost": 90,
       "use": {
         "statuses": [
+          {
+            "kind": "crit_chance",
+            "amount": 0.1,
+            "duration": 60
+          },
+          {
+            "kind": "crit_damage_mult",
+            "amount": 0.2,
+            "duration": 60
+          },
           {
             "kind": "skill_boost",
             "skill": "attack",
@@ -2092,7 +2177,8 @@
       },
       "potency": {
         "herblore": 45
-      }
+      },
+      "text": "Your aim is razor sharp: more crits, and they hit harder."
     },
     {
       "id": "superantipoison",
@@ -2149,6 +2235,11 @@
       "use": {
         "statuses": [
           {
+            "kind": "attack_damage_mult",
+            "amount": 0.08,
+            "duration": 60
+          },
+          {
             "kind": "skill_boost",
             "skill": "strength",
             "flat": 5,
@@ -2159,7 +2250,8 @@
       },
       "potency": {
         "herblore": 55
-      }
+      },
+      "text": "Raw power surges through your arms."
     },
     {
       "id": "super_defence",
@@ -2168,6 +2260,11 @@
       "cost": 100,
       "use": {
         "statuses": [
+          {
+            "kind": "armor_mult",
+            "amount": 0.1,
+            "duration": 60
+          },
           {
             "kind": "skill_boost",
             "skill": "defence",
@@ -2179,7 +2276,8 @@
       },
       "potency": {
         "herblore": 66
-      }
+      },
+      "text": "You feel like you could take a hit from a giant."
     },
     {
       "id": "ranging_potion",
@@ -2188,6 +2286,11 @@
       "cost": 110,
       "use": {
         "statuses": [
+          {
+            "kind": "attack_damage_mult",
+            "amount": 0.08,
+            "duration": 60
+          },
           {
             "kind": "skill_boost",
             "skill": "ranged",
@@ -2199,7 +2302,8 @@
       },
       "potency": {
         "herblore": 72
-      }
+      },
+      "text": "Your eye sharpens: arrows, bolts and darts strike harder."
     },
     {
       "id": "magic_potion",
@@ -2208,6 +2312,11 @@
       "cost": 110,
       "use": {
         "statuses": [
+          {
+            "kind": "magic_damage_mult",
+            "amount": 0.08,
+            "duration": 60
+          },
           {
             "kind": "skill_boost",
             "skill": "magic",
@@ -2219,7 +2328,8 @@
       },
       "potency": {
         "herblore": 76
-      }
+      },
+      "text": "Runic energy hums in your fingertips."
     },
     {
       "id": "bronze_axe",

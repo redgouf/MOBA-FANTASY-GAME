@@ -128,31 +128,29 @@ static func use_parts(use: Dictionary, mult: float = 1.0, champ: Champion = null
 		parts.append("Heals %d%% of max health" % roundi(float(use["heal_pct_max"]) * 100.0 * mult))
 	if use.has("prayer"):
 		parts.append("Restores %d prayer" % roundi(float(use["prayer"]) * mult))
-	var boosts: Array[String] = []
-	var boost_dur := 0
+	var levels: Array[String] = []
 	for st in use.get("statuses", []):
-		if str(st["kind"]) == "skill_boost":
+		var kind := str(st["kind"])
+		if kind == "skill_boost":
+			# Flavour: the OSRS skill levels it boosts (the skills panel shows them).
 			var sk := str(st.get("skill", "")).capitalize()
-			boost_dur = int(st.get("duration", 60))
-			if champ != null:
-				var lv := champ.potion_levels(st, mult)
-				boosts.append("%s %s%d" % [sk, "+" if lv >= 0 else "", lv])
-			else:
-				var flat := float(st.get("flat", 0.0))
-				var pct := float(st.get("pct", 0.0))
-				var txt := "%s %s%d" % [sk, "+" if flat >= 0.0 else "", int(flat)]
-				if pct != 0.0:
-					txt += " %s%d%%" % ["+" if pct >= 0.0 else "", roundi(pct * 100.0)]
-				boosts.append(txt)
+			var lv := champ.potion_levels(st, mult) if champ != null else int(st.get("flat", 0))
+			levels.append("%s %s%d" % [sk, "+" if lv >= 0 else "", lv])
 			continue
-		var amt := float(st.get("amount", 0.0)) * mult
-		var what: String = {"damage_mult": "damage", "armor_mult": "armour", "haste": "move speed"}.get(str(st["kind"]), "")
+		var raw := float(st.get("amount", 0.0))
+		var amt := raw * mult if raw > 0.0 else raw
+		var what: String = {"damage_mult": "damage", "attack_damage_mult": "Attack Damage", "magic_damage_mult": "Magic Damage",
+			"crit_chance": "crit chance", "crit_damage_mult": "Crit Damage", "armor_mult": "Defence", "haste": "move speed"}.get(kind, "")
 		if what != "":
 			parts.append("%s%d%% %s for %ds" % ["+" if amt >= 0.0 else "", roundi(amt * 100.0), what, int(st.get("duration", 0))])
-		elif str(st["kind"]) == "antipoison":
+		elif kind == "antipoison":
 			parts.append("poison immunity for %ds" % roundi(float(st.get("duration", 0)) * mult))
-	if not boosts.is_empty():
-		parts.append("%s for %ds" % [", ".join(boosts), boost_dur])
+	if not levels.is_empty():
+		var lv_text := "(%s levels)" % ", ".join(levels)
+		if parts.is_empty():
+			parts.append(lv_text)
+		else:
+			parts[parts.size() - 1] += " " + lv_text
 	if bool(use.get("restore_skills", false)):
 		parts.append("restores lowered levels")
 	return parts

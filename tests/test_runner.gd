@@ -1498,21 +1498,37 @@ func test_potions() -> void:
 	check(c.boosted_skill("ranged") == base_r + want and c.skill("ranged") == base_r, "Ranged %d -> %d (+4 +10%%), base unchanged" % [base_r, c.boosted_skill("ranged")])
 	var r2 := DamageInfo.make(100.0, Combat.Style.RANGED, c)
 	c.modify_outgoing(r2, null)
-	var m2 := DamageInfo.make(100.0, Combat.Style.MELEE, c)
-	c.modify_outgoing(m2, null)
-	check(r2.amount > r_info.amount and is_equal_approx(m2.amount, m_info.amount), "it raises ranged damage only")
+	var g2 := DamageInfo.make(100.0, Combat.Style.MAGIC, c)
+	c.modify_outgoing(g2, null)
+	check(is_equal_approx(r2.amount, r_info.amount * 1.08) and c.status_sum("magic_damage_mult") == 0.0,
+		"a ranging potion: +8%% Attack Damage (%.1f -> %.1f), no Magic Damage" % [r_info.amount, r2.amount])
 	c.skills["herblore"] = 99
-	check(c.buy_item("ranging_potion") and c.use_consumable(0) and c.skill_boost("ranged") > want, "a 'perfect' ranging potion boosts more (%d)" % c.skill_boost("ranged"))
+	check(c.buy_item("ranging_potion") and c.use_consumable(0) and is_equal_approx(c.status_sum("attack_damage_mult"), 0.08 * 1.15),
+		"a 'perfect' ranging potion gives 15% more (+9.2% Attack Damage)")
+	check(c.buy_item("magic_potion") and c.use_consumable(0) and c.status_sum("magic_damage_mult") > 0.09, "a magic potion: Magic Damage")
+	var m3 := DamageInfo.make(100.0, Combat.Style.MAGIC, c)
+	c.modify_outgoing(m3, null)
+	check(m3.amount > 109.0, "and magic hits deal more")
 	var d0 := c.get_defence(0)
 	check(c.buy_item("saradomin_brew") and c.use_consumable(0), "drink a Saradomin brew")
-	check(c.skill_boost("defence") > 0 and c.get_defence(0) > d0 and c.skill_boost("attack") < 0 and c.skill_boost("magic") < 0,
-		"a brew boosts Defence and lowers Attack, Strength, Ranged and Magic")
-	var desc := BuffBar.describe(c.statuses[c.statuses.keys().filter(func(k): return str(k).contains("saradomin_brew:defence"))[0]])
-	check(str(desc["title"]).begins_with("Defence +") and not desc["debuff"], "the buff icon reads 'Defence +N'")
-	check(c.buy_item("super_restore") and c.use_consumable(0) and c.skill_boost("attack") == 0 and c.skill_boost("defence") > 0,
-		"a super restore undoes the drain but keeps the boost")
+	check(c.get_defence(0) > d0 * 1.19 and c.status_sum("attack_damage_mult") < 0.0 and c.status_sum("magic_damage_mult") < 0.0,
+		"a brew: +20% Defence, -10% Attack and Magic Damage")
+	check(c.skill_boost("defence") > 0 and c.skill_boost("attack") < 0, "(its skill levels change too, as flavour)")
+	check(c.buy_item("super_restore") and c.use_consumable(0) and c.status_sum("attack_damage_mult") >= 0.0 and c.get_defence(0) > d0 * 1.19,
+		"a super restore undoes the brew's penalties and keeps its Defence")
 	var tip := ItemSlot._tooltip(GameData.item("super_strength"), c)
-	check(tip.contains("Use: Strength +") and tip.contains("'perfect' (55 Herblore): Strength +"), "potion tooltips show the levels for you, then 'perfect' (%s)" % tip)
+	check(tip.contains("Use: +8% Attack Damage for 60s (Strength +") and tip.contains("'perfect' (55 Herblore): +9% Attack Damage"),
+		"potion tooltips say what they do to damage, levels as flavour (%s)" % tip)
+	check(str(GameData.item("super_strength").get("text", "")) != "", "potions have flavour text")
+	# Attack potions: crits.
+	c.statuses.clear()
+	check(c.buy_item("super_attack") and c.use_consumable(0) and c.crit_chance() > 0.11, "a super attack: crit chance (+10%, 'perfect' +11.5%)")
+	c.add_status("probe", "crit_chance", 1.0, 5.0)
+	var ci := DamageInfo.make(100.0, Combat.Style.MELEE, c)
+	c.modify_outgoing(ci, null)
+	check(is_equal_approx(ci.crit_mult, 1.5 * (1.0 + c.status_sum("crit_damage_mult"))) and ci.crit_mult > 1.5,
+		"a crit hits for 150%%, more with Crit Damage (x%.2f)" % ci.crit_mult)
+	check(BuffBar.describe({"kind": "crit_chance", "amount": 0.1})["icon"] == "crit", "crit buffs have their own icon")
 	c.queue_free()
 
 

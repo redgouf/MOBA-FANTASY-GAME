@@ -261,6 +261,7 @@
   "skill_power_mult": "dragonAxe",
   "rapid": "dragonArrow5",
   "longrange": "twistedBow",
-  "rock_cake": "dwarvenRockCakeHot"
+  "rock_cake": "dwarvenRockCakeHot",
+  "crit": "superAttack4"
  }
 }

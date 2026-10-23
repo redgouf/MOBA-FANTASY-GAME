@@ -19,12 +19,7 @@
     99
   ],
   "potency_bonus": 0.15,
-  "potion_level_value": {
-    "_comment": "What one boosted (or lowered) level is worth: Strength/Ranged/Magic = that style's damage, Attack = melee damage at half rate (no accuracy rolls here), Defence = defence.",
-    "damage": 0.005,
-    "attack": 0.0025,
-    "defence": 0.005
-  },
+  "crit_mult": 1.5,
   "updates": {
     "_comment": "Where Check for updates looks: the latest GitHub release of this repo (it must be public). The release needs a GielinorLegends-vX.Y.Z-windows.zip asset; never upload the personal build.",
     "repo": "redgouf/MOBA-FANTASY-GAME"
