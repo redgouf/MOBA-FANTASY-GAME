@@ -37,7 +37,7 @@ jobs:
           version=$(sed -n 's/^config\/version="\(.*\)"/\1/p' project.godot)
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
-          if gh release view "v$version" >/dev/null 2>&1; then
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$version" >/dev/null 2>&1; then   # (published releases only)
             echo "v$version is already released; nothing to do."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
@@ -87,12 +87,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -o pipefail
           v="${{ steps.ver.outputs.version }}"
           tag="${{ steps.ver.outputs.tag }}"
-          # A tag left on another commit without a release is replaced.
-          if [ "${{ github.ref_type }}" != "tag" ] && git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
-            git push origin ":refs/tags/$tag"
-          fi
+          fail() { echo "::error::$1"; exit 1; }
+          # Leftover drafts for this version (from a failed run) go first.
+          for id in $(gh api "repos/$GITHUB_REPOSITORY/releases" --jq ".[] | select(.draft and .tag_name == \"$tag\") | .id"); do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$id" || fail "couldn't delete old draft $id"
+          done
+          # The tag goes on this commit (replacing a stray one made elsewhere).
+          git tag -f "$tag" "$GITHUB_SHA"
+          git push -f origin "refs/tags/$tag" 2>&1 | tee push.log || fail "tag push failed: $(tail -3 push.log | tr '\n' ' ')"
           awk -v v="$v" '$0 == "## " v {f=1; next} /^## /{f=0} f' CHANGELOG.md > notes.md
-          gh release create "$tag" "GielinorLegends-$tag-windows.zip" \
-            --target "$GITHUB_SHA" --title "Gielinor Legends $v" --notes-file notes.md
+          gh release create "$tag" "GielinorLegends-$tag-windows.zip" --verify-tag \
+            --title "Gielinor Legends $v" --notes-file notes.md 2>&1 | tee release.log \
+            || fail "release failed: $(tail -5 release.log | tr '\n' ' ')"
