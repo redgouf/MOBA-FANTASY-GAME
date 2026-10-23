@@ -169,7 +169,7 @@ func _add_tile(id: String) -> void:
 	b.add_theme_stylebox_override("hover", OsrsUi.slot_box(OsrsUi.STONE_DARK.lightened(0.07), true))
 	b.add_theme_stylebox_override("pressed", OsrsUi.slot_box(OsrsUi.STONE_DARK.lightened(0.1), false, true))
 	b.add_theme_stylebox_override("hover_pressed", OsrsUi.slot_box(OsrsUi.STONE_DARK.lightened(0.12), true, true))
-	b.tooltip_text = UiStyle.wrap(ItemSlot._tooltip(it))
+	b.tooltip_text = UiStyle.wrap(ItemSlot._tooltip(it, champ))
 	var icon := Icons.rect(b, Icons.item(id), Vector2(40, 40))
 	icon.position = Vector2((TILE.x - 40) * 0.5, 4)
 	icon.size = Vector2(40, 40)
@@ -209,15 +209,27 @@ func select(id: String) -> void:
 func details(it: Dictionary) -> String:
 	var lines: Array[String] = []
 	var reqs: Dictionary = it.get("requirements", {})
+	var id := str(it.get("id", ""))
+	var made := champ != null and champ.can_make(id)
 	if not reqs.is_empty():
 		var parts: Array[String] = []
 		for s in reqs:
-			var ok := champ != null and champ.skill(str(s)) >= int(reqs[s])
+			var ok := champ != null and (champ.skill(str(s)) >= int(reqs[s]) or (made and GameData.COMBAT_SKILLS.has(str(s))))
 			parts.append("[color=%s]%d %s[/color]" % ["#4fd65a" if ok else "#ff5a4a", int(reqs[s]), str(s).capitalize()])
 		lines.append("[color=#ff981f]Requires[/color] " + ", ".join(parts))
-	var tip := ItemSlot._tooltip(it).split("\n")
+	var art: Dictionary = it.get("artisan", {})
+	if not art.is_empty():
+		lines.append("[color=#ff981f]Make your own[/color] [color=%s]%s[/color]: waives the combat requirements%s" % [
+			"#4fd65a" if made else "#a8a39a", ItemSlot._levels(art), " (you can)" if made else ""])
+	var pot: Dictionary = it.get("potency", {})
+	if not pot.is_empty():
+		var perfect := champ != null and champ.is_perfect(id)
+		lines.append("[color=#ff981f]Perfect[/color] with [color=%s]%s[/color]: +%d%% stronger%s" % [
+			"#4fd65a" if perfect else "#a8a39a", ItemSlot._levels(pot), roundi(float(GameData.rule("potency_bonus", 0.15)) * 100.0),
+			" (yours are Perfect)" if perfect else " (anyone can use it)"])
+	var tip := ItemSlot._tooltip(it, champ).split("\n")
 	for i in range(1, tip.size()):
-		if tip[i].begins_with("Requires"):
+		if tip[i].begins_with("Requires") or tip[i].begins_with("Make your own") or tip[i].begins_with("Anyone can use"):
 			continue
 		lines.append(tip[i])
 	if it.has("builds_from"):

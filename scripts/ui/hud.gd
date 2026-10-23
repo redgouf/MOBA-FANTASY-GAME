@@ -505,12 +505,14 @@ func _update_bottom_left() -> void:
 		var key := champ.item_action_key(i)
 		var left: float = champ.cooldowns.get(key, 0.0) if key != "" else 0.0
 		var total := float(GameData.item(id).get("spec_active", {}).get("cooldown", 0.0)) if key != "" else 0.0
+		_item_slots[i].champ = champ
 		_item_slots[i].set_item(id, left, total)
 		if key != "" and Engine.get_process_frames() % 15 == i:
 			# Spec weapons: add the live damage breakdown of their special attack.
 			var spec_tip := AbilityInfo.tooltip(champ, key)
-			_item_slots[i].tooltip_text = UiStyle.wrap(ItemSlot._tooltip(GameData.item(id))) + "\n\nSpecial attack:\n" + spec_tip
+			_item_slots[i].tooltip_text = UiStyle.wrap(ItemSlot._tooltip(GameData.item(id), champ)) + "\n\nSpecial attack:\n" + spec_tip
 	for i in 4:
+		_belt_slots[i].champ = champ
 		_belt_slots[i].set_item(champ.consumables[i] if i < champ.consumables.size() else "")
 	_gold.text = "%d GP" % int(champ.gold)
 

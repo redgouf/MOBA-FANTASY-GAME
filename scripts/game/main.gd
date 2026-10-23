@@ -13,7 +13,7 @@ extends Node3D
 ##   --smoke-seconds=N   game seconds to simulate in smoke-test mode (default 150)
 ##   --screenshot=PATH   save a PNG of the game at --screenshot-at=SECONDS, then quit
 ##   --no-osrs           ignore the private OSRS model pack (whitebox shapes)
-##   --shot-ui=NAME      before the screenshot: target | menu | settings | controls | shop | kit | skills | aim-chop | aim-plant | scoreboard | tooltip
+##   --shot-ui=NAME      before the screenshot: target | menu | settings | controls | shop | kit | skills | aim-chop | aim-plant | scoreboard | tooltip | teleport (--shot-tele-at=S)
 ##   --demo-level=N      raise the viewed champion to level N with items (for screenshots)
 
 const ASSIST_WINDOW_SEC := 10.0
@@ -93,6 +93,8 @@ func _ready() -> void:
 		start_spectate()
 	elif _args.has("champion") or (mode == "play" and pending != ""):
 		start_match(str(_args.get("champion", pending)), str(_args.get("prayer", pending_prayer)))
+	elif not Settings.splash_seen and (_shot_path == "" or _args.has("splash")):
+		_show_splash()
 	else:
 		_show_champion_select()
 		if _shot_path != "":
@@ -106,6 +108,18 @@ func _parse_args() -> Dictionary:
 			var kv := a.substr(2).split("=", true, 1)
 			out[kv[0]] = kv[1] if kv.size() > 1 else true
 	return out
+
+
+## The splash screen (once per session): version, Play, Check for updates.
+func _show_splash() -> void:
+	Settings.splash_seen = true
+	var splash := SplashScreen.new()
+	add_child(splash)
+	splash.play_pressed.connect(func() -> void:
+		splash.queue_free()
+		_show_champion_select())
+	if _shot_path != "":
+		get_tree().create_timer(float(_args.get("screenshot-at", 1.5))).timeout.connect(_take_screenshot)
 
 
 func _show_champion_select() -> void:
@@ -711,6 +725,14 @@ func _take_screenshot() -> void:
 			(s.custom_model as CannonModel).fire(origin + Vector3(-4.0, 0, -6.0))
 			(cart.custom_model as CannonModel).fire(origin + Vector3(8.0, 0, -4.0))
 			await get_tree().create_timer(0.08).timeout
+		"teleport":
+			# Home teleport mid-cast (--shot-tele-at=S seconds into the channel).
+			var spot := MapLayout.point_along(MapLayout.lane_path("mid", focused.team), 30.0)
+			focused.global_position = spot
+			camera_rig.center_on(spot)
+			await get_tree().create_timer(0.3).timeout
+			focused.start_recall()
+			await get_tree().create_timer(float(_args.get("shot-tele-at", 2.4))).timeout
 		"altar":
 			# Praying at the Saradomin blue-side prayer altar, prayer switched on.
 			var altar := PrayerAltar.nearest(MapLayout.saradomin_prayer_altars()[0]["pos"])
@@ -871,7 +893,7 @@ func _probe_stuck() -> void:
 				or Unit.flat_distance(c.global_position, probe[0]) > 1.0:
 			probe = [c.global_position, game_time]
 		elif game_time - float(probe[1]) > 45.0:
-			_stuck_reports.append("%s stuck at %s around %.0fs" % [c.display_name, c.global_position, game_time])
+			_stuck_reports.append("%s stuck at %s around %.0fs (%s)" % [c.display_name, c.global_position, game_time, c.debug_state()])
 			probe = [c.global_position, game_time]
 		_stuck_probe[c] = probe
 

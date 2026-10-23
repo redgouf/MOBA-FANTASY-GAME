@@ -58,7 +58,7 @@ func _ready() -> void:
 	var title := OsrsUi.text(_root, "Gielinor Legends", 40, OsrsUi.ORANGE, Rect2(0, 8, 1600, 52))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.clip_text = false
-	_sub = OsrsUi.text(_root, "Choose your build   ·   non-combat levels are rolled every game (20–60; the Skiller is 99)",
+	_sub = OsrsUi.text(_root, "Choose your build   ·   non-combat levels are rolled every game (20–75, one lucky skill up to 99; the Skiller is 99)",
 		15, OsrsUi.MUTED, Rect2(0, 56, 1600, 22))
 	_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
@@ -261,7 +261,7 @@ func _build_side_panel(rect: Rect2) -> void:
 	_prayers.position = Vector2(24, 52)
 	_prayers.custom_minimum_size = Vector2(rect.size.x - 48, 0)
 	_prayers.prayer_picked.connect(func(_id: String) -> void: _update_lock())
-	var hint := OsrsUi.text(p, "Non-combat levels are rolled 20–60 every game (the Skiller is 99), so which skilling items you can buy changes. Hover a skill to see them.",
+	var hint := OsrsUi.text(p, "Non-combat levels are rolled 20–75 every game, and the starred lucky skill up to 99 (the Skiller is 99), so which items you can buy changes. Hover a skill to see them.",
 		12, OsrsUi.MUTED, Rect2(16, 534, rect.size.x - 32, 60))
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.clip_text = false

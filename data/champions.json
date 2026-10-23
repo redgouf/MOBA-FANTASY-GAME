@@ -1735,8 +1735,8 @@
       },
       "roll_ranges": {
         "slayer": [
-          55,
-          60
+          60,
+          85
         ]
       }
     },
@@ -2558,12 +2558,14 @@
         "bronze_axe",
         "graceful_outfit",
         "rune_axe",
+        "amulet_of_glory",
         "dragon_pickaxe",
         "dragon_axe",
         "dragon_harpoon",
         "pyromancer_garb",
         "infernal_axe",
-        "imcando_hammer"
+        "imcando_hammer",
+        "ring_of_suffering"
       ],
       "base": {
         "max_health": 540,

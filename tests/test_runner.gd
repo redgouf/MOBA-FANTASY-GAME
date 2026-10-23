@@ -42,6 +42,8 @@ func _ready() -> void:
 	await test_osrs_models()
 	await test_combat_fx()
 	await test_v09()
+	await test_v010()
+	await test_updates()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
 
@@ -525,7 +527,7 @@ func test_v07_feedback() -> void:
 		c.queue_free()
 
 
-## v0.8: every build has all 24 skills; non-combat ones roll 20-60 each game
+## v0.8: every build has all 24 skills; non-combat ones roll 20-75 each game (v0.10)
 ## (the Skiller keeps 99s), and skilling-gated items follow them.
 func test_skill_rolls() -> void:
 	GameData.roll_skills()
@@ -541,10 +543,26 @@ func test_skill_rolls() -> void:
 			if id == "skiller":
 				if s != "slayer" and lvl != 99:
 					ok = false
-			elif lvl < 20 or lvl > 60:
+			elif lvl < 20 or lvl > (99 if s == GameData.lucky_skill(id) else (85 if id == "slayer" and s == "slayer" else 75)):
 				ok = false
-	check(ok, "every build has 24 skills; non-combat 20-60, the Skiller 99")
-	check(int(GameData.skills_for("slayer")["slayer"]) >= 55, "the Slayer always rolls 55+ Slayer")
+	check(ok, "every build has 24 skills; non-combat 20-75 (one lucky skill up to 99), the Skiller 99")
+	var slayer_lvl := int(GameData.skills_for("slayer")["slayer"])
+	check(slayer_lvl >= 60 and slayer_lvl <= 85, "the Slayer rolls 60-85 Slayer")
+	var lucky_ok := GameData.lucky_skill("skiller") == ""
+	for id in GameData.champion_order:
+		if id != "skiller":
+			var ls := GameData.lucky_skill(id)
+			lucky_ok = lucky_ok and ls != "" and not GameData.COMBAT_SKILLS.has(ls) and not (id == "slayer" and ls == "slayer")
+	check(lucky_ok, "every build but the Skiller gets one lucky non-combat skill")
+	var highs := 0
+	for k in 40:
+		GameData.roll_skills()
+		for id in GameData.champion_order:
+			var ls := GameData.lucky_skill(id)
+			if ls != "" and int(GameData.skills_for(id)[ls]) > 75:
+				highs += 1
+	check(highs > 0, "lucky skills sometimes roll above 75 (%d times in 400)" % highs)
+	GameData.roll_skills()
 	check(int(GameData.skills_for("dharok")["strength"]) == 99, "combat levels stay fixed")
 	var first := GameData.skills_for("pure").duplicate()
 	check(GameData.skills_for("pure") == first, "rolls hold for the whole game")
@@ -552,18 +570,21 @@ func test_skill_rolls() -> void:
 	var shown := GameData.skills_for("pure").duplicate()
 	GameData.ensure_match_rolls()
 	check(GameData.skills_for("pure") == shown, "the match keeps the levels champion select showed")
-	# Over-60 skilling items: Skiller only.
+	# Over-75 skilling items: Skiller only.
 	var over60: Array[String] = []
 	for id in GameData.item_order:
 		var reqs: Dictionary = GameData.item(id).get("requirements", {})
 		for s in reqs:
-			if not GameData.COMBAT_SKILLS.has(str(s)) and int(reqs[s]) > 60:
+			if not GameData.COMBAT_SKILLS.has(str(s)) and int(reqs[s]) > 75:
 				over60.append(id)
 				break
 	var sk := _make("skiller", Combat.Team.SARADOMIN, Vector3(70, 0, -70))
 	var pu := _make("pure", Combat.Team.SARADOMIN, Vector3(72, 0, -70))
 	var skiller_all := true
 	var others_none := true
+	for s in pu.skills.keys():
+		if not GameData.COMBAT_SKILLS.has(str(s)):
+			pu.skills[s] = mini(int(pu.skills[s]), 75)   # (a lucky roll could pass 75)
 	for id in over60:
 		var reqs: Dictionary = GameData.item(id).get("requirements", {})
 		var combat_req := false
@@ -573,9 +594,9 @@ func test_skill_rolls() -> void:
 			skiller_all = false
 		if pu.meets_requirements(id):
 			others_none = false
-	check(over60.size() >= 10 and skiller_all and others_none, "%d items need a skill above 60: only the Skiller can use them" % over60.size())
+	check(over60.size() >= 1 and skiller_all and others_none, "%d item(s) need a skill above 75: only the Skiller can use them" % over60.size())
 	pu.gold = 5000
-	check(pu.best_food() != "" and pu.best_food() != "shark", "bots buy the best food they can cook (%s)" % pu.best_food())
+	check(pu.best_food() != "", "bots buy the best food for them (%s)" % pu.best_food())
 	# New item effects.
 	pu.gold = 99999
 	pu.skills["slayer"] = 60
@@ -723,7 +744,7 @@ func test_item_build_paths() -> void:
 	var before := pure.base_damage
 	check(pure.buy_item("abyssal_whip"), "upgrade to abyssal whip")
 	check(pure.base_damage > before, "whip raises damage")
-	check(not pure.can_buy("shark"), "only a Skiller can cook sharks (Cooking 80)")
+	check(pure.can_buy("shark") and not pure.is_perfect("shark"), "anyone can buy sharks; under 80 Cooking they aren't Perfect")
 	check(pure.buy_item("shrimps") and pure.consumables == ["shrimps"], "food goes on the belt")
 	pure.health = 100.0
 	check(pure.use_consumable(0) and pure.consumables.is_empty(), "eating removes the shrimps")
@@ -905,7 +926,7 @@ func test_skiller() -> void:
 	check(c.skill("woodcutting") == 99 and c.skill("attack") == 1 and c.skill("hitpoints") == 10, "1 combat, 99 skilling, 10 Hitpoints")
 	check(SkillsPanel.wants_full(c.def) and not SkillsPanel.wants_full(GameData.champion("dharok")), "only skilling builds get the full Skills grid")
 	c.gold = 99999
-	check(not c.can_buy("rune_scimitar") and not c.can_buy("bandos_chestplate"), "the Skiller can't wield combat gear")
+	check(c.can_buy("rune_scimitar") and not c.can_buy("bandos_chestplate"), "the Skiller makes his own rune scimitar (90 Smithing) but can't wear Bandos")
 	check(c.buy_item("bronze_axe") and c.buy_item("rune_axe") and c.buy_item("dragon_axe"), "but can work up to a Dragon axe")
 	check(c.buy_item("dragon_pickaxe") and c.buy_item("dragon_harpoon"), "and buy a Dragon pickaxe and harpoon")
 	check(is_equal_approx(c.get_skill_power(), 40.0 + 40.0 + 35.0 + 35.0), "tools add skill power")
@@ -1299,3 +1320,123 @@ func test_every_ability() -> void:
 		ally.queue_free()
 		foe.queue_free()
 		await get_tree().process_frame
+
+
+## v0.10: Perfect food and potions, make-your-own gear, skilling tools for
+## fighters, the home teleport animation.
+func test_v010() -> void:
+	GameData.load_all(1.0)
+	var sk := _make("skiller", Combat.Team.SARADOMIN, Vector3(80, 0, -80))
+	var pu := _make("pure", Combat.Team.SARADOMIN, Vector3(84, 0, -80))
+	for c in [sk, pu]:
+		c.spawn_point = Vector3(500, 0, 500)
+	# Consumables: no requirement; Perfect with the level.
+	for id in GameData.item_order:
+		var it := GameData.item(id)
+		if it.get("consumable", false):
+			check(not it.has("requirements") and it.has("potency"), "%s has no requirement, only a Perfect level" % id)
+	pu.skills["cooking"] = 20
+	sk.gold = 9999
+	pu.gold = 9999
+	check(pu.buy_item("shark") and sk.buy_item("shark"), "anyone can buy sharks")
+	check(sk.is_perfect("shark") and not pu.is_perfect("shark"), "99 Cooking makes them Perfect, 20 doesn't")
+	sk.health = 1.0
+	pu.health = 1.0
+	sk.use_consumable(0)
+	pu.use_consumable(0)
+	var hs := sk.status_sum("heal_over_time")
+	var hp := pu.status_sum("heal_over_time")
+	check(is_equal_approx(hs, hp * 1.15), "a Perfect shark heals 15%% more (%.1f vs %.1f a second)" % [hs, hp])
+	check(ItemSlot.perfect_name(GameData.item("shark")) == "Perfect shark", "it's called a Perfect shark")
+	check(ItemSlot._tooltip(GameData.item("shark"), sk).contains("Perfect shark") and ItemSlot._tooltip(GameData.item("shark"), sk).contains("Heals 230"),
+		"the tooltip shows the Perfect numbers")
+	pu.skills["herblore"] = 20
+	check(pu.buy_item("super_restore"), "anyone can buy a super restore")
+	pu.prayer = 0.0
+	pu.use_consumable(0)
+	check(is_equal_approx(pu.prayer, 40.0), "an ordinary super restore gives 40 prayer")
+	# Make your own: artisan levels waive combat requirements.
+	check(sk.can_make("rune_platebody") and sk.meets_requirements("rune_platebody"), "99 Smithing: the Skiller makes and wears a rune platebody")
+	check(sk.meets_requirements("amulet_of_torture") and sk.meets_requirements("armadyl_godsword"), "...and a torture and a godsword")
+	check(not sk.meets_requirements("abyssal_whip"), "a whip can't be made, so the Skiller can't wield it")
+	pu.skills["smithing"] = 75
+	check(not pu.can_make("rune_platebody") and pu.missing_requirements("bandos_chestplate") == ["65 Defence"], "rolled levels don't reach 99 Smithing")
+	pu.skills["crafting"] = 63
+	pu.skills["defence"] = 1
+	check(pu.meets_requirements("green_dhide_body"), "63 Crafting: a 1 Defence Pure makes its own green d'hide body")
+	# Skilling tools help fighters.
+	var tower := Structure.new()
+	tower.init_structure("tower", GameData.unit_def("structures", "tower_outer"), Combat.Team.ZAMORAK, "Test tower", "tower_outer")
+	pu.skills["woodcutting"] = 61
+	pu.inventory.clear()
+	pu._rebuild_item_stats()
+	pu.recompute_stats()
+	var plain := DamageInfo.make(100.0, Combat.Style.MELEE, pu)
+	plain.is_attack = true
+	pu.modify_outgoing(plain, sk)
+	check(pu.buy_item("dragon_axe"), "a Pure with 61 Woodcutting buys a dragon axe")
+	var with_axe := DamageInfo.make(100.0, Combat.Style.MELEE, pu)
+	with_axe.is_attack = true
+	pu.modify_outgoing(with_axe, sk)
+	check(with_axe.amount > plain.amount, "its skill power adds to the Pure's basic attacks")
+	add_child(tower)
+	tower.global_position = Vector3(-150, 0, 150)
+	var vs_tower := DamageInfo.make(100.0, Combat.Style.MELEE, pu)
+	pu.modify_outgoing(vs_tower, tower)
+	var vs_champ := DamageInfo.make(100.0, Combat.Style.MELEE, pu)
+	pu.modify_outgoing(vs_champ, sk)
+	check(is_equal_approx(vs_tower.amount, vs_champ.amount * 1.15), "axes hit towers 15% harder")
+	tower.queue_free()
+	pu.skills["fishing"] = 61
+	check(pu.buy_item("dragon_harpoon") and is_equal_approx(pu.consumable_mult("shark"), 1.15), "a dragon harpoon makes food and potions 15% stronger")
+	# Home teleport: look around, then cast with the arms out.
+	sk.global_position = Vector3(80, 0, -80)
+	sk.start_recall()
+	var fx := sk.get_node_or_null("TeleportFx") as TeleportFx
+	check(fx != null, "recalling starts the teleport animation")
+	var yaw0 := sk.rotation.y
+	await get_tree().create_timer(0.4).timeout
+	check(absf(sk.rotation.y - yaw0) > 0.3, "the champion looks to the side first")
+	await get_tree().create_timer(1.6).timeout
+	check(is_instance_valid(fx) and fx._cast_started and fx._arms.size() == 2 and fx._arms[0].visible, "then casts with its arms out")
+	await get_tree().create_timer(2.6).timeout
+	check(not sk.is_recalling() and sk.global_position.distance_to(sk.spawn_point) < 0.5, "and arrives home")
+	check(sk.get_node_or_null("TeleportFx") == null, "the animation cleans up")
+	pu.start_recall()
+	pu.command_move(pu.global_position + Vector3(3, 0, 0))
+	await get_tree().process_frame
+	check(pu.get_node_or_null("TeleportFx") == null or pu.get_node("TeleportFx").is_queued_for_deletion(), "moving cancels it")
+	for c in [sk, pu]:
+		c.queue_free()
+
+
+## Splash screen and the GitHub-release updater (no network: replies are made up).
+func test_updates() -> void:
+	check(Updater.current_version() == str(ProjectSettings.get_setting("application/config/version")), "the version comes from project.godot")
+	check(Updater.parse_version("v0.10.2") == [0, 10, 2] and Updater.parse_version("1.2") == [1, 2, 0], "versions parse")
+	check(Updater.is_newer("v0.10.1", "0.10.0") and Updater.is_newer("0.11", "0.10.9") and not Updater.is_newer("v0.9.1", "0.10.0") \
+		and not Updater.is_newer("0.10.0", "0.10.0"), "0.10 is newer than 0.9.1 (numbers, not text)")
+	check(Updater.repo() == "redgouf/MOBA-FANTASY-GAME", "updates come from the game's GitHub repo")
+	var reply := {"tag_name": "v9.0.0", "body": "## New\n- **Faster** ticks\n- More items", "html_url": "https://github.com/x/y/releases/tag/v9.0.0",
+		"assets": [{"name": "GielinorLegends-v9.0.0-personal-OSRS-models.zip", "browser_download_url": "p", "size": 5},
+			{"name": "GielinorLegends-v9.0.0-windows.zip", "browser_download_url": "https://example/w.zip", "size": 40000000}]}
+	var r := Updater.read_release(reply, "0.10.0")
+	check(r["newer"] and r["version"] == "9.0.0" and r["download"] == "https://example/w.zip", "a newer release offers the Windows zip, never the personal one")
+	check(not Updater.read_release({"tag_name": "v0.1.0"}, "0.10.0")["newer"], "an older release isn't offered")
+	var bat := Updater.install_script("C:\\G\\updates\\update.zip", "C:\\G\\GielinorLegends.exe", 1234)
+	check(bat.contains("PID eq 1234") and bat.contains("Expand-Archive -LiteralPath 'C:\\G\\updates\\update.zip' -DestinationPath 'C:\\G'")
+		and bat.contains("start \"\" \"C:\\G\\GielinorLegends.exe\""), "the installer waits, unzips over the game folder and restarts it")
+	var splash := SplashScreen.new()
+	add_child(splash)
+	await get_tree().process_frame
+	var ver := splash.find_child("Version", true, false) as Label
+	check(ver != null and ver.text.contains(Updater.current_version()), "the splash shows this build's version")
+	check(splash.find_child("Play", true, false) != null and splash.find_child("CheckUpdates", true, false) != null, "Play and Check for updates buttons")
+	splash._on_checked(r)
+	var install := splash.find_child("Install", true, false) as Button
+	check(install.visible and splash._notes.visible and splash._notes.text.contains("Faster ticks"), "a newer version lists its changes and offers to install")
+	splash._on_checked(Updater.read_release({"tag_name": "v" + Updater.current_version()}, Updater.current_version()))
+	check(not install.visible and (splash.find_child("Status", true, false) as Label).text.contains("latest"), "up to date says so")
+	splash._on_failed("No published release was found.")
+	check((splash.find_child("Status", true, false) as Label).text.contains("No published release"), "failures are explained")
+	splash.queue_free()

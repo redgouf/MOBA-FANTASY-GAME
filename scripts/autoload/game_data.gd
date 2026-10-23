@@ -12,6 +12,8 @@ var item_order: Array[String] = []
 var units: Dictionary = {}           # "minions" / "structures" / "monsters" / "summons" -> {id: def}
 ## This game's rolled non-combat skill levels: champion id -> {skill: level}.
 var skill_rolls: Dictionary = {}
+## champion id -> its lucky skill this game (rolls rules.lucky_roll, up to 99).
+var lucky_skills: Dictionary = {}
 ## True when champion select rolled the levels it is showing, so the match
 ## that follows keeps them (a restart rolls new ones).
 var rolls_from_select := false
@@ -154,23 +156,41 @@ static func load_json(file_name: String) -> Dictionary:
 
 
 ## Rolls every champion's non-combat skills for a new game: each one
-## rules.skill_roll [min, max] (20-60), unless the build fixes it (the
-## Skiller's 99s) or sets its own range in "roll_ranges".
+## rules.skill_roll [min, max] (20-75), unless the build fixes it (the
+## Skiller's 99s) or sets its own range in "roll_ranges" (the Slayer's
+## 60-85 Slayer). One skill per build, picked at random, is its lucky skill
+## and rolls rules.lucky_roll instead (20-99).
 func roll_skills(from_select: bool = false) -> void:
-	var span: Array = rule("skill_roll", [20, 60])
+	var span: Array = rule("skill_roll", [20, 75])
+	var lucky_span: Array = rule("lucky_roll", [20, 99])
 	skill_rolls.clear()
+	lucky_skills.clear()
 	for id in champion_order:
 		var def: Dictionary = champions[id]
 		var fixed: Dictionary = def.get("skills", {})
 		var ranges: Dictionary = def.get("roll_ranges", {})
 		var rolled := {}
+		var open: Array[String] = []
 		for s in ALL_SKILLS:
 			if COMBAT_SKILLS.has(s) or fixed.has(s):
 				continue
 			var r: Array = ranges.get(s, span)
 			rolled[s] = randi_range(int(r[0]), int(r[1]))
+			if not ranges.has(s):
+				open.append(s)
+		if not open.is_empty():
+			var lucky: String = open.pick_random()
+			lucky_skills[id] = lucky
+			rolled[lucky] = randi_range(int(lucky_span[0]), int(lucky_span[1]))
 		skill_rolls[id] = rolled
 	rolls_from_select = from_select
+
+
+## This game's lucky skill for a build ("" for the Skiller, whose skills are fixed).
+func lucky_skill(id: String) -> String:
+	if skill_rolls.is_empty():
+		roll_skills()
+	return str(lucky_skills.get(id, ""))
 
 
 ## Called when a match starts: keeps champion select's rolls, else rolls anew.

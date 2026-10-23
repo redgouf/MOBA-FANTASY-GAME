@@ -287,10 +287,46 @@ func meets_requirements(item_id: String) -> bool:
 func missing_requirements(item_id: String) -> Array[String]:
 	var out: Array[String] = []
 	var reqs: Dictionary = GameData.item(item_id).get("requirements", {})
+	var made := can_make(item_id)
 	for s in reqs:
+		if made and GameData.COMBAT_SKILLS.has(str(s)):
+			continue
 		if skill(str(s)) < int(reqs[s]):
 			out.append("%d %s" % [int(reqs[s]), str(s).capitalize()])
 	return out
+
+
+## Make your own: with the artisan level that crafts an item (e.g. 99
+## Smithing for a rune platebody) its combat requirements don't apply.
+## This is how the Skiller (99 in every non-combat skill) wears combat gear.
+func can_make(item_id: String) -> bool:
+	var art: Dictionary = GameData.item(item_id).get("artisan", {})
+	if art.is_empty():
+		return false
+	for s in art:
+		if skill(str(s)) < int(art[s]):
+			return false
+	return true
+
+
+## Food and potions: anyone can use them; with the Cooking/Herblore level in
+## "potency" they're Perfect and work rules.potency_bonus (15%) better. The
+## Dragon harpoon (consumable_bonus) adds on top.
+func is_perfect(item_id: String) -> bool:
+	var pot: Dictionary = GameData.item(item_id).get("potency", {})
+	if pot.is_empty():
+		return false
+	for s in pot:
+		if skill(str(s)) < int(pot[s]):
+			return false
+	return true
+
+
+func consumable_mult(item_id: String) -> float:
+	var m := 1.0 + _item_stat("consumable_bonus")
+	if is_perfect(item_id):
+		m += float(GameData.rule("potency_bonus", 0.15))
+	return m
 
 
 # --- Progression -------------------------------------------------------------
@@ -314,6 +350,7 @@ func add_xp(amount: float) -> void:
 		set_label(_label_text())
 		if is_bot:
 			bot_spend_skill_points()
+		_level_up_visuals()
 		leveled_up.emit(self)
 
 
@@ -436,28 +473,69 @@ func use_consumable(index: int) -> bool:
 		return false
 	var item_id := consumables[index]
 	var use: Dictionary = GameData.item(item_id).get("use", {})
+	var mult := consumable_mult(item_id)
 	if use.has("heal"):
-		heal(float(use["heal"]))
+		heal(float(use["heal"]) * mult)
 	if use.has("heal_pct_max"):
-		heal(max_health * float(use["heal_pct_max"]))
+		heal(max_health * float(use["heal_pct_max"]) * mult)
 	# Preserve: potion and food effects last longer (the heal-over-time total grows too).
 	var keep := 1.0 + float(prayer_special("preserve").get("amount", 0.0))
 	if use.has("heal_over_time"):
 		var dur := float(use.get("duration", 5.0))
-		add_status("food:" + item_id, "heal_over_time", float(use["heal_over_time"]) / dur, dur * keep, self)
+		add_status("food:" + item_id, "heal_over_time", float(use["heal_over_time"]) * mult / dur, dur * keep, self)
 	if use.has("prayer"):
-		prayer = minf(prayer_max, prayer + float(use["prayer"]))
+		prayer = minf(prayer_max, prayer + float(use["prayer"]) * mult)
 	if use.has("spec"):
-		spec = minf(100.0, spec + float(use["spec"]))
+		spec = minf(100.0, spec + float(use["spec"]) * mult)
 	for kind in use.get("cleanse", []):
 		for id in statuses.keys():
 			if statuses[id]["kind"] == kind:
 				statuses.erase(id)
 	for st in use.get("statuses", []):
-		add_status("item:%s:%s" % [item_id, st["kind"]], st["kind"], float(st.get("amount", 0.0)), float(st.get("duration", 5.0)) * keep, self,
-			st.get("data", {}))
+		# Stronger buffs; buffs without an amount (antipoison) last longer instead.
+		var amt := float(st.get("amount", 0.0))
+		var dur2 := float(st.get("duration", 5.0)) * keep * (1.0 if amt != 0.0 else mult)
+		add_status("item:%s:%s" % [item_id, st["kind"]], st["kind"], amt * mult, dur2, self, st.get("data", {}))
 	consumables.remove_at(index)
+	_consume_visuals(item_id)
 	return true
+
+
+## Eating or drinking: the OSRS eat/drink animation and a little burst in
+## the item's colour (green for food, teal for prayer, purple for potions).
+func _consume_visuals(item_id: String) -> void:
+	if not is_inside_tree():
+		return
+	if osrs != null:
+		osrs.play(str(OsrsModels.config().get("eat_clip", "a829")), 1.2)
+	var use: Dictionary = GameData.item(item_id).get("use", {})
+	var potion := not (use.has("heal") or use.has("heal_over_time") or use.has("heal_pct_max"))
+	var c := CombatFx.color("heal")
+	if use.has("prayer"):
+		c = Color(0.35, 0.85, 0.85)
+	elif potion:
+		c = Color(0.85, 0.55, 1.0)
+	CombatFx.glow(self, c, 0.8)
+	if is_perfect(item_id):
+		CombatFx.sparks(get_parent(), global_position + Vector3.UP * 1.6, Color(1.0, 0.85, 0.3), 8, 0.5)
+
+
+## OSRS-style level-up fireworks over the champion's head.
+func _level_up_visuals() -> void:
+	if not is_inside_tree() or get_parent() == null:
+		return
+	var top := global_position + Vector3.UP * (visual_height() + 1.0)
+	CombatFx.sparks(get_parent(), top, Color(1.0, 0.85, 0.3), 14, 0.7)
+	CombatFx.sparks(get_parent(), top, Color(0.5, 0.8, 1.0), 8, 0.6)
+	CombatFx.ring(get_parent(), global_position, 1.4, Color(1.0, 0.85, 0.3, 0.7), 0.6, 0.1)
+
+
+## One line of what the champion is doing (smoke-test stuck reports).
+func debug_state() -> String:
+	return "move %s %s, target %s, queued %s, altar %s, hp %d%%, stunned %s, rooted %s" % [
+		_has_move_target, _move_point, attack_target.display_name if is_instance_valid(attack_target) else "-",
+		str(_queued_cast.get("slot", "-")), pray_altar != null, roundi(health_ratio() * 100.0),
+		has_status("stun"), has_status("root") or has_status("planted")]
 
 
 func in_shop_range() -> bool:
@@ -782,6 +860,7 @@ func start_recall() -> void:
 	command_stop()
 	recall_timer = float(GameData.rule("recall_channel_sec", 4.0))
 	_recall_started = GameTick.current_tick
+	TeleportFx.begin(self)
 
 
 func is_recalling() -> bool:
@@ -789,6 +868,8 @@ func is_recalling() -> bool:
 
 
 func _cancel_recall() -> void:
+	if recall_timer >= 0.0:
+		TeleportFx.stop(self)
 	recall_timer = -1.0
 
 
@@ -1113,6 +1194,12 @@ func modify_outgoing(info: DamageInfo, target: Unit) -> void:
 		info.amount *= 1.0 + prayer_effect("damage_" + Combat.style_name(info.style))
 	if target != null and target.team == Combat.Team.NEUTRAL:
 		info.amount *= 1.0 + _item_stat("monster_damage")   # Black mask, leaf-bladed weapons
+	if target != null and target.is_structure():
+		info.amount *= 1.0 + _item_stat("structure_damage")   # axes and pickaxes: siege
+	if info.is_attack and str(passive.get("type", "")) != "skilling_level_up":
+		# Skilling tools on a fighter: skill power adds to basic attacks (the
+		# Skiller's own passive does this at a higher ratio).
+		info.amount += get_skill_power() * float(GameData.rule("skill_power_attack_ratio", 0.2))
 	match str(passive.get("type", "")):
 		"missing_health_damage":
 			info.amount *= 1.0 + (1.0 - health_ratio()) * float(passive.get("pct_per_pct", 1.0))
@@ -1280,8 +1367,10 @@ func _tick_resources(delta: float) -> void:
 		recall_timer -= delta
 		if recall_timer <= 0.001:
 			recall_timer = -1.0
+			var from := global_position
 			global_position = spawn_point
 			_has_move_target = false
+			TeleportFx.finish(self, from)
 	if flat_distance(global_position, spawn_point) <= float(GameData.rule("fountain_radius", 12)):
 		heal(max_health * float(GameData.rule("fountain_heal_pct_per_sec", 0.1)) * delta)
 		prayer = minf(prayer_max, prayer + 10.0 * delta)
@@ -1493,7 +1582,7 @@ func best_food() -> String:
 		var use: Dictionary = it.get("use", {})
 		if not it.get("consumable", false) or not meets_requirements(id):
 			continue
-		var heal := float(use.get("heal", 0.0)) + float(use.get("heal_over_time", 0.0)) + float(use.get("heal_pct_max", 0.0)) * max_health
+		var heal := (float(use.get("heal", 0.0)) + float(use.get("heal_over_time", 0.0)) + float(use.get("heal_pct_max", 0.0)) * max_health) * consumable_mult(id)
 		if heal > best_heal and gold >= item_cost(id):
 			best_heal = heal
 			best = id

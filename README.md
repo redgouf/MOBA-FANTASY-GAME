@@ -6,7 +6,7 @@ A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School Run
 
 Built with **Godot 4.7.2** (GDScript, Forward+).
 
-## Status: whitebox prototype (v0.9.1)
+## Status: whitebox prototype (v0.11)
 
 ![Playing the Pure: stats and items bottom-left, abilities centre, minimap bottom-right, inspected target top-left](docs/screenshots/play.png)
 
@@ -16,8 +16,13 @@ Playable today, with primitive shapes standing in for art:
 - **League-style HUD**: portrait, stats, 6 item slots and food belt bottom-left; passive, Q/W/E/R with ranks and cooldowns, prayers and bars in the centre; minimap bottom-right; left-click any unit to inspect it top-left (with a ring under its feet).
 - **League of Legends mob and structure stats**: minions, turrets, altars (inhibitors), the standard (nexus) and every jungle camp use Summoner's Rift numbers, wave timings and turret rules. See [docs/LOL_VALUES.md](docs/LOL_VALUES.md).
 - **Champion select in the OSRS interface style** ([screenshot](docs/screenshots/champion_select.png)): portrait cards for every build; click one for its **Equipment Stats** view (gear slots, the figure slowly turning left and right, and its bonuses) and its abilities; **Skills** and **Prayer** tabs on the side; **LOCK IN** starts the game after a 5 second countdown. Nothing on the screen moves when you switch builds. With the private OSRS pack the portraits and figure are the real models; without it, a stand-in figure coloured from the build's gear.
-- **All 24 OSRS skills for every build**: combat levels are fixed per build; every non-combat skill is **rolled 20–60 each game** (the Skiller is always 99, the Slayer always rolls 55+ Slayer). Hover a skill (champion select, or your portrait in-game) to see which items that level unlocks.
-- **Skilling-gated items**: food by Cooking (shrimps to manta rays), potions by Herblore, and gear gated by Crafting, Smithing, Fletching, Slayer, Hunter, Thieving and Firemaking (leaf-bladed weapons hit monsters harder, chinchompas explode, the rogue outfit boosts last-hit gold, the bruma torch burns). Anything needing a skill above 60 is Skiller-only.
+- **All 24 OSRS skills for every build**: combat levels are fixed per build; every non-combat skill is **rolled 20–75 each game**, and one **lucky skill** per build (marked with a gold star) can roll all the way to 99 (the Skiller is always 99; the Slayer rolls 60–85 Slayer). Hover a skill (champion select, or your portrait in-game) to see which items that level unlocks.
+- **Perfect food and potions**: anyone can buy and use any food or potion; with the Cooking (food) or Herblore (potions) level to make it, yours are **Perfect** and work 15% better (a Perfect shark heals 230 instead of 200). The Dragon harpoon adds another 15%.
+- **Skilling-gated items**: gear gated by Crafting, Smithing, Fletching, Slayer, Hunter, Thieving and Firemaking (leaf-bladed weapons hit monsters harder, chinchompas explode, the rogue outfit boosts last-hit gold, the bruma torch burns). Anything needing a skill above 75 is Skiller-only, unless a lucky roll gets there.
+- **Skilling tools for fighters**: skill power from tools adds 20% of itself to anyone's basic attacks, axes and the dragon pickaxe hit towers harder, the Imcando hammer gives armour penetration, the Dragon harpoon boosts food, and the infernal axe and pyromancer garb burn.
+- **Make your own gear**: with the level to make an item in OSRS (99 Smithing for a rune platebody, 80 for a godsword, 98 Crafting for an amulet of torture...) its combat requirements don't apply. That's how the Skiller (99 everything, 1 combat) wears combat gear, and a 1 Defence Pure with 63 Crafting can wear a green d'hide body.
+- **Splash screen with updates**: shows the version; Check for updates finds the latest release, lists what's new and installs it (see [Updates](#updates-splash-screen)).
+- **Home teleport animation**: recalling looks left, then right, then casts the OSRS teleport (arms out, the white-blue swirl and rune circle) and lands with the arrival animation. Eating and drinking animate too, and every level-up sets off fireworks.
 - **League-style leveling**: start with nothing learned and one point; one point per level; basic abilities rank up to 5 (rank n at level 2n−1), R unlocks at 6/11/16.
 
 - **The Wilderness Rift**: three lanes, the Ditch (visual only), four jungle quadrants, Jad and dragon pits, towers, altars and team flags with LoL-style destruction order, and a runtime-baked navmesh.
@@ -118,6 +123,18 @@ godot --headless --path . --export-release "Windows Desktop" build/windows/Gieli
 ```
 
 The preset in `export_presets.cfg` embeds the game into the .exe, packs `data/*.json` and leaves out `tests/`. The `build/` folder is git-ignored.
+
+## Updates (splash screen)
+
+The game opens on a small splash screen with its version, **Play**, **Check for updates** and **Quit**. Checking reads the latest **GitHub release** of the repo in `data/rules.json` → `updates.repo` and compares its tag with `config/version` in `project.godot`. If the release is newer, its notes are shown as the change list, and **Download and install** fetches its `-windows.zip`, closes the game, unzips it over the game folder and starts the new version.
+
+To publish an update:
+
+1. Bump `config/version` in `project.godot` (and the file/product version in `export_presets.cfg`).
+2. Export the normal "Windows Desktop" preset and zip the exe as `GielinorLegends-vX.Y.Z-windows.zip`.
+3. Create a GitHub release tagged `vX.Y.Z` with the change list as its notes, and attach the zip.
+
+The game can only see public releases: GitHub hides a private repo's releases from anyone who isn't signed in. Never attach the personal (OSRS models) build to a release. The personal build checks for updates but doesn't download them.
 
 ## Project layout
 

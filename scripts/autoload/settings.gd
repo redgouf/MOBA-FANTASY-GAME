@@ -21,6 +21,8 @@ var cast_mode := CAST_NORMAL
 ## What the next scene load should start (set by the ESC menu):
 ## pending_mode "" = champion select, "play" = play pending_champion,
 ## "spectate" = NPC vs NPC.
+## The splash screen shows once per session (not again on restart).
+var splash_seen := false
 var pending_mode := ""
 var pending_champion := ""
 var pending_prayer := ""        # prayer id picked at champion select ("" = the build's default)

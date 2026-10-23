@@ -1,5 +1,5 @@
 {
-  "_notes": "Requirements use real OSRS skill levels. Entries marked verify:true still need checking against the OSRS Wiki. Set bonuses and 'text' effects without code are planned, not yet implemented.",
+  "_notes": "Requirements use real OSRS skill levels. Entries marked verify:true still need checking against the OSRS Wiki. Set bonuses and 'text' effects without code are planned, not yet implemented. Consumables have no requirement: 'potency' is the Cooking/Herblore level that makes them Perfect (+15%). 'artisan' is the level to make an item yourself, which waives its combat requirements.",
   "items": [
     {
       "id": "rune_scimitar",
@@ -11,6 +11,9 @@
       },
       "stats": {
         "damage": 18
+      },
+      "artisan": {
+        "smithing": 90
       }
     },
     {
@@ -40,6 +43,9 @@
       "stats": {
         "damage": 16,
         "attack_speed": 0.05
+      },
+      "artisan": {
+        "fletching": 69
       }
     },
     {
@@ -69,6 +75,9 @@
           "melee": 15,
           "ranged": 10
         }
+      },
+      "artisan": {
+        "smithing": 99
       }
     },
     {
@@ -86,6 +95,9 @@
           "ranged": 20,
           "magic": 10
         }
+      },
+      "artisan": {
+        "crafting": 63
       }
     },
     {
@@ -115,6 +127,9 @@
         "magic_power": 10,
         "health": 60,
         "prayer_bonus": 3
+      },
+      "artisan": {
+        "crafting": 80
       }
     },
     {
@@ -131,6 +146,9 @@
         "health": 120,
         "defence_all": 6,
         "prayer_bonus": 5
+      },
+      "artisan": {
+        "crafting": 90
       }
     },
     {
@@ -443,6 +461,9 @@
             "delay": 0.2
           }
         ]
+      },
+      "artisan": {
+        "smithing": 80
       }
     },
     {
@@ -489,6 +510,9 @@
             "delay": 0.2
           }
         ]
+      },
+      "artisan": {
+        "smithing": 80
       }
     },
     {
@@ -534,6 +558,9 @@
             "delay": 0.2
           }
         ]
+      },
+      "artisan": {
+        "smithing": 80
       }
     },
     {
@@ -582,6 +609,9 @@
             "delay": 0.2
           }
         ]
+      },
+      "artisan": {
+        "smithing": 80
       }
     },
     {
@@ -809,6 +839,9 @@
       "stats": {
         "damage": 35,
         "attack_speed": 0.35
+      },
+      "artisan": {
+        "fletching": 53
       }
     },
     {
@@ -1078,6 +1111,9 @@
         "defence": {
           "ranged": 30
         }
+      },
+      "artisan": {
+        "crafting": 90
       }
     },
     {
@@ -1146,7 +1182,10 @@
         "prayer_bonus": 3,
         "elysian": 0.12
       },
-      "text": "Passive: each hit on you has a 70% chance to be reduced by 12% (the Justiciar's Elysian Ward is 25% and can shield allies)."
+      "text": "Passive: each hit on you has a 70% chance to be reduced by 12% (the Justiciar's Elysian Ward is 25% and can shield allies).",
+      "artisan": {
+        "smithing": 85
+      }
     },
     {
       "id": "dinhs_bulwark",
@@ -1170,6 +1209,9 @@
       "stats": {
         "damage": 25,
         "health": 100
+      },
+      "artisan": {
+        "crafting": 98
       }
     },
     {
@@ -1180,6 +1222,9 @@
       "stats": {
         "damage": 22,
         "attack_speed": 0.1
+      },
+      "artisan": {
+        "crafting": 92
       }
     },
     {
@@ -1221,6 +1266,9 @@
       "stats": {
         "defence_all": 20,
         "health": 200
+      },
+      "artisan": {
+        "crafting": 89
       }
     },
     {
@@ -1333,6 +1381,9 @@
           "melee": 8,
           "ranged": 10
         }
+      },
+      "artisan": {
+        "crafting": 28
       }
     },
     {
@@ -1352,6 +1403,9 @@
           "ranged": 15,
           "magic": 10
         }
+      },
+      "artisan": {
+        "crafting": 53
       }
     },
     {
@@ -1369,6 +1423,9 @@
           "melee": 16,
           "ranged": 12
         }
+      },
+      "artisan": {
+        "smithing": 48
       }
     },
     {
@@ -1383,6 +1440,9 @@
       "stats": {
         "damage": 15,
         "attack_speed": 0.05
+      },
+      "artisan": {
+        "smithing": 55
       }
     },
     {
@@ -1397,6 +1457,9 @@
       "stats": {
         "damage": 18,
         "attack_speed": 0.12
+      },
+      "artisan": {
+        "fletching": 55
       }
     },
     {
@@ -1411,6 +1474,9 @@
       "stats": {
         "damage": 9,
         "attack_speed": 0.1
+      },
+      "artisan": {
+        "smithing": 54
       }
     },
     {
@@ -1611,7 +1677,7 @@
         "heal_over_time": 200,
         "duration": 5
       },
-      "requirements": {
+      "potency": {
         "cooking": 80
       }
     },
@@ -1623,7 +1689,7 @@
       "use": {
         "heal": 80
       },
-      "requirements": {
+      "potency": {
         "cooking": 30
       }
     },
@@ -1647,7 +1713,7 @@
           }
         ]
       },
-      "requirements": {
+      "potency": {
         "herblore": 81
       }
     },
@@ -1659,7 +1725,7 @@
       "use": {
         "prayer": 40
       },
-      "requirements": {
+      "potency": {
         "herblore": 63
       }
     },
@@ -1671,7 +1737,7 @@
       "use": {
         "prayer": 30
       },
-      "requirements": {
+      "potency": {
         "herblore": 38
       }
     },
@@ -1689,7 +1755,7 @@
           }
         ]
       },
-      "requirements": {
+      "potency": {
         "herblore": 90
       }
     },
@@ -1707,7 +1773,7 @@
           }
         ]
       },
-      "requirements": {
+      "potency": {
         "herblore": 77
       }
     },
@@ -1716,11 +1782,11 @@
       "name": "Shrimps",
       "consumable": true,
       "cost": 15,
-      "requirements": {
-        "cooking": 1
-      },
       "use": {
         "heal": 50
+      },
+      "potency": {
+        "cooking": 1
       }
     },
     {
@@ -1728,12 +1794,12 @@
       "name": "Trout",
       "consumable": true,
       "cost": 25,
-      "requirements": {
-        "cooking": 15
-      },
       "use": {
         "heal_over_time": 100,
         "duration": 5
+      },
+      "potency": {
+        "cooking": 15
       }
     },
     {
@@ -1741,12 +1807,12 @@
       "name": "Salmon",
       "consumable": true,
       "cost": 30,
-      "requirements": {
-        "cooking": 25
-      },
       "use": {
         "heal_over_time": 120,
         "duration": 5
+      },
+      "potency": {
+        "cooking": 25
       }
     },
     {
@@ -1754,12 +1820,12 @@
       "name": "Tuna",
       "consumable": true,
       "cost": 35,
-      "requirements": {
-        "cooking": 30
-      },
       "use": {
         "heal_over_time": 135,
         "duration": 5
+      },
+      "potency": {
+        "cooking": 30
       }
     },
     {
@@ -1767,12 +1833,12 @@
       "name": "Lobster",
       "consumable": true,
       "cost": 40,
-      "requirements": {
-        "cooking": 40
-      },
       "use": {
         "heal_over_time": 160,
         "duration": 5
+      },
+      "potency": {
+        "cooking": 40
       }
     },
     {
@@ -1780,12 +1846,12 @@
       "name": "Swordfish",
       "consumable": true,
       "cost": 45,
-      "requirements": {
-        "cooking": 45
-      },
       "use": {
         "heal_over_time": 175,
         "duration": 5
+      },
+      "potency": {
+        "cooking": 45
       }
     },
     {
@@ -1793,12 +1859,12 @@
       "name": "Monkfish",
       "consumable": true,
       "cost": 50,
-      "requirements": {
-        "cooking": 62
-      },
       "use": {
         "heal_over_time": 190,
         "duration": 5
+      },
+      "potency": {
+        "cooking": 62
       }
     },
     {
@@ -1806,11 +1872,11 @@
       "name": "Anglerfish",
       "consumable": true,
       "cost": 70,
-      "requirements": {
-        "cooking": 84
-      },
       "use": {
         "heal_pct_max": 0.22
+      },
+      "potency": {
+        "cooking": 84
       }
     },
     {
@@ -1818,12 +1884,12 @@
       "name": "Dark crab",
       "consumable": true,
       "cost": 75,
-      "requirements": {
-        "cooking": 90
-      },
       "use": {
         "heal_over_time": 240,
         "duration": 5
+      },
+      "potency": {
+        "cooking": 90
       }
     },
     {
@@ -1831,12 +1897,12 @@
       "name": "Manta ray",
       "consumable": true,
       "cost": 80,
-      "requirements": {
-        "cooking": 91
-      },
       "use": {
         "heal_over_time": 260,
         "duration": 5
+      },
+      "potency": {
+        "cooking": 91
       }
     },
     {
@@ -1844,9 +1910,6 @@
       "name": "Antipoison",
       "consumable": true,
       "cost": 30,
-      "requirements": {
-        "herblore": 5
-      },
       "use": {
         "cleanse": [
           "poison"
@@ -1864,16 +1927,16 @@
           }
         ]
       },
-      "text": "Cures poison and protects you from poison for 30s."
+      "text": "Cures poison and protects you from poison for 30s.",
+      "potency": {
+        "herblore": 5
+      }
     },
     {
       "id": "attack_potion",
       "name": "Attack potion",
       "consumable": true,
       "cost": 50,
-      "requirements": {
-        "herblore": 3
-      },
       "use": {
         "statuses": [
           {
@@ -1882,6 +1945,9 @@
             "duration": 60
           }
         ]
+      },
+      "potency": {
+        "herblore": 3
       }
     },
     {
@@ -1889,9 +1955,6 @@
       "name": "Strength potion",
       "consumable": true,
       "cost": 60,
-      "requirements": {
-        "herblore": 12
-      },
       "use": {
         "statuses": [
           {
@@ -1900,6 +1963,9 @@
             "duration": 60
           }
         ]
+      },
+      "potency": {
+        "herblore": 12
       }
     },
     {
@@ -1907,9 +1973,6 @@
       "name": "Energy potion",
       "consumable": true,
       "cost": 40,
-      "requirements": {
-        "herblore": 26
-      },
       "use": {
         "statuses": [
           {
@@ -1918,6 +1981,9 @@
             "duration": 6
           }
         ]
+      },
+      "potency": {
+        "herblore": 26
       }
     },
     {
@@ -1925,9 +1991,6 @@
       "name": "Defence potion",
       "consumable": true,
       "cost": 60,
-      "requirements": {
-        "herblore": 30
-      },
       "use": {
         "statuses": [
           {
@@ -1936,6 +1999,9 @@
             "duration": 60
           }
         ]
+      },
+      "potency": {
+        "herblore": 30
       }
     },
     {
@@ -1943,9 +2009,6 @@
       "name": "Combat potion",
       "consumable": true,
       "cost": 90,
-      "requirements": {
-        "herblore": 36
-      },
       "use": {
         "statuses": [
           {
@@ -1959,6 +2022,9 @@
             "duration": 60
           }
         ]
+      },
+      "potency": {
+        "herblore": 36
       }
     },
     {
@@ -1966,9 +2032,6 @@
       "name": "Super attack",
       "consumable": true,
       "cost": 90,
-      "requirements": {
-        "herblore": 45
-      },
       "use": {
         "statuses": [
           {
@@ -1977,6 +2040,9 @@
             "duration": 60
           }
         ]
+      },
+      "potency": {
+        "herblore": 45
       }
     },
     {
@@ -1984,9 +2050,6 @@
       "name": "Superantipoison",
       "consumable": true,
       "cost": 60,
-      "requirements": {
-        "herblore": 48
-      },
       "use": {
         "cleanse": [
           "poison",
@@ -2006,16 +2069,16 @@
           }
         ]
       },
-      "text": "Cures poison and venom and protects you from poison and venom for 60s."
+      "text": "Cures poison and venom and protects you from poison and venom for 60s.",
+      "potency": {
+        "herblore": 48
+      }
     },
     {
       "id": "super_energy",
       "name": "Super energy",
       "consumable": true,
       "cost": 60,
-      "requirements": {
-        "herblore": 52
-      },
       "use": {
         "statuses": [
           {
@@ -2024,6 +2087,9 @@
             "duration": 8
           }
         ]
+      },
+      "potency": {
+        "herblore": 52
       }
     },
     {
@@ -2031,9 +2097,6 @@
       "name": "Super strength",
       "consumable": true,
       "cost": 100,
-      "requirements": {
-        "herblore": 55
-      },
       "use": {
         "statuses": [
           {
@@ -2042,6 +2105,9 @@
             "duration": 60
           }
         ]
+      },
+      "potency": {
+        "herblore": 55
       }
     },
     {
@@ -2049,9 +2115,6 @@
       "name": "Super defence",
       "consumable": true,
       "cost": 100,
-      "requirements": {
-        "herblore": 66
-      },
       "use": {
         "statuses": [
           {
@@ -2060,6 +2123,9 @@
             "duration": 60
           }
         ]
+      },
+      "potency": {
+        "herblore": 66
       }
     },
     {
@@ -2067,9 +2133,6 @@
       "name": "Ranging potion",
       "consumable": true,
       "cost": 110,
-      "requirements": {
-        "herblore": 72
-      },
       "use": {
         "statuses": [
           {
@@ -2078,6 +2141,9 @@
             "duration": 60
           }
         ]
+      },
+      "potency": {
+        "herblore": 72
       }
     },
     {
@@ -2085,9 +2151,6 @@
       "name": "Magic potion",
       "consumable": true,
       "cost": 110,
-      "requirements": {
-        "herblore": 76
-      },
       "use": {
         "statuses": [
           {
@@ -2096,6 +2159,9 @@
             "duration": 60
           }
         ]
+      },
+      "potency": {
+        "herblore": 76
       }
     },
     {
@@ -2107,7 +2173,8 @@
         "woodcutting": 1
       },
       "stats": {
-        "skill_power": 10
+        "skill_power": 10,
+        "structure_damage": 0.05
       }
     },
     {
@@ -2122,7 +2189,8 @@
         "woodcutting": 41
       },
       "stats": {
-        "skill_power": 25
+        "skill_power": 25,
+        "structure_damage": 0.1
       }
     },
     {
@@ -2138,7 +2206,8 @@
       },
       "stats": {
         "skill_power": 40,
-        "attack_speed": 0.1
+        "attack_speed": 0.1,
+        "structure_damage": 0.15
       },
       "spec_active": {
         "name": "Lumber Up",
@@ -2176,7 +2245,8 @@
       },
       "stats": {
         "skill_power": 65,
-        "attack_speed": 0.1
+        "attack_speed": 0.1,
+        "structure_damage": 0.2
       }
     },
     {
@@ -2193,9 +2263,11 @@
       },
       "stats": {
         "skill_power": 55,
-        "health": 100
+        "health": 100,
+        "structure_damage": 0.15,
+        "burn_on_hit": 3
       },
-      "text": "Burns the logs it chops (planned: Timber! sets a small fire)."
+      "text": "Burns the logs it chops: attacks set the target alight."
     },
     {
       "id": "dragon_pickaxe",
@@ -2207,7 +2279,8 @@
       },
       "stats": {
         "skill_power": 35,
-        "attack_speed": 0.25
+        "attack_speed": 0.25,
+        "structure_damage": 0.15
       }
     },
     {
@@ -2220,7 +2293,8 @@
       },
       "stats": {
         "skill_power": 35,
-        "health": 150
+        "health": 150,
+        "consumable_bonus": 0.15
       }
     },
     {
@@ -2233,7 +2307,8 @@
       },
       "stats": {
         "skill_power": 40,
-        "defence_all": 10
+        "defence_all": 10,
+        "armor_pen": 0.1
       }
     },
     {
@@ -2249,7 +2324,8 @@
         "health": 220,
         "defence": {
           "magic": 15
-        }
+        },
+        "burn_on_hit": 3
       }
     },
     {

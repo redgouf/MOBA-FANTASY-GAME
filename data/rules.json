@@ -12,8 +12,18 @@
   "prayer_points_max": 99,
   "skill_roll": [
     20,
-    60
+    75
   ],
+  "lucky_roll": [
+    20,
+    99
+  ],
+  "potency_bonus": 0.15,
+  "updates": {
+    "_comment": "Where Check for updates looks: the latest GitHub release of this repo (it must be public). The release needs a GielinorLegends-vX.Y.Z-windows.zip asset; never upload the personal build.",
+    "repo": "redgouf/MOBA-FANTASY-GAME"
+  },
+  "skill_power_attack_ratio": 0.2,
   "prayer_drain": {
     "_formula": "OSRS: one point drains every 0.6s x (60 + 2 x prayer bonus) / total drain effect of active prayers; then divided by rate_mult (3x faster than OSRS in this version)",
     "tick": 0.6,

@@ -149,11 +149,18 @@ func show_build(def: Dictionary, p_champ: Champion = null) -> void:
 	for s in _tiles:
 		total += level_of(skills, s)
 	_total.text = "Total level: %d%s" % [total, "    ·    Combat level: %d" % combat if full else ""]
+	var lucky := GameData.lucky_skill(str(def.get("id", "")))
 	for s in _tiles:
 		var t: SkillTile = _tiles[s]
 		t.base = level_of(skills, s)
 		t.current = t.base
-		t.tooltip_text = UiStyle.wrap(skill_tooltip(def, s))
+		t.lucky = s == lucky
+		var tip := skill_tooltip(def, s)
+		if t.lucky:
+			var parts := tip.split("\n")
+			parts.insert(1, "Lucky roll! This game this skill could roll up to 99.")
+			tip = "\n".join(parts)
+		t.tooltip_text = UiStyle.wrap(tip)
 		t.queue_redraw()
 	_update_live()
 
@@ -219,7 +226,22 @@ static func skill_tooltip(def: Dictionary, skill: String) -> String:
 		lines.append("Can use: " + ", ".join(usable))
 	if not locked.is_empty():
 		lines.append("Too low for: " + ", ".join(locked))
-	if usable.is_empty() and locked.is_empty() and skill != "hitpoints" and skill != "prayer" and lines.size() == 1:
+	# Food and potions made Perfect (+15%) by this skill, and gear you can make.
+	var perfect: Array[String] = []
+	var make: Array[String] = []
+	for id in GameData.item_order:
+		var it := GameData.item(id)
+		var pot: Dictionary = it.get("potency", {})
+		if pot.has(skill) and lvl >= int(pot[skill]):
+			perfect.append(str(it.get("name", id)))
+		var art: Dictionary = it.get("artisan", {})
+		if art.has(skill) and lvl >= int(art[skill]):
+			make.append(str(it.get("name", id)))
+	if not perfect.is_empty():
+		lines.append("Perfect (+%d%%): %s" % [roundi(float(GameData.rule("potency_bonus", 0.15)) * 100.0), ", ".join(perfect)])
+	if not make.is_empty():
+		lines.append("Make your own (no combat requirements): " + ", ".join(make))
+	if usable.is_empty() and locked.is_empty() and perfect.is_empty() and make.is_empty() and skill != "hitpoints" and skill != "prayer" and lines.size() == 1:
 		lines.append("No shop items or abilities use %s yet." % skill.capitalize())
 	return "\n".join(lines)
 
@@ -229,6 +251,7 @@ class SkillTile extends Control:
 	var skill := ""
 	var base := 1
 	var current := 1
+	var lucky := false             # this game's lucky roll (up to 99): a gold star
 
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
@@ -242,12 +265,23 @@ class SkillTile extends Control:
 		draw_line(Vector2(0, size.y - 1), Vector2(size.x, size.y - 1), SkillsPanel.STONE_DARK, 2.0)
 		draw_line(Vector2(size.x - 1, 0), Vector2(size.x - 1, size.y), SkillsPanel.STONE_DARK, 2.0)
 		SkillIcons.draw_icon(self, skill, Vector2(22, size.y * 0.5), 15.0)
+		if lucky:
+			_star(Vector2(size.x - 9.0, 9.0), 6.0)
 		var font := get_theme_default_font()
 		var col := SkillsPanel.YELLOW if current >= base else Color(1.0, 0.55, 0.1)
 		_shadow_text(font, Vector2(46, 22), str(current), 17, col)
 		draw_line(Vector2(62, 34), Vector2(74, 14), Color(0.05, 0.05, 0.05), 3.0)
 		draw_line(Vector2(61, 33), Vector2(73, 13), SkillsPanel.YELLOW, 1.5)
 		_shadow_text(font, Vector2(70, 40), str(base), 17, SkillsPanel.YELLOW)
+
+	func _star(c: Vector2, r: float) -> void:
+		var pts := PackedVector2Array()
+		for i in 10:
+			var ang := -PI * 0.5 + PI * float(i) / 5.0
+			pts.append(c + Vector2(cos(ang), sin(ang)) * (r if i % 2 == 0 else r * 0.45))
+		draw_colored_polygon(pts, Color(1.0, 0.84, 0.2))
+		pts.append(pts[0])
+		draw_polyline(pts, Color(0.25, 0.15, 0.0), 1.0)
 
 	func _shadow_text(font: Font, pos: Vector2, text: String, fsize: int, col: Color) -> void:
 		draw_string(font, pos + Vector2(1, 1), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, Color.BLACK)
