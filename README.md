@@ -131,8 +131,7 @@ The game opens on a small splash screen with its version, **Play**, **Check for 
 To publish an update:
 
 1. Bump `config/version` in `project.godot` (and the file/product version in `export_presets.cfg`).
-2. Export the normal "Windows Desktop" preset and zip the exe as `GielinorLegends-vX.Y.Z-windows.zip`.
-3. Create a GitHub release tagged `vX.Y.Z` with the change list as its notes, and attach the zip.
+2. Add the version's section to `CHANGELOG.md`, commit, then push a tag: `git tag vX.Y.Z && git push origin vX.Y.Z`. The Release workflow (`.github/workflows/release.yml`) tests the game, exports the normal Windows build and publishes the release with that changelog section as its notes.
 
 The game can only see public releases: GitHub hides a private repo's releases from anyone who isn't signed in. Never attach the personal (OSRS models) build to a release. The personal build checks for updates but doesn't download them.
 

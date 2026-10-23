@@ -1,0 +1,68 @@
+name: Release
+
+# Pushing a version tag (v0.11.1) builds the normal Windows exe and publishes
+# it as a GitHub release, which the game's "Check for updates" button reads.
+# The release notes are that version's section of CHANGELOG.md. Only the
+# "Windows Desktop" preset is built: it leaves out private_assets/, so the
+# personal (OSRS models) build is never published.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Godot and export templates
+        run: |
+          mkdir -p ~/godot
+          curl -sSL -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}_linux.x86_64 ~/godot/godot
+          chmod +x ~/godot/godot
+          curl -sSL -o /tmp/templates.tpz \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          dir=~/.local/share/godot/export_templates/${GODOT_VERSION/-/.}
+          mkdir -p "$dir"
+          unzip -q /tmp/templates.tpz -d /tmp/templates
+          mv /tmp/templates/templates/* "$dir"/
+
+      - name: Check the tag matches the game version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version=$(sed -n 's/^config\/version="\(.*\)"/\1/p' project.godot)
+          echo "tag $tag, game $version"
+          test "$tag" = "$version"
+
+      - name: Import and test
+        run: |
+          ~/godot/godot --headless --path . --import || true
+          timeout 600 ~/godot/godot --headless --path . res://tests/test_runner.tscn
+
+      - name: Export the Windows build
+        run: |
+          mkdir -p build/windows
+          ~/godot/godot --headless --path . --export-release "Windows Desktop" build/windows/GielinorLegends.exe
+          if grep -q "osrs_clips.res\|player_animations.glb" build/windows/GielinorLegends.exe; then
+            echo "Private OSRS files ended up in the build"; exit 1
+          fi
+          (cd build/windows && zip -q -9 "../../GielinorLegends-${GITHUB_REF_NAME}-windows.zip" GielinorLegends.exe)
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          awk -v v="$v" '$0 == "## " v {f=1; next} /^## /{f=0} f' CHANGELOG.md > notes.md
+          gh release create "$GITHUB_REF_NAME" "GielinorLegends-${GITHUB_REF_NAME}-windows.zip" \
+            --title "Gielinor Legends $v" --notes-file notes.md
