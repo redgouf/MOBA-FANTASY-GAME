@@ -48,6 +48,7 @@ var _camp_kills: Dictionary = {}     # camp id -> how many times its monsters ha
 var _altars: Dictionary = {}         # team -> {lane: Structure}
 var _first_turret_taken := false
 var _args: Dictionary = {}
+var unit_bars: UnitBars
 var _smoke := false
 var _smoke_seconds := 150.0
 var _shot_path := ""
@@ -220,6 +221,15 @@ func _begin(view: Champion, welcome: String) -> void:
 	focused = view
 	Hitsplat.viewer = view
 	# Fog of war for the viewer's team (players can't turn it off).
+	# Screen-space health bars, names and prayer bars over every unit.
+	var bars_layer := CanvasLayer.new()
+	bars_layer.name = "UnitBarsLayer"
+	bars_layer.layer = -1
+	add_child(bars_layer)
+	unit_bars = UnitBars.new()
+	unit_bars.viewer = view
+	unit_bars.camera = camera_rig.camera
+	bars_layer.add_child(unit_bars)
 	fog = FogOfWar.new()
 	fog.name = "FogOfWar"
 	add_child(fog)
@@ -410,6 +420,8 @@ func focus(c: Champion) -> void:
 		return
 	focused = c
 	Hitsplat.viewer = c
+	if unit_bars != null:
+		unit_bars.viewer = c
 	if fog != null:
 		fog.set_team(c.team)
 	hud.set_champion(c)

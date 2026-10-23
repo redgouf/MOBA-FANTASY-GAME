@@ -46,6 +46,7 @@ func _ready() -> void:
 	await test_updates()
 	await test_v013()
 	await test_right_click_cancels_aim()
+	await test_v015_ui()
 	test_potions()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
@@ -678,9 +679,9 @@ func test_v09() -> void:
 	var tank := _make("justiciar", Combat.Team.SARADOMIN, Vector3(44, 0, -40))
 	await get_tree().physics_frame
 	tank.toggle_protect(Combat.Style.MELEE)
-	check(tank._overhead != null and tank._overhead.visible and tank._overhead.texture != null, "Protect from Melee shows its overhead icon")
+	check(tank.overhead_prayer() == "protect_from_melee" and Icons.overhead(tank.overhead_prayer()) != null, "Protect from Melee shows its overhead icon")
 	tank.toggle_protect(Combat.Style.MELEE)
-	check(not tank._overhead.visible, "and hides it when switched off")
+	check(tank.overhead_prayer() == "", "and hides it when switched off")
 	# Ranks: every basic ability improves per rank.
 	var flat: Array[String] = []
 	for id in GameData.champion_order:
@@ -1647,3 +1648,38 @@ func test_right_click_cancels_aim() -> void:
 	pc.queue_free()
 	rig.queue_free()
 	c.queue_free()
+
+
+## v0.15: League-style ability tooltips and screen-space unit bars.
+func test_v015_ui() -> void:
+	GameData.load_all()
+	var c := _make("dharok", Combat.Team.SARADOMIN, Vector3(150, 0, -150))
+	c.ranks["q"] = 3
+	var d := AbilityInfo.tooltip_data(c, "q")
+	check(str(d["title"]) == "[Q] Greataxe Cleave" and str(d["subtitle"]) == "Rank 3 / 5" and str(d["cooldown"]).ends_with("s"),
+		"tooltip header: [Q] name, rank, cooldown (%s)" % d["cooldown"])
+	check(d["icon"] != null, "it has an icon (the champion's weapon)")
+	check(str(d["body"]).contains(" = (") and str(d["body"]).contains("melee damage"), "damage written out: N = (base +X% Damage) melee damage")
+	var labels: Array = []
+	for r in d["rows"]:
+		labels.append(r["label"])
+		check((r["values"] as Array).size() == 5, "%s has a value for each of 5 ranks" % r["label"])
+	check(labels.has("Damage") and labels.has("Cooldown"), "rank table: Damage and Cooldown (%s)" % str(labels))
+	check(AbilityTooltip.rank_values(["1", "2", "3"], 2).contains("[b]2[/b]"), "the current rank is highlighted")
+	var tip := AbilityTooltip.build(d)
+	add_child(tip)
+	await get_tree().process_frame
+	check(tip.find_child("Ranks", true, false) != null and tip.find_child("Body", true, false) != null, "the tooltip builds")
+	tip.queue_free()
+	var spec := AbilityInfo.tooltip_data(c, "r")
+	check(str(spec["cost"]).contains("special attack") and str(spec["footer"]).contains("levels 6, 11 and 16"), "the R shows its spec cost and unlock levels")
+	# Screen-space bars: 3D bars and names are hidden; UnitBars draws them.
+	check(not c._health_bar.visible and not c._name_label.visible, "the old 3D bar and name are hidden")
+	var bars := UnitBars.new()
+	add_child(bars)
+	bars.viewer = c
+	await get_tree().process_frame
+	check(bars.is_inside_tree(), "UnitBars runs without a match camera")
+	bars.queue_free()
+	c.queue_free()
+	GameData.load_all(1.0)

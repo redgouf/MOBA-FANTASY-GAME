@@ -2,6 +2,12 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.15.0
+
+- Ability tooltips are laid out like League's, for reading at a glance: the icon, "[Q] Name" and rank on the left, the cooldown and spec cost on the right, the description with each damage or heal written out ("61 = (31 +100% Damage) melee damage", coloured by type), and a rank table ("Damage [ 12 / 22 / 31 / 41 / 50 ]", "Cooldown [ ... ]") with your current rank highlighted. All tooltips use the same dark, teal-edged panel.
+- Health bars and names are drawn flat on the screen at a fixed size, League style. Champions get a framed bar with their level in a badge, a tick every 50 health, the prayer bar underneath and the overhead prayer above the name, drawn on top of everything else. Minions get thin bars and no names; epic monsters and buildings show their names.
+- Potions say what they do in damage terms. Strength and ranging potions give Attack Damage, magic potions Magic Damage, and attack potions crit chance and Crit Damage (crits hit for 150%, with a gold max-hit splat). Defence potions give Defence, combat potions mix these, and the Saradomin brew gives Defence but costs Attack and Magic Damage. Each has a line of flavour text, and the skill levels they boost are now just flavour, shown in the skills panel.
+
 ## 0.14.0
 
 - Updates install themselves: the splash screen checks for a new version as it opens and, if there is one, downloads it, closes the game and reopens on the new version. Check for updates does the same in one click. An "Update automatically" box turns the automatic part off.

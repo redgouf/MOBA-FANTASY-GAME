@@ -20,6 +20,7 @@
   ],
   "potency_bonus": 0.15,
   "crit_mult": 1.5,
+  "health_bar_tick": 50,
   "updates": {
     "_comment": "Where Check for updates looks: the latest GitHub release of this repo (it must be public). The release needs a GielinorLegends-vX.Y.Z-windows.zip asset; never upload the personal build.",
     "repo": "redgouf/MOBA-FANTASY-GAME"

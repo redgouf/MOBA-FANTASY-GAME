@@ -115,13 +115,14 @@ static func install_tooltip_theme() -> void:
 		return
 	_tooltips_installed = true
 	var t := ThemeDB.get_default_theme()
-	var sb := box(TOOLTIP_BG, BORDER_HI, 2, 4)
+	# Dark, teal-edged panels that read at a glance (same look as AbilityTooltip).
+	var sb := box(Color(0.02, 0.05, 0.06, 0.96), Color(0.24, 0.5, 0.48), 2, 4)
 	sb.content_margin_left = 10
 	sb.content_margin_right = 10
-	sb.content_margin_top = 7
-	sb.content_margin_bottom = 7
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
 	t.set_stylebox("panel", "TooltipPanel", sb)
-	t.set_color("font_color", "TooltipLabel", TEXT)
+	t.set_color("font_color", "TooltipLabel", Color(0.86, 0.87, 0.84))
 	t.set_color("font_outline_color", "TooltipLabel", Color(0, 0, 0, 1))
 	t.set_constant("outline_size", "TooltipLabel", 0)
 	t.set_font_size("font_size", "TooltipLabel", 14)

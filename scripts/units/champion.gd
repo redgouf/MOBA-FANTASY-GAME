@@ -770,11 +770,9 @@ func _refresh_prayers() -> void:
 			_prayer_fx[str(p["special"])] = p
 
 
-## The OSRS overhead icon above the head for an active overhead prayer
-## (a protection prayer wins over Smite / Redemption / Retribution).
-var _overhead: Sprite3D
-
-
+## The OSRS overhead icon for an active overhead prayer (a protection
+## prayer wins over Smite / Redemption / Retribution). UnitBars draws it
+## above the champion's name.
 func overhead_prayer() -> String:
 	var best := ""
 	for id in active_prayers:
@@ -785,22 +783,7 @@ func overhead_prayer() -> String:
 
 
 func _update_overhead() -> void:
-	var id := overhead_prayer()
-	if id == "":
-		if _overhead != null:
-			_overhead.visible = false
-		return
-	if _overhead == null:
-		_overhead = Sprite3D.new()
-		_overhead.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		_overhead.pixel_size = 0.0075
-		_overhead.no_depth_test = true
-		_overhead.render_priority = 24
-		_overhead.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-		add_child(_overhead)
-	_overhead.position = Vector3(0, visual_height() + 1.55, 0)
-	_overhead.texture = Icons.overhead(id)
-	_overhead.visible = true
+	pass   # (UnitBars reads overhead_prayer() every frame)
 
 
 ## A summed prayer effect: "damage_melee", "attack_speed_melee", "damage_taken".

@@ -210,6 +210,7 @@ func setup_visuals(color: Color, height: float, label: String, mesh_kind: String
 	add_child(_health_bar)
 	var layer := 2 if is_class_champion() else 0
 	_health_bar.setup(team_color(team), clampf(radius * 2.4, 1.0, 4.0), layer)
+	_health_bar.visible = false   # UnitBars draws the bars on screen
 
 	if label != "":
 		_name_label = Label3D.new()
@@ -224,6 +225,7 @@ func setup_visuals(color: Color, height: float, label: String, mesh_kind: String
 		_name_label.render_priority = 23 if is_class_champion() else 3
 		_name_label.outline_render_priority = 22 if is_class_champion() else 2
 		_name_label.modulate = team_color(team).lightened(0.55) if team != Combat.Team.NEUTRAL else Color(1.0, 0.95, 0.6)
+		_name_label.visible = false   # UnitBars draws names on screen
 		add_child(_name_label)
 
 

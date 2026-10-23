@@ -19,6 +19,7 @@ var _ready_style: StyleBoxFlat
 var _locked_style: StyleBoxFlat
 var _pip_count := -1
 var _tip_timer := 0.0
+var _champ: Champion          # for the structured tooltip
 
 
 static func create(parent: Control, p_slot: String, size: float) -> AbilitySlot:
@@ -73,6 +74,7 @@ func _build() -> void:
 
 
 func refresh(champ: Champion, allow_level_up: bool = true) -> void:
+	_champ = champ
 	var ab := champ.get_ability(slot)
 	var rank := champ.ability_rank(slot)
 	var max_rank := champ.max_rank(slot)
@@ -128,6 +130,9 @@ func refresh(champ: Champion, allow_level_up: bool = true) -> void:
 			tooltip_text = tip
 
 
-## Hotbar tooltips are coloured (BBCode from AbilityInfo.tooltip_rich).
+## Hotbar tooltips: the structured AbilityTooltip (icon, cooldown, damage
+## written out, per-rank table).
 func _make_custom_tooltip(for_text: String) -> Object:
-	return UiStyle.rich_tooltip(for_text)
+	if _champ == null or not is_instance_valid(_champ):
+		return UiStyle.rich_tooltip(for_text)
+	return AbilityTooltip.build(AbilityInfo.tooltip_data(_champ, slot))

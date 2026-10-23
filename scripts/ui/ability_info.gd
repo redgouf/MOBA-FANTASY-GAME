@@ -256,3 +256,136 @@ static func tooltip(c: Champion, key: String) -> String:
 	if key == "r":
 		lines.append("Ranks unlock at levels 6, 11 and 16.")
 	return UiStyle.wrap("\n".join(lines))
+
+
+# --- Structured tooltip (AbilityTooltip) -----------------------------------------
+
+const KIND_LABELS := {
+	"haste": "Move speed", "slow": "Slow", "root": "Root", "stun": "Stun", "attack_speed": "Attack speed",
+	"damage_mult": "Damage", "armor_mult": "Defence", "range_bonus": "Range", "damage_taken_mult": "Damage taken",
+	"heal_over_time": "Healing", "burn": "Burn", "poison": "Poison", "venom": "Venom", "tele_block": "Tele Block",
+	"vengeance": "Reflect", "disable_prayer": "Prayer off", "skill_power_mult": "Skill power",
+}
+
+
+## Everything AbilityTooltip shows for an ability (or item spec) as `c` has it:
+## {icon, title, subtitle, cooldown, cost, body (BBCode), rows [{label, values}],
+##  rank, footer}.
+static func tooltip_data(c: Champion, key: String) -> Dictionary:
+	var ab := c.get_action(key)
+	var rank := c.ability_rank(key)
+	var is_item := key.begins_with("item:")
+	var shown := AbilityRunner.ranked(ab, maxi(rank, 1))
+	var d := {"rank": rank}
+	d["icon"] = _icon(c, key)
+	d["title"] = ("%s" if is_item else "[%s] %s") % ([ab.get("name", "")] if is_item else [key.to_upper(), ab.get("name", "")])
+	if is_item:
+		d["subtitle"] = "Item special attack"
+	elif rank <= 0:
+		d["subtitle"] = "Not learned (rank 1 shown)"
+	else:
+		d["subtitle"] = "Rank %d / %d" % [rank, c.max_rank(key)]
+	var cd := c.ability_cooldown(key, ab)
+	d["cooldown"] = ("%ss" % str(snappedf(cd, 0.01))) if cd > 0.0 else ""
+	var cost := float(ab.get("spec_cost", 0.0))
+	d["cost"] = "%d%% special attack" % int(cost) if cost > 0.0 else ""
+	# Body: the description, then each damage or heal written out.
+	var lines: Array[String] = [str(ab.get("text", ""))]
+	var effects: Array = shown.get("effects", [])
+	for row in breakdown(c, shown, rank):
+		var heal: bool = row["kind"] == "heal"
+		var style := "melee"
+		var ratio: Dictionary = {}
+		for e in effects:
+			if str(e.get("type", "")) == row["kind"]:
+				style = str(e.get("style", Combat.style_name(c.attack_style)))
+				ratio = e.get("ratio", {})
+				break
+		var col := C_RANGED if heal else style_color(style)
+		var inner: Array[String] = ["%d" % roundi(row["spell"])]
+		for k in ratio:
+			var stat_col: String = {"damage": "#ffa040", "magic_power": "#a58bff", "skill_power": "#ffd75e"}.get(str(k), C_STATS)
+			inner.append(_c(stat_col, "+%s%% %s" % [_pct(float(ratio[k])), str(RATIO_NAMES.get(k, k)).capitalize()]))
+		var what := "healing" if heal else "%s damage" % style
+		var s := "%s = (%s) %s" % [_c(col, "[b]%d[/b]" % roundi(row["per_hit"])), " ".join(inner), _c(col, what)]
+		if int(row["hits"]) > 1:
+			s += ", × %d hits = %s" % [int(row["hits"]), _c(col, "[b]%d[/b]" % roundi(row["total"]))]
+		elif int(row["ticks"]) > 1:
+			s += ", × %d ticks = %s" % [int(row["ticks"]), _c(col, "[b]%d[/b]" % roundi(row["total"]))]
+		lines.append(s)
+		for x in row["extra"]:
+			lines.append("  • " + str(x))
+	d["body"] = "\n".join(lines)
+	# Rank table: every value that grows with rank, then the cooldown.
+	var rows: Array = []
+	var ranks := 1 if is_item else c.max_rank(key)
+	if ranks > 1:
+		for e in ab.get("effects", []):
+			_rank_rows(e, str(e.get("kind", e.get("type", ""))), ranks, rows)
+			for st in e.get("statuses", []):
+				_rank_rows(st, str(st.get("kind", "")), ranks, rows)
+			for st in e.get("target_statuses", []):
+				_rank_rows(st, str(st.get("kind", "")), ranks, rows)
+		var cds: Array = []
+		var base_cd := float(ab.get("cooldown", 0.0))
+		for r in ranks:
+			var per := float(GameData.rule("basic_cooldown_reduction_per_rank", 0.06))
+			var v := base_cd if key == "r" else base_cd * maxf(0.2, 1.0 - per * float(r))
+			cds.append(_num(v))
+		if base_cd > 0.0 and key != "r":
+			rows.append({"label": "Cooldown", "values": cds})
+	d["rows"] = rows
+	d["footer"] = "Ranks unlock at levels 6, 11 and 16." if key == "r" and not is_item else ""
+	return d
+
+
+## Rows for each *_per_rank value on one effect: "Damage [ 60 / 108 / ... ]".
+static func _rank_rows(e: Dictionary, kind: String, ranks: int, out: Array) -> void:
+	for k in e:
+		var key := str(k)
+		if not key.ends_with("_per_rank"):
+			continue
+		var base_key := "base" if key == "base_per_rank" else key.trim_suffix("_per_rank")
+		var base := float(e.get(base_key, 0.0))
+		var step := float(e[k])
+		var label := ""
+		var pct := false
+		match base_key:
+			"base":
+				label = "Healing" if str(e.get("type", "")) == "heal" else "Damage"
+			"duration":
+				label = "%s duration" % str(KIND_LABELS.get(kind, kind.replace("_", " ").capitalize()))
+			"amount":
+				label = str(KIND_LABELS.get(kind, kind.replace("_", " ").capitalize()))
+				pct = absf(base) < 1.0 and absf(step) < 1.0 and kind != "range_bonus"
+			_:
+				label = base_key.replace("_", " ").capitalize()
+				pct = absf(base) < 1.0 and absf(step) < 1.0
+		var vals: Array = []
+		for r in ranks:
+			var v := base + step * float(r)
+			if pct:
+				vals.append("%s%%" % _num(v * 100.0))
+			elif base_key == "base":
+				vals.append(str(roundi(v)))       # damage and healing: whole numbers
+			else:
+				vals.append(_num(v) + ("s" if base_key == "duration" else ""))
+		out.append({"label": label, "values": vals})
+
+
+static func _num(v: float) -> String:
+	return str(snappedf(v, 0.01)).trim_suffix(".0")
+
+
+## The tooltip icon: the spec weapon for item specs and spec ultimates, else
+## the champion's weapon.
+static func _icon(c: Champion, key: String) -> Texture2D:
+	if key.begins_with("item:"):
+		return Icons.item(key.substr(5))
+	var a: Dictionary = OsrsModels.champion_config(c.champ_id).get("abilities", {}).get(key, {})
+	if a.has("spec"):
+		var t := Icons.item(str(a["spec"]))
+		if t != null:
+			return t
+	var w: Dictionary = c.def.get("equipment", {}).get("weapon", {})
+	return Icons.gear(str(w.get("icon", "")))
