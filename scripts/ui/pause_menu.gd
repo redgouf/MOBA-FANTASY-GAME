@@ -13,7 +13,7 @@ var spectating := false
 const CONTROLS_TEXT := """Right-click — move, or attack the unit under the cursor
 Left-click — select a unit to inspect it (top-left)
 Q W E R — abilities (R is your special attack): press to show the indicator, left-click to cast
-   (it stays up while you right-click to walk; Esc cancels; other modes in Settings > Ability casting)
+   (right-click cancels it and walks, and it can be brought up while walking; Esc cancels; other modes in Settings > Ability casting)
 Ctrl + Q W E R — spend a skill point (R unlocks at level 6)
 1 – 6 — item special attacks
 7 8 9 0 — food and potions

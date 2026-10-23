@@ -6,7 +6,7 @@ A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School Run
 
 Built with **Godot 4.7.2** (GDScript, Forward+).
 
-## Status: whitebox prototype (v0.13)
+## Status: whitebox prototype (v0.13.1)
 
 ![Playing the Pure: stats and items bottom-left, abilities centre, minimap bottom-right, inspected target top-left](docs/screenshots/play.png)
 
@@ -69,7 +69,7 @@ godot --path . -- --champion=pure
 | --- | --- |
 | Right-click | Move, or attack the unit under the cursor |
 | Left-click | Select a unit to inspect it (top-left panel + ring under its feet) |
-| Q W E R | Abilities (R is your special attack). Press to show the indicator, left-click to cast. The indicator stays up while you right-click to walk, so you can line a cast up on the move; Esc cancels. Settings > Ability casting also offers quick cast with indicator (hold, release) and quick cast |
+| Q W E R | Abilities (R is your special attack). Press to show the indicator, left-click to cast. You can bring the indicator up while already walking; a right-click cancels it and moves, and Esc cancels. Settings > Ability casting also offers quick cast with indicator (hold, release) and quick cast |
 | Q (Skiller) | On open ground: plant a yew. On one of your yews: chop it; it falls away from you |
 | Tab (hold) | Scoreboard |
 | Ctrl + Q W E R / the + buttons | Spend a skill point |

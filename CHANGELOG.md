@@ -2,6 +2,10 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.13.1
+
+- Normal cast: right-clicking to move cancels the spell indicator again (and still moves). You can still bring an indicator up while you're walking.
+
 ## 0.13.0
 
 - The stats panel (bottom left) shows live values: buffs and debuffs from spells, items, prayers and potions change Dmg, Magic, Atk, Range, Move and the defences at once. Raised stats turn green and lowered ones red; hover for the base value.

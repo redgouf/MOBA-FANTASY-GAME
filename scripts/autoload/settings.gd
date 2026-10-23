@@ -13,7 +13,7 @@ var show_fps := true
 
 ## How Q/W/E/R and item actives cast (League of Legends' three modes):
 const CAST_QUICK_INDICATOR := 0   # hold the key to aim with an indicator, release to cast
-const CAST_NORMAL := 1            # press the key to aim, left-click to cast; right-click still moves (Esc cancels)
+const CAST_NORMAL := 1            # press the key to aim, left-click to cast; right-click cancels and moves (Esc cancels)
 const CAST_QUICK := 2             # cast at the cursor the moment the key is pressed
 const CAST_MODE_NAMES := ["Quick cast with indicator (hold, release)", "Normal cast (press, then left-click)", "Quick cast (no indicator)"]
 var cast_mode := CAST_NORMAL

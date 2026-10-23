@@ -45,6 +45,7 @@ func _ready() -> void:
 	await test_v010()
 	await test_updates()
 	await test_v013()
+	await test_right_click_cancels_aim()
 	test_potions()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
@@ -1596,3 +1597,30 @@ func test_v013() -> void:
 		"damage buffs show in Dmg")
 	hud.queue_free()
 	dh.queue_free()
+
+
+## Normal cast: a right-click cancels the spell indicator (and still moves).
+func test_right_click_cancels_aim() -> void:
+	var c := _make("pure", Combat.Team.SARADOMIN, Vector3(140, 0, -140))
+	c.ranks["e"] = 1
+	var rig := CameraRig.new()
+	add_child(rig)
+	var pc := PlayerController.new()
+	pc.setup(self, c, rig)
+	add_child(pc)
+	await get_tree().process_frame
+	var old_mode := Settings.cast_mode
+	Settings.cast_mode = Settings.CAST_NORMAL
+	pc.aiming = "e"
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_RIGHT
+	ev.pressed = true
+	ev.position = Vector2(800, 450)
+	pc._unhandled_input(ev)
+	check(pc.aiming == "", "a right-click cancels the spell indicator")
+	pc.begin_action("e")
+	check(pc.aiming == "e" or c.get_action("e").get("cast", "self") == "self", "the indicator can come back up while walking")
+	Settings.cast_mode = old_mode
+	pc.queue_free()
+	rig.queue_free()
+	c.queue_free()

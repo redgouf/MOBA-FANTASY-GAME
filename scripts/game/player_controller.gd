@@ -4,9 +4,10 @@ extends Node
 ## Left-click: select (inspect) a unit. Right-click: move or attack.
 ## Q/W/E/R: abilities at the cursor. Ctrl+Q/W/E/R: spend a skill point.
 ## Casting follows Settings.cast_mode: normal cast (the default: press to show
-## the indicator, left-click to cast; it stays up while you right-click to
-## walk, so you can line a cast up on the move; Esc cancels), quick cast with
-## indicator (hold to aim, release to cast; right-click cancels) or quick cast.
+## the indicator, left-click to cast; a right-click cancels it and moves, but
+## you can bring it up while already walking; Esc cancels too), quick cast
+## with indicator (hold to aim, release to cast; right-click cancels) or
+## quick cast.
 ## 1-6: item specs. 7-0: food and potions. Z/X/C: overheads (builds that have them).
 ## V: offensive prayer. Middle-mouse drag pans the camera (CameraRig).
 ## Orders happen right away (moving, attacking, casting, prayers); only
@@ -175,11 +176,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			confirm_aim()
 			get_viewport().set_input_as_handled()
 			return
-		if event.is_action_pressed("move_command") and Settings.cast_mode != Settings.CAST_NORMAL:
+		if event.is_action_pressed("move_command"):
 			cancel_aim()
-			get_viewport().set_input_as_handled()
-			return
-		# Normal cast: right-click moves (or attacks) and the indicator stays up.
+			if Settings.cast_mode != Settings.CAST_NORMAL:
+				get_viewport().set_input_as_handled()
+				return
+			# Normal cast: the right-click still moves (or attacks) below.
 	if aiming != "" and _aim_input != "" and event.is_action_released(_aim_input) \
 			and Settings.cast_mode == Settings.CAST_QUICK_INDICATOR:
 		confirm_aim()
