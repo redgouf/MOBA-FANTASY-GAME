@@ -19,6 +19,8 @@ var team_buff: Dictionary = {}   # granted to the killer's whole team (epics)
 var team_gold := 0               # extra gold for each member of the killer's team
 var cycle_styles: Array = []     # Jad switches between melee, ranged and magic
 
+var variant_id := ""             # dragon colour or "kbd" (see roll_variant)
+
 var _cycle := 0
 var _resetting := false
 
@@ -36,11 +38,70 @@ func init_monster(id: String, def: Dictionary, p_home: Vector3, p_camp: String, 
 	team_buff = def.get("team_buff", {})
 	team_gold = int(def.get("team_gold", 0))
 	cycle_styles = def.get("cycle_styles", [])
+	variant_id = str(def.get("variant_id", ""))
 	var color := Color(0.75, 0.45, 0.15) if is_epic else Color(0.6, 0.55, 0.4)
+	if def.has("color"):
+		color = Color(str(def["color"]))
 	setup_visuals(color, 1.2 + radius * 1.2, display_name)
 	var model := str(OsrsModels.monster_config(id).get("model", "")) if OsrsModels.available() else ""
 	if model != "":
-		attach_osrs(OsrsActor.creature(model, radius * 2.4))
+		var actor := OsrsActor.creature(model, radius * 2.4)
+		if actor != null and bool(def.get("tint", false)) and def.has("color"):
+			actor.tint(Color(str(def["color"])))
+		attach_osrs(actor)
+
+
+## Which look a spawning monster takes, when its def lists `variants`: one of
+## the plain colours (looks only), or the special variant (the King Black
+## Dragon) which is only possible once `kills` of this camp have reached its
+## `after_kills`, so the first dragon is always an ordinary one. `roll` and
+## `pick` are 0-1 randoms (passed in so tests are deterministic).
+## Returns {} for a def without variants.
+static func roll_variant(def: Dictionary, kills: int, roll: float, pick: float) -> Dictionary:
+	var v: Dictionary = def.get("variants", {})
+	if v.is_empty():
+		return {}
+	var special: Dictionary = v.get("special", {})
+	if not special.is_empty() and kills >= int(special.get("after_kills", 1)) and roll < float(special.get("chance", 0.0)):
+		return special
+	var colors: Array = v.get("colors", [])
+	if colors.is_empty():
+		return special if kills >= int(special.get("after_kills", 1)) else {}
+	return colors[mini(int(pick * colors.size()), colors.size() - 1)]
+
+
+## The def a monster is built from once a variant is picked: the base def with
+## the variant's name, colour and any health / damage / gold / xp / size
+## multipliers applied.
+static func apply_variant(def: Dictionary, variant: Dictionary) -> Dictionary:
+	if variant.is_empty():
+		return def
+	var out: Dictionary = def.duplicate(true)
+	out.erase("variants")
+	out["variant_id"] = str(variant.get("id", ""))
+	for k in ["name", "color", "tint"]:
+		if variant.has(k):
+			out[k] = variant[k]
+	_scale_stat(out, "health", float(variant.get("health_mult", 1.0)))
+	_scale_stat(out, "damage", float(variant.get("damage_mult", 1.0)))
+	_scale_stat(out, "gold", float(variant.get("gold_mult", 1.0)))
+	_scale_stat(out, "xp", float(variant.get("xp_mult", 1.0)))
+	if variant.has("radius_mult"):
+		out["radius"] = float(out.get("radius", 1.0)) * float(variant["radius_mult"])
+	return out
+
+
+static func _scale_stat(def: Dictionary, key: String, mult: float) -> void:
+	if mult == 1.0 or not def.has(key):
+		return
+	var v: Variant = def[key]
+	if v is Array:
+		var arr: Array = []
+		for x in v:
+			arr.append(float(x) * mult)
+		def[key] = arr
+	else:
+		def[key] = float(v) * mult
 
 
 ## Value of a [start, end] stat at this level (numbers pass through unchanged).

@@ -204,7 +204,20 @@
       "health": [5106.25, 10000], "damage": [70, 70], "osrs_ticks": 4, "attack_speed": 0.5, "attack_range_lol": 500,
       "armor": [65.6, 170], "magic_resist": [47.8, 100], "gold": 75, "xp": [160, 400],
       "move_speed": 4.5, "radius": 2.0, "epic": true, "leash": 10,
-      "team_buff": { "kind": "damage_mult", "amount": 0.04, "duration": -1, "label": "Dragon slayer stack" }
+      "team_buff": { "kind": "damage_mult", "amount": 0.04, "duration": -1, "label": "Dragon slayer stack" },
+      "variants": {
+        "colors": [
+          {"id": "green", "name": "Green dragon", "color": "#3f9a3f", "tint": true},
+          {"id": "blue", "name": "Blue dragon", "color": "#3f6fd0", "tint": true},
+          {"id": "red", "name": "Red dragon", "color": "#c8402e", "tint": true},
+          {"id": "black", "name": "Black dragon", "color": "#2c2c34"}
+        ],
+        "special": {
+          "id": "kbd", "name": "King Black Dragon", "color": "#3a2a52",
+          "chance": 0.3, "after_kills": 1,
+          "health_mult": 1.6, "damage_mult": 1.4, "gold_mult": 1.75, "xp_mult": 1.5, "radius_mult": 1.25
+        }
+      }
     }
   },
 

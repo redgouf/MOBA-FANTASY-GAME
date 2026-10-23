@@ -44,6 +44,7 @@ var winner := -1
 var _camps: Dictionary = {}          # camp id -> layout dict
 var _camp_alive: Dictionary = {}     # camp id -> Array[Monster]
 var _camp_next: Dictionary = {}      # camp id -> game time of next spawn (-1 = none)
+var _camp_kills: Dictionary = {}     # camp id -> how many times its monsters have been cleared
 var _altars: Dictionary = {}         # team -> {lane: Structure}
 var _first_turret_taken := false
 var _args: Dictionary = {}
@@ -335,7 +336,11 @@ func _spawn_camp(camp_id: String) -> void:
 		var monster_id: String = member[0]
 		var m := Monster.new()
 		var home: Vector3 = c["pos"] + member[1]
-		m.init_monster(monster_id, GameData.unit_def("monsters", monster_id), home, camp_id, average_champion_level())
+		var def: Dictionary = GameData.unit_def("monsters", monster_id)
+		if def.has("variants"):
+			# Dragons: a random colour, or (never the first one) the King Black Dragon.
+			def = Monster.apply_variant(def, Monster.roll_variant(def, int(_camp_kills.get(camp_id, 0)), randf(), randf()))
+		m.init_monster(monster_id, def, home, camp_id, average_champion_level())
 		units_root.add_child(m)
 		m.global_position = home
 		m.died.connect(_on_unit_died)
@@ -344,7 +349,10 @@ func _spawn_camp(camp_id: String) -> void:
 	_camp_next[camp_id] = -1.0
 	var first: Monster = alive[0]
 	if first.is_epic:
-		_announce("%s has appeared!" % first.display_name, true)
+		if first.variant_id == "kbd":
+			_announce("The %s has awoken!" % first.display_name, true)
+		else:
+			_announce("%s has appeared!" % first.display_name, true)
 
 
 func _update_camps() -> void:
@@ -369,6 +377,7 @@ func _on_camp_member_died(m: Monster) -> void:
 	var alive: Array = _camp_alive[id]
 	alive.erase(m)
 	if alive.is_empty():
+		_camp_kills[id] = int(_camp_kills.get(id, 0)) + 1
 		var c: Dictionary = _camps[id]
 		_camp_next[id] = -1.0 if c.get("once", false) else game_time + float(c.get("respawn", 120))
 

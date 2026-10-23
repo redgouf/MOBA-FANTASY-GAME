@@ -79,6 +79,16 @@ static func creature(model: String, width: float) -> OsrsActor:
 	return a
 
 
+## Recolours the whole model (the green / blue / red dragons reuse one model).
+## Gives each mesh its own copy of the shared material so other instances
+## keep their colours; the tint multiplies the pack's vertex colours.
+func tint(color: Color) -> void:
+	var mat := OsrsModels.material().duplicate() as StandardMaterial3D
+	mat.albedo_color = Color(color.r * 1.9, color.g * 1.9, color.b * 1.9)
+	for n in find_children("*", "MeshInstance3D", true, false):
+		(n as MeshInstance3D).material_override = mat
+
+
 ## Tools held in a hand that the asset pack has no model for (the Skiller's
 ## chisel and Imcando hammer), built from shapes and pinned to a bone.
 func _attach_prop(bone: String, prop: String, offset: Array, rot: Array) -> void:

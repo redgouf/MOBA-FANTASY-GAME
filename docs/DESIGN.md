@@ -42,7 +42,7 @@ The living design doc (full kits, item tables, map breakdown, open questions) is
 | Tower | White Knight watchtower / Dark Wizard tower |
 | Minions | Goblins, Dark wizards, Dwarf cannon carts |
 | Baron | TzTok-Jad (Giant Mole holds the pit until 14:00) |
-| Dragon | Chromatic dragons (Vorkath as the elder) |
+| Dragon | Green, blue, red or black dragon (random, looks only); from the second dragon on, 30% of the time it is the King Black Dragon (+60% health, +40% damage, +75% gold). Vorkath as the elder |
 | Blue / red buff | Abyssal demon (spec regen) / Fire giant (burn) |
 
 ## Champions (11)

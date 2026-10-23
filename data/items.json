@@ -356,7 +356,7 @@
         "name": "Snapshot",
         "cast": "target_unit",
         "range": 8,
-        "spec_cost": 55,
+        "spec_cost": 50,
         "cooldown": 8,
         "effects": [
           {
@@ -731,7 +731,7 @@
         "name": "Armadyl Eye",
         "cast": "target_unit",
         "range": 8,
-        "spec_cost": 40,
+        "spec_cost": 50,
         "cooldown": 10,
         "effects": [
           {
@@ -782,7 +782,7 @@
       "tier": "legendary",
       "cost": 3600,
       "requirements": {
-        "ranged": 75
+        "ranged": 85
       },
       "stats": {
         "damage": 65
@@ -794,7 +794,8 @@
       "tier": "legendary",
       "cost": 3100,
       "requirements": {
-        "ranged": 80
+        "ranged": 80,
+        "agility": 70
       },
       "stats": {
         "damage": 55
@@ -807,7 +808,7 @@
       "tier": "legendary",
       "cost": 2800,
       "requirements": {
-        "ranged": 65
+        "ranged": 70
       },
       "stats": {
         "damage": 45
@@ -822,7 +823,6 @@
       "requirements": {
         "ranged": 80
       },
-      "verify": true,
       "stats": {
         "damage": 48
       },
@@ -850,7 +850,7 @@
       "tier": "legendary",
       "cost": 2600,
       "requirements": {
-        "magic": 75
+        "magic": 78
       },
       "stats": {
         "magic_power": 50
@@ -862,7 +862,7 @@
       "tier": "legendary",
       "cost": 3000,
       "requirements": {
-        "magic": 75
+        "magic": 80
       },
       "stats": {
         "magic_power": 70
@@ -909,7 +909,7 @@
         }
       },
       "spec_active": {
-        "name": "Lightness",
+        "name": "Power of Death",
         "cast": "self",
         "spec_cost": 100,
         "cooldown": 60,
@@ -1212,6 +1212,9 @@
       },
       "artisan": {
         "crafting": 98
+      },
+      "requirements": {
+        "hitpoints": 75
       }
     },
     {
@@ -1225,6 +1228,9 @@
       },
       "artisan": {
         "crafting": 92
+      },
+      "requirements": {
+        "hitpoints": 75
       }
     },
     {
@@ -1269,6 +1275,9 @@
       },
       "artisan": {
         "crafting": 89
+      },
+      "requirements": {
+        "hitpoints": 75
       }
     },
     {
@@ -1524,13 +1533,14 @@
       "tier": "armour",
       "cost": 900,
       "requirements": {
-        "slayer": 35
+        "strength": 20,
+        "defence": 10
       },
       "stats": {
         "health": 80,
-        "monster_damage": 0.1
+        "monster_damage": 0.1667
       },
-      "text": "+10% damage to monsters (camps and epics)."
+      "text": "+16.67% damage to monsters (camps and epics)."
     },
     {
       "id": "leaf_bladed_sword",
@@ -1554,8 +1564,7 @@
       "cost": 2600,
       "requirements": {
         "slayer": 55,
-        "attack": 65,
-        "strength": 65
+        "attack": 65
       },
       "stats": {
         "damage": 44,
@@ -2212,7 +2221,7 @@
       "spec_active": {
         "name": "Lumber Up",
         "cast": "self",
-        "spec_cost": 50,
+        "spec_cost": 100,
         "cooldown": 30,
         "effects": [
           {

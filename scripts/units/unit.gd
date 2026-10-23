@@ -435,7 +435,7 @@ func take_damage(info: DamageInfo) -> float:
 		get_defence(info.style), info.armor_pen, get_protected_style(), info.ignores_prayer, info.is_true)
 	amt *= maxf(0.0, 1.0 + status_sum("damage_taken_mult"))
 	if info.style == Combat.Style.MELEE and not info.is_true:
-		amt *= maxf(0.0, 1.0 + status_sum("melee_damage_taken_mult"))   # e.g. Toxic staff Lightness
+		amt *= maxf(0.0, 1.0 + status_sum("melee_damage_taken_mult"))   # e.g. Toxic staff Power of Death
 	var ely := find_status_id("elysian")
 	if ely != "" and not info.is_true:
 		var ely_st: Dictionary = statuses[ely]

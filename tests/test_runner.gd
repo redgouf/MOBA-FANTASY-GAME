@@ -903,6 +903,27 @@ func test_lol_monsters() -> void:
 	drake.init_monster("chromatic_dragon", GameData.unit_def("monsters", "chromatic_dragon"), Vector3.ZERO, "test", 1)
 	check(drake.level == 6 and is_equal_approx(drake.max_health, 5106.25), "drakes start at level 6 with 5106 health")
 	drake.free()
+	# Dragon variants: four colours that look different, and the King Black Dragon.
+	var ddef: Dictionary = GameData.unit_def("monsters", "chromatic_dragon")
+	var ids: Array = []
+	for pick in [0.0, 0.3, 0.6, 0.99]:
+		ids.append(str(Monster.roll_variant(ddef, 0, 0.0, pick).get("id")))
+	check(ids == ["green", "blue", "red", "black"], "the dragon rolls green, blue, red or black (%s)" % str(ids))
+	check(str(Monster.roll_variant(ddef, 0, 0.0, 0.5).get("id")) != "kbd", "the first dragon is never the King Black Dragon, even on a perfect roll")
+	check(str(Monster.roll_variant(ddef, 1, 0.1, 0.5).get("id")) == "kbd", "after a dragon has been killed the King Black Dragon can spawn")
+	check(str(Monster.roll_variant(ddef, 5, 0.9, 0.5).get("id")) != "kbd", "...but only on its chance (30%)")
+	var plain := Monster.new()
+	plain.init_monster("chromatic_dragon", Monster.apply_variant(ddef, Monster.roll_variant(ddef, 0, 0.5, 0.6)), Vector3.ZERO, "test", 6)
+	var kbd := Monster.new()
+	kbd.init_monster("chromatic_dragon", Monster.apply_variant(ddef, Monster.roll_variant(ddef, 1, 0.0, 0.0)), Vector3.ZERO, "test", 6)
+	check(plain.display_name == "Red dragon" and plain.variant_id == "red", "a red dragon is named for its colour")
+	check(is_equal_approx(plain.max_health, 5106.25) and is_equal_approx(plain.base_damage, 70.0) and plain.gold_value == 75, "colours are purely visual: same health, damage and gold")
+	check(kbd.display_name == "King Black Dragon" and kbd.variant_id == "kbd", "the King Black Dragon is named")
+	check(kbd.max_health > plain.max_health * 1.5 and kbd.base_damage > plain.base_damage * 1.3 and kbd.gold_value > plain.gold_value * 1.5,
+		"the King Black Dragon has more health, damage and gold")
+	check(kbd.radius > plain.radius, "...and is bigger")
+	plain.free()
+	kbd.free()
 	var jad := Monster.new()
 	jad.init_monster("tztok_jad", GameData.unit_def("monsters", "tztok_jad"), Vector3.ZERO, "test", 18)
 	check(is_equal_approx(jad.max_health, 19190.0) and is_equal_approx(jad.base_damage, 515.0), "Jad = Baron Nashor (19190 HP, 515 damage at level 18)")
