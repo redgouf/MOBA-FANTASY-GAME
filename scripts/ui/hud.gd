@@ -280,7 +280,7 @@ func _build_bottom_center(root: Control) -> void:
 	for slot in Champion.SLOTS:
 		var a := AbilitySlot.create(p, slot, 72)
 		a.position = Vector2(x, 10)
-		a.level_up_pressed.connect(func(s: String) -> void: GameTick.queue_input(func() -> void: champ.rank_up(s)))
+		a.level_up_pressed.connect(func(s: String) -> void: champ.rank_up(s))
 		_ability_slots[slot] = a
 		x += 80.0
 
@@ -306,7 +306,7 @@ func _build_bottom_center(root: Control) -> void:
 	if not spectator:
 		_offensive.gui_input.connect(func(e: InputEvent) -> void:
 			if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
-				GameTick.queue_input(func() -> void: champ.toggle_chosen_prayer()))
+				champ.toggle_chosen_prayer())
 	x += 68.0
 
 	_overhead_col = VBoxContainer.new()
@@ -322,7 +322,7 @@ func _build_bottom_center(root: Control) -> void:
 		b.toggle_mode = true
 		b.disabled = spectator
 		b.tooltip_text = "Protect from %s" % ["Melee", "Missiles", "Magic"][i]
-		b.pressed.connect(func() -> void: GameTick.queue_input(func() -> void: champ.toggle_protect(i)))
+		b.pressed.connect(func() -> void: champ.toggle_protect(i))
 		_overheads.append(b)
 
 	_hp = StatBar.create(p, UiStyle.HP, Vector2(600, 18), 13)

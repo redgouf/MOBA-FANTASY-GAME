@@ -157,11 +157,7 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			if controllable and is_instance_valid(player):
-				var to := to_world(event.position)
-				var who := player
-				GameTick.queue_input(func() -> void:
-					if is_instance_valid(who):
-						who.command_move(to))
+				player.command_move(to_world(event.position))
 			accept_event()
 	elif event is InputEventMouseMotion and _dragging:
 		_look_at(event.position)

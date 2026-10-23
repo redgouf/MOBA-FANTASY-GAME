@@ -665,7 +665,8 @@ func toggle_prayer(id: String) -> bool:
 				active_prayers.erase(other)
 				_prayer_since.erase(other)
 	active_prayers.append(id)
-	_prayer_since[id] = GameTick.current_tick
+	# Switched on between ticks: the next tick is its first (free) one.
+	_prayer_since[id] = GameTick.current_tick + (0 if GameTick.processing else 1)
 	_refresh_prayers()
 	return true
 
@@ -1362,8 +1363,6 @@ func _unit_tick(dt: float) -> void:
 		_bot_update(dt)
 	if pray_altar != null:
 		_process_altar(dt)
-	if not _queued_cast.is_empty():
-		_process_queued_cast()
 	process_attack(dt)
 
 
@@ -1371,7 +1370,8 @@ func _unit_tick(dt: float) -> void:
 ## move point.
 func _unit_process(_delta: float) -> void:
 	if not _queued_cast.is_empty():
-		_approach_queued_cast()
+		# Spells go off the moment the caster is in range (not on a tick).
+		_process_queued_cast()
 	elif is_instance_valid(attack_target) and not attack_target.is_dead:
 		if in_attack_range(attack_target):
 			_has_move_target = false
@@ -1410,9 +1410,15 @@ static func _count_down(value: float, dt: float) -> float:
 	return 0.0 if v < 0.001 else v
 
 
-func _tick_resources(delta: float) -> void:
+## Ability cooldowns run in real time, so a spell is ready the moment its
+## cooldown ends (not on the next tick).
+func _frame_timers(delta: float) -> void:
 	for k in cooldowns:
-		cooldowns[k] = _count_down(cooldowns[k], delta)
+		if cooldowns[k] > 0.0:
+			cooldowns[k] = maxf(0.0, cooldowns[k] - delta)
+
+
+func _tick_resources(delta: float) -> void:
 	_tick_prayer(delta)
 	spec = minf(100.0, spec + float(GameData.rule("spec_regen_per_sec", 1.0)) * spec_regen_mult() * delta)
 	if _stack_timer > 0.0:
@@ -1503,8 +1509,6 @@ func _on_death(_killer: Unit) -> void:
 
 
 func _dead_tick(delta: float) -> void:
-	for k in cooldowns:
-		cooldowns[k] = _count_down(cooldowns[k], delta)
 	if GameTick.current_tick == _died_tick:
 		return
 	respawn_timer -= delta

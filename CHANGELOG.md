@@ -2,6 +2,12 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.12.0
+
+- Movement and orders are instant again: right-click moves the moment you click, so you can dodge.
+- Spells hit the moment they're cast; their delays, multi-hits, cooldowns and effects (roots, slows, buffs) run in real time.
+- Only auto attacks and food and potions stay on the 0.6s OSRS tick. Prayers switch instantly, and flicking every tick is still free.
+
 ## 0.11.2
 
 - Potions boost their own skill, as in OSRS: attack, strength, defence, ranging and magic potions (and the super and combat versions) raise that level, shown in green in the skills panel. Each boosted level adds damage for that style, or defence. The Saradomin brew boosts Defence and lowers Attack, Strength, Ranged and Magic; a super restore restores them.

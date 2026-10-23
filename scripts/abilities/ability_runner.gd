@@ -7,8 +7,8 @@ extends RefCounted
 
 ## Effects run in order. "delay" postpones one; "repeat": n with
 ## "repeat_interval": s runs it n times (ground zones like Bonfire).
-## Timings authored in seconds round to the nearest game tick (0 = the cast
-## tick), so everything lands on ticks, as in OSRS.
+## Spells run in real time, not on the game tick: they hit the moment
+## they're cast, and delays are exact seconds.
 static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vector3, rank: int = 1) -> void:
 	ab = ranked(ab, rank)
 	# The aim direction is locked at cast time, so delayed lines and cones
@@ -22,8 +22,8 @@ static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vecto
 		var repeats := maxi(1, int(effect.get("repeat", 1)))
 		var interval := float(effect.get("repeat_interval", 0.5))
 		for k in repeats:
-			var when := GameTick.nearest_ticks(delay + interval * float(k))
-			if when > 0:
+			var when := delay + interval * float(k)
+			if when > 0.0:
 				# Weak references: the caster or target may be freed before this fires.
 				var caster_ref: WeakRef = weakref(caster)
 				var target_ref: WeakRef = weakref(target) if target != null else null
@@ -33,7 +33,7 @@ static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vecto
 						return
 					var t: Unit = target_ref.get_ref() if target_ref != null else null
 					apply_effect(c, effect, t, point, ctx)
-				GameTick.schedule(when, run)
+				caster.get_tree().create_timer(when, false).timeout.connect(run)
 			else:
 				apply_effect(caster, effect, target, point, ctx)
 
@@ -142,14 +142,13 @@ static func _damage(caster: Champion, e: Dictionary, target: Unit, point: Vector
 		targets = collect_area(caster, area, target, point, false, _ctx_dir(ctx))
 	var hits := maxi(1, int(e.get("hits", 1)))
 	var interval := float(e.get("hit_interval", 0.15))
-	# Multi-hits land on ticks: 0.15 s apart puts two on each tick, like
-	# OSRS Dragon claws.
+	# Multi-hits follow each other hit_interval seconds apart (Dragon claws).
 	for t in targets:
 		var mults := _hit_multipliers(hits, bool(e.get("cascade", false)), float(e.get("miss_chance", 0.25)))
 		for h in hits:
 			var m: float = mults[h]
-			var when := GameTick.nearest_ticks(interval * h)
-			if when <= 0:
+			var when := interval * h
+			if when <= 0.0:
 				_hit(caster, e, t, center, ctx, m)
 			else:
 				var caster_ref: WeakRef = weakref(caster)
@@ -159,7 +158,7 @@ static func _damage(caster: Champion, e: Dictionary, target: Unit, point: Vector
 					var tt: Unit = t_ref.get_ref()
 					if c != null and tt != null:
 						_hit(c, e, tt, center, ctx, m)
-				GameTick.schedule(when, later)
+				caster.get_tree().create_timer(when, false).timeout.connect(later)
 
 
 ## Dragon claws style cascade: a missed hit rolls its damage into the next one.

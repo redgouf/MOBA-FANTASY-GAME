@@ -15,32 +15,25 @@
 
 ## Game ticks
 
-All gameplay runs on OSRS game ticks of 0.6 s (`data/rules.json` → `tick_seconds`). An order given between ticks happens on the next tick. Only movement, visuals and UI run per frame.
+The OSRS game tick (0.6 s, `data/rules.json` → `tick_seconds`) runs **auto attacks, eating and drinking**, plus the game's own clockwork: regen and prayer drain, respawns, the recall and altar channels, bot decisions, waves and camps. Everything the player does directly is real time: movement, attack and move orders, casting (spells hit the moment they're cast), ability cooldowns, status effects, prayers and level-ups.
 
-- `scripts/autoload/game_tick.gd` is the `GameTick` autoload, the clock. It pauses with the game; `Main._begin()` resets it at match start. After a hitch it runs at most 5 ticks in one frame and drops the rest, like a lagging OSRS server.
-- `Unit.game_tick()` → `_tick_statuses()`, `_unit_tick()`, `_dead_tick()` hold per-tick gameplay. `_physics_process()` / `_unit_process()` hold per-frame movement only.
-- `GameTick.queue_input()` carries every player order: `PlayerController` (`order()`), the HUD prayer and level-up buttons, and minimap clicks. Aiming and the cast indicator stay instant.
-- `GameTick.schedule(ticks, fn)` / `schedule_seconds()` / `run_in()` handle hit delays and ability effect delays.
+- `scripts/autoload/game_tick.gd` is the `GameTick` autoload, the clock. It pauses with the game; `Main._begin()` resets it at match start. After a hitch it runs at most 5 ticks in one frame and drops the rest.
+- `Unit.game_tick()` → `_unit_tick()` / `_dead_tick()` hold per-tick gameplay. `_physics_process()` runs every frame: `_frame_timers()` (ability cooldowns), `_tick_statuses()` (status durations, damage over time once a second) and `_unit_process()` (movement, and queued casts that go off as soon as the caster is in range).
+- `PlayerController.order()` carries out orders at once; `order_on_tick()` (`GameTick.queue_input()`) is only used for food and potions.
+- `GameTick.schedule(ticks, fn)` handles ranged auto-attack hit delays. Ability `delay`, `repeat_interval` and `hit_interval` are real seconds (`create_timer`).
 - `GameTick.register_world(obj)` registers world tickables (objects with `game_tick(dt)`): `WaveSpawner`, `PlantedTree`, and `Main` (camp respawns and passive gold).
 
-Order within one tick:
-
-1. Queued input, in click order. Input given during a tick waits for the next one.
-2. Actions scheduled for this tick: projectile hits, delayed ability effects.
-3. NPCs: every `Unit` that isn't a `Champion` (minions, monsters, towers, summons).
-4. Champions, human and bot.
-5. World tickables.
+Order within one tick: queued input (food and potions), then scheduled actions (ranged hits), then NPCs (every `Unit` that isn't a `Champion`), then champions, then world tickables.
 
 Rules:
 
-- **Attacks**: the attack timer counts down 0.6 s per tick and swings land on ticks. A 4-tick whip hits on ticks 1, 5, 9. Attack-speed bonuses carry the leftover of a tick into the next swing, so +25% on a 4-tick weapon averages 3.2 ticks.
-- **Ranged/magic basic attacks**: the hit lands `projectile_hit_ticks()` ticks after the swing: the flight time rounded up, at least 1 tick. The projectile (`Projectile.arrive_in()`) is timed to arrive on that tick.
-- **Ability timings** in seconds (`delay`, `repeat_interval`, `hit_interval`) round to the nearest tick, where 0 means the cast tick. Multi-hits 0.15 s apart land two per tick, like OSRS Dragon claws.
-- **Durations** (cooldowns, statuses, respawns, channels) count down per tick and end on the first tick at or after their time: 1.2 s altar channel = 2 ticks, 45 s altar cooldown = 75, 5 s Sever = 9, 4 s recall = 7. Statuses and channels start counting on the tick after they begin.
-- **Prayer**: switching on or off happens on the next tick. A prayer doesn't drain on the tick it comes on, so flicking every tick is free.
+- **Auto attacks**: the attack timer counts down 0.6 s per tick and swings land on ticks. A 4-tick whip hits on ticks 1, 5, 9. Attack-speed bonuses carry the leftover of a tick into the next swing, so +25% on a 4-tick weapon averages 3.2 ticks.
+- **Ranged/magic auto attacks**: the hit lands `projectile_hit_ticks()` ticks after the swing: the flight time rounded up, at least 1 tick. The projectile (`Projectile.arrive_in()`) is timed to arrive on that tick.
+- **Channels and respawns** count from the tick after they start: 1.2 s altar channel = 2 ticks, 4 s recall = 7, 45 s altar cooldown = 75.
+- **Prayer**: switching on or off is instant. A prayer's first tick is free (the tick it came on, or the next one if it was clicked between ticks), so flicking every tick costs nothing. Drain is taken once per tick.
 - **Bots** decide once per tick (every 0.6 s).
 
-`test_game_tick()` in `tests/test_runner.gd` drives the clock by hand (`GameTick.run_tick()`) and checks input timing and order, scheduling, NPC-before-champion order, attack ticks and speed carry-over, ranged hit delay, claws-style multi-hits, cooldown/status/recall ticks, prayer activation, drain and flicking, and overheads clicked between ticks.
+`test_game_tick()` in `tests/test_runner.gd` drives the clock by hand (`GameTick.run_tick()`) and checks input order, scheduling, NPC-before-champion order, attack ticks and speed carry-over, ranged hit delay, spells hitting on cast, real-time cooldowns and statuses, food on the tick, recall ticks, and prayer activation, drain and flicking.
 
 ## Navigation and obstacles
 

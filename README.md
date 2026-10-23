@@ -6,7 +6,7 @@ A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School Run
 
 Built with **Godot 4.7.2** (GDScript, Forward+).
 
-## Status: whitebox prototype (v0.11.2)
+## Status: whitebox prototype (v0.12)
 
 ![Playing the Pure: stats and items bottom-left, abilities centre, minimap bottom-right, inspected target top-left](docs/screenshots/play.png)
 
@@ -30,7 +30,7 @@ Playable today, with primitive shapes standing in for art:
 - **League-style casting**: hold an ability key to see its indicator (range, line, cone, circle, dash), release to cast. Normal cast and quick cast are in Settings.
 - **Tab scoreboard** ([screenshot](docs/screenshots/scoreboard.png)): every champion's level, K/D/A, CS, prayer (and whether it's on) and items (enemies' as your team last saw them).
 - **The OSRS prayer book**: pick one of all 32 prayers at champion select (by Prayer level), switch it on with V, and watch it drain at real OSRS rates. Pray at the four **prayer altars** beside the red and blue buffs to refill. See [docs/PRAYER.md](docs/PRAYER.md).
-- **The OSRS game tick**: all gameplay runs on 0.6s ticks. A click between ticks happens on the next one; NPCs act before champions; attacks, casts, prayers, statuses and respawns all land on ticks; ranged hits land a tick or more after the swing; flicking prayers every tick costs nothing. See [Game ticks](docs/ARCHITECTURE.md#game-ticks).
+- **The OSRS game tick** for auto attacks and food: swings land on 0.6s ticks (NPCs before champions), ranged hits a tick or more after the swing, and eating and drinking happen on the next tick. Movement, spells, cooldowns, status effects and prayers are real time, so you can dodge and cast the moment you click; flicking prayers every tick is still free. See [Game ticks](docs/ARCHITECTURE.md#game-ticks).
 - **OSRS attack speeds**: every weapon swings at its OSRS speed in 0.6s ticks (whip 2.4s, Dharok's greataxe 4.2s, blowpipe 1.2s), with bigger hits to match.
 - **OSRS hitsplats**: red for damage, blue for 0, a gold-trimmed max-hit splat for critical hits, green/teal/orange for poison/venom/burn; up to four per unit, and hits that aren't yours (not dealt by you or to you) are tinted darker.
 - **Unit spacing**: champions, minions and monsters never stand inside each other; minions shuffle aside for champions, and nobody is pushed through a wall.

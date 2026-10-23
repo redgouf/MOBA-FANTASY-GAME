@@ -23,7 +23,7 @@ func _ready() -> void:
 	test_combat_math()
 	test_requirements()
 	test_prayers()
-	test_game_tick()
+	await test_game_tick()
 	test_signature_specs()
 	test_v07_feedback()
 	test_skill_rolls()
@@ -185,8 +185,8 @@ func test_prayers() -> void:
 	check(tank.toggle_chosen_prayer() and tank.active_prayers.size() == 2, "overhead + own prayer together")
 	var p0 := tank.prayer
 	tank._tick_prayer(3.0)
-	check(tank.prayer == p0, "prayers don't drain on the tick they come on")
-	GameTick.current_tick += 1
+	check(tank.prayer == p0, "prayers don't drain on their first tick")
+	GameTick.current_tick += 2   # switched on between ticks: the next tick is free
 	tank._tick_prayer(3.0)
 	check(is_equal_approx(p0 - tank.prayer, 3.0 / PrayerBook.seconds_per_point(36.0, tank.prayer_bonus())), "both prayers drain together")
 	tank.add_status("sever", "disable_prayer", 0.0, 5.0)
@@ -210,7 +210,7 @@ func test_prayers() -> void:
 	pure.modify_outgoing(info, foe)
 	check(info.amount < base * 1.05, "Ultimate Strength doesn't boost magic")
 	pure.prayer = 0.01
-	GameTick.current_tick += 1
+	GameTick.current_tick += 2
 	pure._tick_prayer(1.0)
 	check(pure.prayer == 0.0 and pure.active_prayers.is_empty(), "prayers switch off at 0 points")
 	# Smite drains the target's prayer.
@@ -367,40 +367,39 @@ func test_game_tick() -> void:
 	a.attack_style = Combat.Style.MELEE
 	a.global_position = Vector3(200, 0, 200)
 
-	# Multi-hits 0.15 s apart land two per tick, like Dragon claws.
+	# Spells are real time: they hit on cast, multi-hits follow hit_interval
+	# seconds apart (not on ticks).
 	_ticks(8)
 	hits.clear()
 	var claws := {"effects": [{"type": "damage", "base": 5.0, "hits": 4, "hit_interval": 0.15}]}
-	GameTick.queue_input(func() -> void: AbilityRunner.execute(a, claws, b, b.global_position, 1))
-	start = GameTick.current_tick
-	_ticks(3)
-	rel.clear()
-	for h in hits:
-		rel.append(int(h) - start)
-	check(rel == [1, 1, 2, 2], "claws-style hits land two per tick (got %s)" % str(rel))
-
-	# Casting is an order: it goes off on the next tick; a 5 s cooldown is 9 ticks.
-	_ticks(2)
-	var ready_ticks: Array = []     # (lambdas capture locals by value)
-	GameTick.queue_input(func() -> void: a.cooldowns["q"] = 5.0)
-	start = GameTick.current_tick + 1
-	for k in 12:
-		var probe_tick := GameTick.current_tick + 1
-		GameTick.queue_input(func() -> void:
-			if a.cooldowns["q"] <= 0.0:
-				ready_ticks.append(probe_tick))
-		_ticks(1)
-	var ready_at: int = ready_ticks[0] if not ready_ticks.is_empty() else -1
-	check(ready_at - start == 9, "a 5 s cooldown is ready 9 ticks after the cast (got %d)" % (ready_at - start))
-	# Statuses end on the first tick at or after their time.
-	var gone_at := -1
-	GameTick.queue_input(func() -> void: b.add_status("probe", "slow", 0.1, 5.0))
-	start = GameTick.current_tick + 1
-	for k in 12:
-		_ticks(1)
-		if gone_at < 0 and not b.statuses.has("probe"):
-			gone_at = GameTick.current_tick
-	check(gone_at - start == 9, "a 5 s status lasts 9 ticks (got %d)" % (gone_at - start))
+	AbilityRunner.execute(a, claws, b, b.global_position, 1)
+	check(hits.size() == 1, "a spell hits the moment it's cast (got %d hits)" % hits.size())
+	await get_tree().create_timer(0.7).timeout
+	check(hits.size() == 4, "and its multi-hits follow in real time, no tick needed (got %d)" % hits.size())
+	# Orders don't wait for a tick: moving and casting happen right away.
+	a.command_move(a.global_position + Vector3(5, 0, 0))
+	check(a._has_move_target, "a move order starts at once")
+	a.command_stop()
+	# Cooldowns and spell effects (statuses) count down in real time.
+	a.cooldowns["q"] = 5.0
+	a._frame_timers(4.9)
+	check(a.cooldowns["q"] > 0.0, "a 5 s cooldown isn't ready after 4.9 s")
+	a._frame_timers(0.1)
+	check(a.cooldowns["q"] == 0.0, "and is ready at exactly 5 s")
+	b.add_status("probe", "slow", 0.1, 5.0)
+	b._tick_statuses(4.95)
+	check(b.statuses.has("probe"), "a 5 s slow is still on after 4.95 s")
+	b._tick_statuses(0.1)
+	check(not b.statuses.has("probe"), "and gone at 5 s")
+	# Eating and drinking still wait for the tick (PlayerController.order_on_tick).
+	var pc := PlayerController.new()
+	pc.champion = a
+	var ate: Array = []
+	pc.order_on_tick(func() -> void: ate.append(1))
+	check(ate.is_empty(), "eating waits for the next tick")
+	_ticks(1)
+	check(ate.size() == 1, "and happens on it")
+	pc.free()
 	# Recall: 4 s = 7 ticks.
 	a.spawn_point = Vector3(260, 0, 200)
 	GameTick.queue_input(func() -> void: a.start_recall())
@@ -414,29 +413,27 @@ func test_game_tick() -> void:
 	a.global_position = Vector3(200, 0, 200)
 	a.spawn_point = Vector3(500, 0, 500)
 
-	# Prayer: clicks take effect on the next tick; no drain on the tick it
-	# comes on, so flicking every tick is free.
+	# Prayer: clicks work at once; the next tick is free, so flicking every
+	# tick costs nothing.
 	a.set_chosen_prayer("piety")
 	a.prayer = 50.0
-	GameTick.queue_input(func() -> void: a.toggle_chosen_prayer())
-	check(not a.is_praying(a.chosen_prayer), "a prayer click waits for the tick")
+	a.toggle_chosen_prayer()
+	check(a.is_praying(a.chosen_prayer), "a prayer comes on the moment it's clicked")
 	_ticks(1)
-	check(a.is_praying(a.chosen_prayer) and a.prayer == 50.0, "the prayer comes on next tick without draining")
+	check(a.prayer == 50.0, "the first tick it's on is free")
 	_ticks(1)
-	check(a.prayer < 50.0, "and drains from the tick after")
-	GameTick.queue_input(func() -> void: a.toggle_chosen_prayer())
-	_ticks(1)
+	check(a.prayer < 50.0, "and it drains from the tick after")
+	a.toggle_chosen_prayer()
 	var flick_from := a.prayer
 	for k in 10:
-		GameTick.queue_input(func() -> void: a.toggle_chosen_prayer())
+		a.toggle_chosen_prayer()
 		_ticks(1)
+		a.toggle_chosen_prayer()
 	check(a.prayer == flick_from, "flicking every tick costs no prayer")
 	a.deactivate_prayers()
 	b.has_overheads = true
-	GameTick.queue_input(func() -> void: b.toggle_protect(Combat.Style.MAGIC))
-	check(b.get_protected_style() == -1, "an overhead clicked between ticks isn't up yet")
-	_ticks(1)
-	check(b.get_protected_style() == Combat.Style.MAGIC, "it's up on the next tick")
+	b.toggle_protect(Combat.Style.MAGIC)
+	check(b.get_protected_style() == Combat.Style.MAGIC, "an overhead is up the moment it's clicked")
 	a.queue_free()
 	b.queue_free()
 	GameTick.reset()

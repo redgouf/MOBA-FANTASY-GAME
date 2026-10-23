@@ -329,7 +329,7 @@ func add_status(id: String, kind: String, amount: float, duration: float,
 		add_status("root_immune", "root_immune", 0.0, duration + 3.0)
 	var st := {
 		"kind": kind, "amount": amount, "remaining": duration, "total": duration, "permanent": duration < 0.0,
-		"source": source, "data": data, "tick": 1.0, "added": GameTick.current_tick,
+		"source": source, "data": data, "tick": 1.0,
 	}
 	if kind == "poison" or kind == "venom":
 		# Antipoison potions: immunity for a while.
@@ -367,16 +367,13 @@ func status_sum(kind: String) -> float:
 	return total
 
 
-## Once per game tick. A status counts down from the tick after it was
-## applied, so it ends on the first tick at or after its duration
-## (5 s = 9 ticks); damage over time hits about once a second.
+## Every frame, in real time (spell effects aren't tied to the game tick):
+## durations count down smoothly and damage over time hits once a second.
 func _tick_statuses(delta: float) -> void:
 	var expired: Array[String] = []
 	var dots: Array[DamageInfo] = []
 	for id in statuses:
 		var st: Dictionary = statuses[id]
-		if int(st.get("added", -1)) == GameTick.current_tick:
-			continue
 		match st["kind"]:
 			"venom", "burn", "poison":
 				st["tick"] -= delta
@@ -683,16 +680,19 @@ func build_attack_damage(t: Unit) -> DamageInfo:
 
 # --- Movement ------------------------------------------------------------------
 
-## One game tick (GameTick calls this; NPCs before champions). All gameplay
-## happens here: statuses, attacks, casts, regen, respawn timers, AI.
+## One game tick (GameTick calls this; NPCs before champions): auto attacks,
+## regen, respawn timers and AI decisions. Movement, spells, cooldowns and
+## status effects run in real time instead (_physics_process).
 func game_tick(dt: float) -> void:
 	if is_dead:
 		_dead_tick(dt)
 		return
-	_tick_statuses(dt)
-	if is_dead:
-		return
 	_unit_tick(dt)
+
+
+## Real-time timers that run every frame, alive or dead (ability cooldowns).
+func _frame_timers(_delta: float) -> void:
+	pass
 
 
 ## Per-tick behaviour for subclasses (attacks, targeting, timers, bots).
@@ -705,8 +705,12 @@ func _dead_tick(_dt: float) -> void:
 	pass
 
 
-## Per frame: movement and visuals only.
+## Per frame: movement, status effects and real-time timers.
 func _physics_process(delta: float) -> void:
+	_frame_timers(delta)
+	if is_dead:
+		return
+	_tick_statuses(delta)
 	if is_dead:
 		return
 	if not _process_dash(delta):

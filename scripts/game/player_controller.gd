@@ -9,8 +9,8 @@ extends Node
 ## indicator (hold to aim, release to cast; right-click cancels) or quick cast.
 ## 1-6: item specs. 7-0: food and potions. Z/X/C: overheads (builds that have them).
 ## V: offensive prayer. Middle-mouse drag pans the camera (CameraRig).
-## Every order goes through GameTick.queue_input: a click between ticks
-## takes effect on the next game tick, as in OSRS. Aiming stays instant.
+## Orders happen right away (moving, attacking, casting, prayers); only
+## eating and drinking wait for the next game tick (order_on_tick).
 
 const PICK_RADIUS_PX := 36.0
 
@@ -120,8 +120,15 @@ func cast_at_cursor(key: String) -> bool:
 	return true
 
 
-## Queues an order for the next game tick (dropped if the champion is gone).
+## Carries out an order right away: moving, attacking, casting and prayers
+## don't wait for the game tick.
 func order(action: Callable) -> void:
+	if is_instance_valid(champion):
+		action.call()
+
+
+## Queues an order for the next game tick (eating and drinking, as in OSRS).
+func order_on_tick(action: Callable) -> void:
 	var c := champion
 	GameTick.queue_input(func() -> void:
 		if is_instance_valid(c):
@@ -218,7 +225,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	for i in 4:
 		if event.is_action_pressed("consume_%d" % (i + 1)):
-			order(func() -> void: champion.use_consumable(i))
+			order_on_tick(func() -> void: champion.use_consumable(i))
 			return
 	if event.is_action_pressed("prayer_melee"):
 		order(func() -> void: champion.toggle_protect(Combat.Style.MELEE))

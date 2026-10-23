@@ -8,7 +8,7 @@ Prayers are free to switch on but drain prayer points (99) while on, at **three 
 - One point drains every 0.6s × resistance ÷ (the drain effects of every prayer that's on, added up) ÷ 3.
 - With no prayer bonus, Piety (drain 24) drains a point every 0.5s, so a full bar lasts 0:49. Piety plus a protection prayer (24 + 12) drains a point every third of a second.
 - Overhead prayers (Protect from Melee/Missiles/Magic, Smite, Redemption, Retribution) show their OSRS icon above the champion's head.
-- Prayers follow the game tick (0.6s): a click switches the prayer on or off on the next tick, and a prayer doesn't drain on the tick it comes on, so **flicking** (on one tick, off the next) costs nothing, as in OSRS. Drain is taken once per tick.
+- Clicking a prayer switches it on or off at once. Drain is taken once per game tick (0.6s), and a prayer's first tick is free, so **flicking** (on for one tick, off before the next) costs nothing, as in OSRS.
 - At 0 points every prayer switches off. Death switches them off too. The Pure's Sever (dragon scimitar) switches them off and blocks them for 5s.
 
 Prayer comes back at:
