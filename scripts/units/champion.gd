@@ -317,16 +317,31 @@ func base_attack_interval() -> float:
 ## Potion buffs by damage type: "Attack Damage" (melee and ranged hits) or
 ## "Magic Damage" (magic hits).
 func style_damage_bonus(style: int) -> float:
-	return status_sum("magic_damage_mult") if style == Combat.Style.MAGIC else status_sum("attack_damage_mult")
+	return status_sum("magic_damage_mult") if style == Combat.Style.MAGIC else styled_sum("attack_damage_mult", style)
 
 
-## Chance for a hit to crit (attack potions), and how hard crits hit.
-func crit_chance() -> float:
-	return clampf(status_sum("crit_chance"), 0.0, 1.0)
+## A status kind summed over the statuses that apply to a combat style:
+## ones with no data.style apply to all; "melee" ones (attack and strength
+## potions) only to melee hits, "ranged" ones (ranging potions) only to ranged.
+func styled_sum(kind: String, style: int) -> float:
+	var name := Combat.style_name(style)
+	var total := 0.0
+	for st in statuses.values():
+		if st["kind"] == kind:
+			var only := str((st["data"] as Dictionary).get("style", ""))
+			if only == "" or only == name:
+				total += float(st["amount"])
+	return total
 
 
-func crit_multiplier() -> float:
-	return float(GameData.rule("crit_mult", 1.5)) * (1.0 + status_sum("crit_damage_mult"))
+## Chance for a hit of this style to crit (strength potions: melee), and how
+## hard crits hit.
+func crit_chance(style: int = Combat.Style.MELEE) -> float:
+	return clampf(styled_sum("crit_chance", style), 0.0, 1.0)
+
+
+func crit_multiplier(style: int = Combat.Style.MELEE) -> float:
+	return float(GameData.rule("crit_mult", 1.5)) * (1.0 + styled_sum("crit_damage_mult", style))
 
 
 func get_protected_style() -> int:
@@ -487,15 +502,27 @@ func bot_spend_skill_points() -> void:
 # --- Items -------------------------------------------------------------------
 
 func item_cost(item_id: String) -> int:
-	var it := GameData.item(item_id)
-	var cost := int(it.get("cost", 0))
-	var owned := inventory.duplicate()
-	for comp in it.get("builds_from", []):
+	var cost := int(GameData.item(item_id).get("cost", 0))
+	for part in owned_parts(item_id):
+		cost -= int(GameData.item(part).get("cost", 0))
+	return maxi(cost, 0)
+
+
+## The items you own that go into this one, anywhere down its recipe (League
+## style): leather boots count toward dragon boots, through bronze and rune.
+## Each owned item is used once; a part you own stops the search down its branch.
+func owned_parts(item_id: String, owned: Array = []) -> Array[String]:
+	if owned.is_empty():
+		owned = inventory.duplicate()
+	var out: Array[String] = []
+	for comp in GameData.item(item_id).get("builds_from", []):
 		var idx := owned.find(comp)
 		if idx >= 0:
-			cost -= int(GameData.item(comp).get("cost", 0))
+			out.append(str(comp))
 			owned.remove_at(idx)
-	return maxi(cost, 0)
+		elif not owned.is_empty():
+			out.append_array(owned_parts(str(comp), owned))
+	return out
 
 
 func can_buy(item_id: String) -> bool:
@@ -504,14 +531,7 @@ func can_buy(item_id: String) -> bool:
 		return false
 	if bool(it.get("consumable", false)):
 		return consumables.size() < int(GameData.rule("consumable_slots", 4)) and gold >= float(it.get("cost", 0))
-	var consumed := 0
-	var owned := inventory.duplicate()
-	for comp in it.get("builds_from", []):
-		var idx := owned.find(comp)
-		if idx >= 0:
-			consumed += 1
-			owned.remove_at(idx)
-	var slots_after := inventory.size() - consumed + 1
+	var slots_after := inventory.size() - owned_parts(item_id).size() + 1
 	return gold >= float(item_cost(item_id)) and slots_after <= int(GameData.rule("item_slots", 6))
 
 
@@ -524,8 +544,8 @@ func buy_item(item_id: String) -> bool:
 		consumables.append(item_id)
 		return true
 	var cost := item_cost(item_id)
-	for comp in it.get("builds_from", []):
-		inventory.erase(comp)
+	for part in owned_parts(item_id):
+		inventory.erase(part)
 	inventory.append(item_id)
 	gold -= float(cost)
 	_rebuild_item_stats()
@@ -1298,9 +1318,9 @@ func modify_outgoing(info: DamageInfo, target: Unit) -> void:
 		# Crits: a chance from attack potions (gold "max hit" splat); Crit
 		# Damage makes every crit, including abilities' own, hit harder.
 		if info.crit_mult > 1.0:
-			info.crit_mult *= 1.0 + status_sum("crit_damage_mult")
-		elif randf() < crit_chance():
-			info.crit_mult = crit_multiplier()
+			info.crit_mult *= 1.0 + styled_sum("crit_damage_mult", info.style)
+		elif randf() < crit_chance(info.style):
+			info.crit_mult = crit_multiplier(info.style)
 	if target != null and target.team == Combat.Team.NEUTRAL:
 		info.amount *= 1.0 + _item_stat("monster_damage")   # Black mask, leaf-bladed weapons
 	if target != null and target.is_structure():
@@ -1682,9 +1702,27 @@ func _bot_shop() -> void:
 			continue
 		if can_buy(str(id)):
 			buy_item(str(id))
+		elif meets_requirements(str(id)):
+			# Save up for this one: buy its parts, nothing further down the list.
+			_bot_buy_part(str(id))
+			break
 	var food := best_food()
 	while food != "" and consumables.size() < 2 and can_buy(food):
 		buy_item(food)
+
+
+## Can't afford an item yet: buy one of its parts (leather boots on the way
+## to dragon boots), like a player saving up.
+func _bot_buy_part(item_id: String) -> bool:
+	for comp in GameData.item(item_id).get("builds_from", []):
+		var c := str(comp)
+		if inventory.has(c) or _owns_upgrade_of(c) or not meets_requirements(c):
+			continue
+		if can_buy(c):
+			return buy_item(c)
+		if _bot_buy_part(c):
+			return true
+	return false
 
 
 ## The best food this build can cook (Cooking level) and afford: the bots' pick.

@@ -382,6 +382,9 @@ static func _num(v: float) -> String:
 static func _icon(c: Champion, key: String) -> Texture2D:
 	if key.begins_with("item:"):
 		return Icons.item(key.substr(5))
+	var own := Icons.ability(c.champ_id, key, c.form_name())
+	if own != null:
+		return own
 	var a: Dictionary = OsrsModels.champion_config(c.champ_id).get("abilities", {}).get(key, {})
 	if a.has("spec"):
 		var t := Icons.item(str(a["spec"]))

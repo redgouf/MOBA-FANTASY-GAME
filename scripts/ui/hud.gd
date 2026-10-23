@@ -47,6 +47,7 @@ var _gold: Label
 # bottom-centre
 var _passive: Panel
 var _passive_label: Label
+var _passive_icon: TextureRect
 var _ability_slots: Dictionary = {}
 var _offensive: Panel
 var _offensive_icon: TextureRect
@@ -271,6 +272,12 @@ func _build_bottom_center(root: Control) -> void:
 	p.add_child(_passive)
 	var ptag := UiStyle.label(_passive, "Passive", 9, UiStyle.MUTED)
 	ptag.position = Vector2(4, 1)
+	_passive_icon = Icons.rect(_passive, null, Vector2.ZERO)
+	_passive_icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_passive_icon.offset_left = 8
+	_passive_icon.offset_top = 12
+	_passive_icon.offset_right = -8
+	_passive_icon.offset_bottom = -4
 	_passive_label = UiStyle.label(_passive, "", 10)
 	UiStyle.fill(_passive_label, 0, 10)
 	_passive_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -582,7 +589,13 @@ func _update_bottom_center() -> void:
 		ptext += "\nin %d" % champ.skilling_casts_until_level_up()
 	elif not champ.forms.is_empty():
 		ptext += "\n(%s)" % champ.form_name()
-	_passive_label.text = ptext
+	var ptex := Icons.ability(champ.champ_id, "passive")
+	if _passive_icon.texture != ptex:
+		_passive_icon.texture = ptex
+	# With an icon, only the live counter shows (stacks, casts to level up, form).
+	var lines := ptext.split("\n")
+	_passive_label.text = (lines[1] if lines.size() > 1 else "") if ptex != null else ptext
+	_passive_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM if ptex != null else VERTICAL_ALIGNMENT_CENTER
 	_passive.tooltip_text = UiStyle.wrap("%s\n%s" % [p.get("name", ""), p.get("text", "")])
 
 	for slot in Champion.SLOTS:

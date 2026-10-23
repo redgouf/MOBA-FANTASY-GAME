@@ -141,6 +141,9 @@ static func use_parts(use: Dictionary, mult: float = 1.0, champ: Champion = null
 		var amt := raw * mult if raw > 0.0 else raw
 		var what: String = {"damage_mult": "damage", "attack_damage_mult": "Attack Damage", "magic_damage_mult": "Magic Damage",
 			"crit_chance": "crit chance", "crit_damage_mult": "Crit Damage", "armor_mult": "Defence", "haste": "move speed"}.get(kind, "")
+		var only := str((st.get("data", {}) as Dictionary).get("style", ""))
+		if what != "" and only != "":
+			what = "%s %s" % [only.capitalize(), what if what != "Attack Damage" else "Damage"]
 		if what != "":
 			parts.append("%s%d%% %s for %ds" % ["+" if amt >= 0.0 else "", roundi(amt * 100.0), what, int(st.get("duration", 0))])
 		elif kind == "antipoison":

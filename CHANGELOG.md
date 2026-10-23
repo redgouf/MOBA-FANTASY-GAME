@@ -2,6 +2,16 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.16.0
+
+- Champion names over the health bars are coloured by level against yours, like OSRS's right-click menu: green when lower, yellow when even, then orange and red the higher they are. The health bar colour now tells the teams apart: green for you, blue for allies, red for enemies and yellow for neutral monsters.
+- New base items that build into the big ones: Leather boots, Leather chaps, Coif, Gold ring, Wizard robe and Priest gown. A new Materials tab sells the resources they're made from: Cowhide, Ball of wool, Logs, Feathers, Iron ore and Gold ore.
+- Every pair of boots starts from Leather boots: Bronze → Rune → Dragon → Primordial boots, Climbing → Spiked boots, Ranger → Pegasian boots, Infinity → Eternal boots, and Boots of lightness.
+- More upgrade paths: Gold ring → recoil, seers', archers', berserker ring and Lightbearer (recoil → suffering); Wizard robe → Mystic → Ahrim's or Ancestral; Leather chaps → hardleather → green d'hide → Karil's, and snakeskin → Masori; Coif → Archer helm; Priest gown → Proselyte hauberk → Justiciar.
+- Parts count anywhere down a recipe: owning Leather boots makes Dragon boots 300 gp cheaper. The shop lists what an item builds into, and bots buy the parts of an item they're saving for.
+- Potions: Attack and Super attack give melee Attack Damage, Strength and Super strength give melee crit chance and Crit Damage, and the Ranging potion gives ranged Attack Damage only. Combat potions mix the melee ones.
+- Every champion spell and passive has an icon (OSRS items and spells: Rapid is dragon arrows, Longrange the twisted bow, Ice Barrage, Vengeance Other...), on the hotbar and in the tooltips.
+
 ## 0.15.0
 
 - Ability tooltips are laid out like League's, for reading at a glance: the icon, "[Q] Name" and rank on the left, the cooldown and spec cost on the right, the description with each damage or heal written out ("61 = (31 +100% Damage) melee damage", coloured by type), and a rank table ("Damage [ 12 / 22 / 31 / 41 / 50 ]", "Cooldown [ ... ]") with your current rank highlighted. All tooltips use the same dark, teal-edged panel.

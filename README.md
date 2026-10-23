@@ -6,7 +6,7 @@ A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School Run
 
 Built with **Godot 4.7.2** (GDScript, Forward+).
 
-## Status: whitebox prototype (v0.15)
+## Status: whitebox prototype (v0.16)
 
 ![Playing the Pure: stats and items bottom-left, abilities centre, minimap bottom-right, inspected target top-left](docs/screenshots/play.png)
 
@@ -37,7 +37,7 @@ Playable today, with primitive shapes standing in for art:
 - **OSRS-sized numbers**: every health pool and damage/heal amount is scaled down (`rules.hp_scale`, 0.2) so hitsplats read like OSRS (a 25-minute bot match's biggest hit was 203). Killing blows take exactly the health left, and the bar empties.
 - **Fog of war**: League sight ranges (champions and super minions 18 m, other minions 16 m, structures 18 m), shared by the whole team and blocked by walls. Enemies outside it vanish from the world and the minimap; the ground beyond your sight is darkened. Spectators press **F** to switch it off or on (for the watched champion's team); players can't.
 - **Buffs and debuffs** show as icons with clock-wipe timers above the hotbar (and under the inspect panel for allies), with a short explanation on hover. Enemies' are never shown.
-- **Grand Exchange** shop with Weapons, Armour, Boots, Consumables and Skilling tabs, an item grid with prices (red when you can't afford it, dimmed when your levels are too low) and a detail panel with a Buy button.
+- **Grand Exchange** shop with Weapons, Armour, Boots, Consumables, Skilling and Materials tabs. Items build up League style from materials (cowhide, wool, logs, feathers, ore) and base items (leather boots, gold ring, coif, wizard robe...): parts you own anywhere down the recipe lower the price. It has an item grid with prices (red when you can't afford it, dimmed when your levels are too low) and a detail panel with a Buy button.
 - **Tooltips** with solid backgrounds; ability tooltips show the damage they'd do right now: spell (by rank) + your stats + items = total ([screenshot](docs/screenshots/ability_tooltip.png)).
 - **OSRS item and prayer icons**, and a two-letter tag on every champion's chest and back.
 - **Ability tooltips** in colour: plain text white, your champion's stats light blue, scaling by style (melee red, magic blue, ranged green), items gold, cooldowns italic grey, plus what each rank adds. Every ability improves with rank (damage, durations, slows, ranges or amounts).

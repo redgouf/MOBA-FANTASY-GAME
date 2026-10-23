@@ -9,6 +9,7 @@ var slot := ""
 
 var _key: Label
 var _name: Label
+var _icon: TextureRect
 var _cd: Label
 var _cost: Label
 var _locked: Label
@@ -36,6 +37,13 @@ func _build() -> void:
 	_ready_style = UiStyle.box(UiStyle.BG_SLOT, UiStyle.BORDER_HI, 2, 4)
 	_locked_style = UiStyle.box(UiStyle.BG_DARK, UiStyle.BORDER.darkened(0.4), 2, 4)
 	add_theme_stylebox_override("panel", _ready_style)
+	# The ability's icon fills the square; the name shows only without one.
+	_icon = Icons.rect(self, null, Vector2.ZERO)
+	_icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_icon.offset_left = 6
+	_icon.offset_top = 6
+	_icon.offset_right = -6
+	_icon.offset_bottom = -12
 	_name = UiStyle.label(self, "", 12)
 	UiStyle.fill(_name, 3, 0, 3, 10)
 	_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -78,7 +86,11 @@ func refresh(champ: Champion, allow_level_up: bool = true) -> void:
 	var ab := champ.get_ability(slot)
 	var rank := champ.ability_rank(slot)
 	var max_rank := champ.max_rank(slot)
-	_name.text = str(ab.get("name", ""))
+	var tex := Icons.ability(champ.champ_id, slot, champ.form_name())
+	if _icon.texture != tex:
+		_icon.texture = tex
+	_name.text = "" if tex != null else str(ab.get("name", ""))
+	_icon.modulate = Color(1, 1, 1, 0.4) if rank <= 0 else Color.WHITE
 	var cost := float(ab.get("spec_cost", 0.0))
 	_cost.text = "%d%%" % int(cost) if cost > 0.0 else ""
 

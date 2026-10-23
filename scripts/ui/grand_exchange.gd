@@ -9,7 +9,7 @@ extends Panel
 
 const SIZE := Vector2(840, 600)
 const TILE := Vector2(120, 92)
-const TABS: Array[String] = ["Weapons", "Armour", "Boots", "Consumables", "Skilling"]
+const TABS: Array[String] = ["Weapons", "Armour", "Boots", "Consumables", "Skilling", "Materials"]
 
 var champ: Champion
 var tab := "Weapons"
@@ -236,6 +236,12 @@ func details(it: Dictionary) -> String:
 		for b in it["builds_from"]:
 			names.append(str(GameData.item(str(b)).get("name", b)))
 		lines.append("[color=#a8a39a]Builds from %s (owning it lowers the price).[/color]" % ", ".join(names))
+	var into: Array[String] = []
+	for other_id in GameData.item_order:
+		if id in GameData.item(other_id).get("builds_from", []):
+			into.append(str(GameData.item(other_id).get("name", other_id)))
+	if not into.is_empty():
+		lines.append("[color=#a8a39a]Builds into %s.[/color]" % ", ".join(into))
 	return "\n".join(lines)
 
 

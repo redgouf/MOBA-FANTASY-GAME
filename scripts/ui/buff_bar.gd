@@ -50,6 +50,15 @@ static func describe(st: Dictionary) -> Dictionary:
 	if str(data.get("stance", "")) != "":
 		# An attack style (Rapid, Longrange): one icon for the whole stance.
 		return {"icon": str(data.get("icon", "")), "title": str(data.get("title", "")), "text": str(data.get("text", "")), "debuff": false}
+	var only := str(data.get("style", ""))
+	if only != "" and kind in ["attack_damage_mult", "crit_chance", "crit_damage_mult"]:
+		var label: String = {"attack_damage_mult": "Damage", "crit_chance": "Crit chance", "crit_damage_mult": "Crit Damage"}[kind]
+		var crit := kind != "attack_damage_mult"
+		return {"icon": "crit" if crit else ("damage_up" if a >= 0.0 else "damage_down"),
+			"title": "%s %s %s%s" % [only.capitalize(), label, "+" if a >= 0.0 else "−", pct],
+			"text": "Your %s hits %s." % [only, ("crit %s more often" % pct) if kind == "crit_chance" else
+				(("crit for %s more" % pct) if crit else ("deal %s %s damage" % [pct, "more" if a >= 0.0 else "less"]))],
+			"debuff": a < 0.0}
 	match kind:
 		"attack_damage_mult":
 			return {"icon": "damage_up" if a >= 0.0 else "damage_down", "title": "Attack Damage %s%s" % ["+" if a >= 0.0 else "−", pct],

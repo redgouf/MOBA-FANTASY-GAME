@@ -23,6 +23,16 @@ static func overhead(prayer_id: String) -> Texture2D:
 	return _load("res://assets/icons/overheads/%s.png" % prayer_id) if prayer_id != "" else null
 
 
+## A champion ability's icon (OSRS art picked to fit the spell), by slot
+## "q".."r" or "passive"; abilities with forms (the Hybrid's Q) have one per form.
+static func ability(champ_id: String, slot: String, form: String = "") -> Texture2D:
+	if form != "":
+		var t := _load("res://assets/icons/abilities/%s_%s_%s.png" % [champ_id, slot, form])
+		if t != null:
+			return t
+	return _load("res://assets/icons/abilities/%s_%s.png" % [champ_id, slot])
+
+
 static func prayer(prayer_name: String) -> Texture2D:
 	return _load("res://assets/icons/prayers/%s.png" % prayer_name.to_lower().replace(" ", "_"))
 

@@ -1,5 +1,5 @@
 {
-  "_notes": "Requirements use real OSRS skill levels. Entries marked verify:true still need checking against the OSRS Wiki. Set bonuses and 'text' effects without code are planned, not yet implemented. Consumables have no requirement: 'potency' is the Cooking/Herblore level that makes them 'perfect' (+15%); items under level 20 have none. Ammo (arrows, darts, knives) never needs Fletching or Runecraft. Potions boost their OSRS skill ('skill_boost': flat + pct of the base level). 'artisan' is the level to make an item yourself, which waives its combat requirements.",
+  "_notes": "Requirements use real OSRS skill levels. Entries marked verify:true still need checking against the OSRS Wiki. Set bonuses and 'text' effects without code are planned, not yet implemented. Consumables have no requirement: 'potency' is the Cooking/Herblore level that makes them 'perfect' (+15%); items under level 20 have none. Ammo (arrows, darts, knives) never needs Fletching or Runecraft. Potions boost their OSRS skill ('skill_boost': flat + pct of the base level). 'artisan' is the level to make an item yourself, which waives its combat requirements. Items build up League style: 'tier': 'resource' items (Materials tab) and base items feed 'builds_from', and owned parts anywhere down the recipe lower the price. Every pair of boots builds from leather boots. A status's data.style ('melee'/'ranged') limits it to that combat style.",
   "items": [
     {
       "id": "rune_scimitar",
@@ -78,7 +78,10 @@
       },
       "artisan": {
         "smithing": 99
-      }
+      },
+      "builds_from": [
+        "steel_platebody"
+      ]
     },
     {
       "id": "green_dhide_body",
@@ -98,7 +101,10 @@
       },
       "artisan": {
         "crafting": 63
-      }
+      },
+      "builds_from": [
+        "hardleather_body"
+      ]
     },
     {
       "id": "mystic_robe_top",
@@ -115,7 +121,10 @@
         "defence": {
           "magic": 20
         }
-      }
+      },
+      "builds_from": [
+        "wizard_robe"
+      ]
     },
     {
       "id": "amulet_of_glory",
@@ -130,7 +139,10 @@
       },
       "artisan": {
         "crafting": 80
-      }
+      },
+      "builds_from": [
+        "gold_ore"
+      ]
     },
     {
       "id": "amulet_of_fury",
@@ -155,30 +167,39 @@
       "id": "ring_of_recoil",
       "name": "Ring of recoil",
       "tier": "component",
-      "cost": 500,
+      "cost": 600,
       "stats": {
         "defence_all": 8
       },
-      "text": "Reflects 10% of damage taken (planned)."
+      "text": "Reflects 10% of damage taken (planned).",
+      "builds_from": [
+        "gold_ring"
+      ]
     },
     {
       "id": "climbing_boots",
       "name": "Climbing boots",
       "tier": "component",
-      "cost": 400,
+      "cost": 450,
       "stats": {
         "damage": 4,
         "move_speed": 0.3
-      }
+      },
+      "builds_from": [
+        "leather_boots"
+      ]
     },
     {
       "id": "boots_of_lightness",
       "name": "Boots of lightness",
       "tier": "component",
-      "cost": 350,
+      "cost": 450,
       "stats": {
         "move_speed": 0.6
-      }
+      },
+      "builds_from": [
+        "leather_boots"
+      ]
     },
     {
       "id": "dragon_dagger",
@@ -1046,7 +1067,10 @@
         "defence": {
           "magic": 20
         }
-      }
+      },
+      "builds_from": [
+        "mystic_robe_top"
+      ]
     },
     {
       "id": "karils_leathertop",
@@ -1064,7 +1088,10 @@
         "defence": {
           "ranged": 20
         }
-      }
+      },
+      "builds_from": [
+        "green_dhide_body"
+      ]
     },
     {
       "id": "bandos_chestplate",
@@ -1094,7 +1121,10 @@
       "stats": {
         "health": 350,
         "defence_all": 25
-      }
+      },
+      "builds_from": [
+        "proselyte_hauberk"
+      ]
     },
     {
       "id": "masori_body",
@@ -1114,7 +1144,10 @@
       },
       "artisan": {
         "crafting": 90
-      }
+      },
+      "builds_from": [
+        "snakeskin_body"
+      ]
     },
     {
       "id": "ancestral_robe_top",
@@ -1131,7 +1164,10 @@
         "defence": {
           "magic": 25
         }
-      }
+      },
+      "builds_from": [
+        "mystic_robe_top"
+      ]
     },
     {
       "id": "dragon_defender",
@@ -1262,7 +1298,10 @@
       "stats": {
         "spec_regen": 1.0
       },
-      "text": "Doubles special attack regeneration."
+      "text": "Doubles special attack regeneration.",
+      "builds_from": [
+        "gold_ring"
+      ]
     },
     {
       "id": "ring_of_suffering",
@@ -1278,7 +1317,10 @@
       },
       "requirements": {
         "hitpoints": 75
-      }
+      },
+      "builds_from": [
+        "ring_of_recoil"
+      ]
     },
     {
       "id": "berserker_ring",
@@ -1287,7 +1329,10 @@
       "cost": 2200,
       "stats": {
         "damage": 20
-      }
+      },
+      "builds_from": [
+        "gold_ring"
+      ]
     },
     {
       "id": "archers_ring",
@@ -1297,7 +1342,10 @@
       "stats": {
         "damage": 18,
         "attack_speed": 0.08
-      }
+      },
+      "builds_from": [
+        "gold_ring"
+      ]
     },
     {
       "id": "seers_ring",
@@ -1306,15 +1354,18 @@
       "cost": 2200,
       "stats": {
         "magic_power": 35
-      }
+      },
+      "builds_from": [
+        "gold_ring"
+      ]
     },
     {
       "id": "dragon_boots",
       "name": "Dragon boots",
       "tier": "boots",
-      "cost": 1200,
+      "cost": 1500,
       "builds_from": [
-        "climbing_boots"
+        "rune_boots"
       ],
       "requirements": {
         "defence": 60
@@ -1328,7 +1379,7 @@
       "id": "primordial_boots",
       "name": "Primordial boots",
       "tier": "boots",
-      "cost": 1800,
+      "cost": 2100,
       "builds_from": [
         "dragon_boots"
       ],
@@ -1345,9 +1396,9 @@
       "id": "pegasian_boots",
       "name": "Pegasian boots",
       "tier": "boots",
-      "cost": 1800,
+      "cost": 2000,
       "builds_from": [
-        "boots_of_lightness"
+        "ranger_boots"
       ],
       "requirements": {
         "ranged": 75,
@@ -1362,9 +1413,9 @@
       "id": "eternal_boots",
       "name": "Eternal boots",
       "tier": "boots",
-      "cost": 1800,
+      "cost": 2000,
       "builds_from": [
-        "boots_of_lightness"
+        "infinity_boots"
       ],
       "requirements": {
         "magic": 75,
@@ -1379,7 +1430,7 @@
       "id": "hardleather_body",
       "name": "Hardleather body",
       "tier": "component",
-      "cost": 450,
+      "cost": 550,
       "requirements": {
         "crafting": 28,
         "defence": 10
@@ -1393,7 +1444,10 @@
       },
       "artisan": {
         "crafting": 28
-      }
+      },
+      "builds_from": [
+        "leather_chaps"
+      ]
     },
     {
       "id": "snakeskin_body",
@@ -1415,7 +1469,10 @@
       },
       "artisan": {
         "crafting": 53
-      }
+      },
+      "builds_from": [
+        "leather_chaps"
+      ]
     },
     {
       "id": "steel_platebody",
@@ -1435,7 +1492,10 @@
       },
       "artisan": {
         "smithing": 48
-      }
+      },
+      "builds_from": [
+        "iron_ore"
+      ]
     },
     {
       "id": "mithril_scimitar",
@@ -1469,7 +1529,10 @@
       },
       "artisan": {
         "fletching": 55
-      }
+      },
+      "builds_from": [
+        "logs"
+      ]
     },
     {
       "id": "mithril_darts",
@@ -1485,7 +1548,10 @@
       },
       "artisan": {
         "smithing": 54
-      }
+      },
+      "builds_from": [
+        "feather"
+      ]
     },
     {
       "id": "amulet_of_magic",
@@ -1497,7 +1563,10 @@
       },
       "stats": {
         "magic_power": 12
-      }
+      },
+      "builds_from": [
+        "gold_ore"
+      ]
     },
     {
       "id": "amulet_of_strength",
@@ -1509,7 +1578,10 @@
       },
       "stats": {
         "damage": 12
-      }
+      },
+      "builds_from": [
+        "gold_ore"
+      ]
     },
     {
       "id": "amulet_of_power",
@@ -1524,7 +1596,10 @@
         "magic_power": 10,
         "health": 80,
         "defence_all": 5
-      }
+      },
+      "builds_from": [
+        "amulet_of_strength"
+      ]
     },
     {
       "id": "black_mask",
@@ -1677,6 +1752,288 @@
       "text": "Basic attacks set the target alight: 1.5 true damage a second for 2s."
     },
     {
+      "id": "cowhide",
+      "name": "Cowhide",
+      "tier": "resource",
+      "shop": "Materials",
+      "cost": 150,
+      "stats": {
+        "health": 30
+      },
+      "text": "Tanned into leather: boots, chaps and coifs."
+    },
+    {
+      "id": "ball_of_wool",
+      "name": "Ball of wool",
+      "tier": "resource",
+      "shop": "Materials",
+      "cost": 150,
+      "stats": {
+        "health": 20,
+        "magic_power": 3
+      },
+      "text": "Spun into robes for mages and priests."
+    },
+    {
+      "id": "logs",
+      "name": "Logs",
+      "tier": "resource",
+      "shop": "Materials",
+      "cost": 150,
+      "stats": {
+        "skill_power": 5
+      },
+      "text": "Fletched into bows."
+    },
+    {
+      "id": "feather",
+      "name": "Feathers",
+      "tier": "resource",
+      "shop": "Materials",
+      "cost": 100,
+      "stats": {
+        "attack_speed": 0.03
+      },
+      "text": "Fletches darts and fits ranger boots."
+    },
+    {
+      "id": "iron_ore",
+      "name": "Iron ore",
+      "tier": "resource",
+      "shop": "Materials",
+      "cost": 200,
+      "stats": {
+        "defence_all": 3
+      },
+      "text": "Smelted into plate, spikes and boots."
+    },
+    {
+      "id": "gold_ore",
+      "name": "Gold ore",
+      "tier": "resource",
+      "shop": "Materials",
+      "cost": 250,
+      "stats": {
+        "damage": 2,
+        "magic_power": 3
+      },
+      "text": "Crafted into rings and amulets."
+    },
+    {
+      "id": "leather_boots",
+      "name": "Leather boots",
+      "tier": "component",
+      "cost": 300,
+      "builds_from": [
+        "cowhide"
+      ],
+      "stats": {
+        "move_speed": 0.25,
+        "health": 30
+      },
+      "text": "Every pair of boots starts here."
+    },
+    {
+      "id": "leather_chaps",
+      "name": "Leather chaps",
+      "tier": "component",
+      "cost": 300,
+      "builds_from": [
+        "cowhide"
+      ],
+      "stats": {
+        "health": 70,
+        "defence": {
+          "ranged": 5
+        }
+      }
+    },
+    {
+      "id": "coif",
+      "name": "Coif",
+      "tier": "component",
+      "cost": 350,
+      "builds_from": [
+        "cowhide"
+      ],
+      "requirements": {
+        "ranged": 20
+      },
+      "stats": {
+        "health": 50,
+        "damage": 4
+      }
+    },
+    {
+      "id": "gold_ring",
+      "name": "Gold ring",
+      "tier": "component",
+      "cost": 400,
+      "builds_from": [
+        "gold_ore"
+      ],
+      "stats": {
+        "damage": 4,
+        "magic_power": 6
+      },
+      "text": "The band every enchanted ring is cut from."
+    },
+    {
+      "id": "wizard_robe",
+      "name": "Wizard robe",
+      "tier": "component",
+      "cost": 350,
+      "builds_from": [
+        "ball_of_wool"
+      ],
+      "stats": {
+        "health": 40,
+        "magic_power": 8
+      }
+    },
+    {
+      "id": "priest_gown",
+      "name": "Priest gown",
+      "tier": "component",
+      "cost": 350,
+      "builds_from": [
+        "ball_of_wool"
+      ],
+      "stats": {
+        "health": 60,
+        "prayer_bonus": 2
+      }
+    },
+    {
+      "id": "bronze_boots",
+      "name": "Bronze boots",
+      "tier": "component",
+      "cost": 500,
+      "builds_from": [
+        "leather_boots"
+      ],
+      "stats": {
+        "move_speed": 0.3,
+        "health": 50,
+        "defence": {
+          "melee": 5
+        }
+      }
+    },
+    {
+      "id": "rune_boots",
+      "name": "Rune boots",
+      "tier": "component",
+      "cost": 1000,
+      "builds_from": [
+        "bronze_boots",
+        "iron_ore"
+      ],
+      "requirements": {
+        "defence": 40
+      },
+      "stats": {
+        "move_speed": 0.4,
+        "health": 90,
+        "defence": {
+          "melee": 10,
+          "ranged": 6
+        }
+      }
+    },
+    {
+      "id": "spiked_boots",
+      "name": "Spiked boots",
+      "tier": "component",
+      "cost": 800,
+      "builds_from": [
+        "climbing_boots",
+        "iron_ore"
+      ],
+      "stats": {
+        "damage": 8,
+        "move_speed": 0.4,
+        "defence_all": 3
+      },
+      "text": "Climbing boots with iron spikes hammered in (Death Plateau)."
+    },
+    {
+      "id": "ranger_boots",
+      "name": "Ranger boots",
+      "tier": "component",
+      "cost": 950,
+      "builds_from": [
+        "leather_boots",
+        "feather"
+      ],
+      "requirements": {
+        "ranged": 40
+      },
+      "stats": {
+        "attack_speed": 0.08,
+        "move_speed": 0.45
+      }
+    },
+    {
+      "id": "infinity_boots",
+      "name": "Infinity boots",
+      "tier": "component",
+      "cost": 950,
+      "builds_from": [
+        "leather_boots",
+        "ball_of_wool"
+      ],
+      "requirements": {
+        "magic": 50,
+        "defence": 25
+      },
+      "stats": {
+        "magic_power": 14,
+        "move_speed": 0.45
+      }
+    },
+    {
+      "id": "archer_helm",
+      "name": "Archer helm",
+      "tier": "armour",
+      "cost": 1100,
+      "builds_from": [
+        "coif"
+      ],
+      "requirements": {
+        "defence": 45
+      },
+      "stats": {
+        "health": 120,
+        "damage": 8,
+        "defence": {
+          "ranged": 12
+        }
+      }
+    },
+    {
+      "id": "proselyte_hauberk",
+      "name": "Proselyte hauberk",
+      "tier": "component",
+      "cost": 1000,
+      "builds_from": [
+        "priest_gown",
+        "iron_ore"
+      ],
+      "requirements": {
+        "defence": 30,
+        "prayer": 20
+      },
+      "stats": {
+        "health": 160,
+        "prayer_bonus": 4,
+        "defence": {
+          "melee": 10,
+          "magic": 6
+        }
+      }
+    },
+    {
       "id": "shark",
       "name": "Shark",
       "consumable": true,
@@ -1801,18 +2158,27 @@
         "statuses": [
           {
             "kind": "attack_damage_mult",
-            "amount": 0.08,
-            "duration": 60
+            "amount": 0.1,
+            "duration": 60,
+            "data": {
+              "style": "melee"
+            }
           },
           {
             "kind": "crit_chance",
             "amount": 0.1,
-            "duration": 60
+            "duration": 60,
+            "data": {
+              "style": "melee"
+            }
           },
           {
             "kind": "crit_damage_mult",
-            "amount": 0.2,
-            "duration": 60
+            "amount": 0.3,
+            "duration": 60,
+            "data": {
+              "style": "melee"
+            }
           },
           {
             "kind": "armor_mult",
@@ -1845,7 +2211,7 @@
       "potency": {
         "herblore": 90
       },
-      "text": "Every combat sense heightened at once."
+      "text": "Every melee sense heightened at once."
     },
     {
       "id": "stamina_potion",
@@ -2019,14 +2385,12 @@
       "use": {
         "statuses": [
           {
-            "kind": "crit_chance",
+            "kind": "attack_damage_mult",
             "amount": 0.05,
-            "duration": 60
-          },
-          {
-            "kind": "crit_damage_mult",
-            "amount": 0.1,
-            "duration": 60
+            "duration": 60,
+            "data": {
+              "style": "melee"
+            }
           },
           {
             "kind": "skill_boost",
@@ -2037,7 +2401,7 @@
           }
         ]
       },
-      "text": "Steadies your aim: hits find the gaps in armour."
+      "text": "Steadies your swing: melee hits land harder."
     },
     {
       "id": "strength_potion",
@@ -2047,9 +2411,20 @@
       "use": {
         "statuses": [
           {
-            "kind": "attack_damage_mult",
-            "amount": 0.04,
-            "duration": 60
+            "kind": "crit_chance",
+            "amount": 0.05,
+            "duration": 60,
+            "data": {
+              "style": "melee"
+            }
+          },
+          {
+            "kind": "crit_damage_mult",
+            "amount": 0.15,
+            "duration": 60,
+            "data": {
+              "style": "melee"
+            }
           },
           {
             "kind": "skill_boost",
@@ -2060,7 +2435,7 @@
           }
         ]
       },
-      "text": "Brute strength puts more weight behind every hit."
+      "text": "Brute strength: your melee blows can crush for extra damage."
     },
     {
       "id": "energy_potion",
@@ -2115,18 +2490,27 @@
         "statuses": [
           {
             "kind": "attack_damage_mult",
-            "amount": 0.04,
-            "duration": 60
+            "amount": 0.05,
+            "duration": 60,
+            "data": {
+              "style": "melee"
+            }
           },
           {
             "kind": "crit_chance",
             "amount": 0.05,
-            "duration": 60
+            "duration": 60,
+            "data": {
+              "style": "melee"
+            }
           },
           {
             "kind": "crit_damage_mult",
-            "amount": 0.1,
-            "duration": 60
+            "amount": 0.15,
+            "duration": 60,
+            "data": {
+              "style": "melee"
+            }
           },
           {
             "kind": "skill_boost",
@@ -2147,7 +2531,7 @@
       "potency": {
         "herblore": 36
       },
-      "text": "Strength and accuracy in one sip."
+      "text": "Attack and strength in one sip."
     },
     {
       "id": "super_attack",
@@ -2157,14 +2541,12 @@
       "use": {
         "statuses": [
           {
-            "kind": "crit_chance",
+            "kind": "attack_damage_mult",
             "amount": 0.1,
-            "duration": 60
-          },
-          {
-            "kind": "crit_damage_mult",
-            "amount": 0.2,
-            "duration": 60
+            "duration": 60,
+            "data": {
+              "style": "melee"
+            }
           },
           {
             "kind": "skill_boost",
@@ -2178,7 +2560,7 @@
       "potency": {
         "herblore": 45
       },
-      "text": "Your aim is razor sharp: more crits, and they hit harder."
+      "text": "Every swing finds its mark: melee hits land much harder."
     },
     {
       "id": "superantipoison",
@@ -2235,9 +2617,20 @@
       "use": {
         "statuses": [
           {
-            "kind": "attack_damage_mult",
-            "amount": 0.08,
-            "duration": 60
+            "kind": "crit_chance",
+            "amount": 0.1,
+            "duration": 60,
+            "data": {
+              "style": "melee"
+            }
+          },
+          {
+            "kind": "crit_damage_mult",
+            "amount": 0.3,
+            "duration": 60,
+            "data": {
+              "style": "melee"
+            }
           },
           {
             "kind": "skill_boost",
@@ -2251,7 +2644,7 @@
       "potency": {
         "herblore": 55
       },
-      "text": "Raw power surges through your arms."
+      "text": "Raw power surges through your arms: crushing melee crits."
     },
     {
       "id": "super_defence",
@@ -2289,7 +2682,10 @@
           {
             "kind": "attack_damage_mult",
             "amount": 0.08,
-            "duration": 60
+            "duration": 60,
+            "data": {
+              "style": "ranged"
+            }
           },
           {
             "kind": "skill_boost",
@@ -2342,7 +2738,10 @@
       "stats": {
         "skill_power": 10,
         "structure_damage": 0.05
-      }
+      },
+      "builds_from": [
+        "logs"
+      ]
     },
     {
       "id": "rune_axe",
@@ -2502,7 +2901,10 @@
       "cost": 1200,
       "stats": {
         "move_speed": 0.8
-      }
+      },
+      "builds_from": [
+        "boots_of_lightness"
+      ]
     }
   ]
 }

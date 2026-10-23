@@ -47,6 +47,7 @@ func _ready() -> void:
 	await test_v013()
 	await test_right_click_cancels_aim()
 	await test_v015_ui()
+	test_v016()
 	test_potions()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
@@ -140,6 +141,7 @@ func test_requirements() -> void:
 	check(tank.can_buy("bandos_chestplate"), "Justiciar Tank can wear Bandos")
 	check(tank.can_buy("elysian_spirit_shield"), "99 Defence, 99 Prayer tank can hold an Elysian")
 	var lunar := _make("lunar", Combat.Team.SARADOMIN, Vector3(-82, 0, 82))
+	lunar.skills["defence"] = 40   # (a lucky roll could reach the Elysian's 75)
 	check(not lunar.meets_requirements("elysian_spirit_shield"), "40 Defence Lunar can't hold an Elysian")
 	var zerker := _make("zerker", Combat.Team.SARADOMIN, Vector3(-82, 0, 82))
 	check(zerker.meets_requirements("berserker_helm") and not zerker.meets_requirements("obsidian_platebody"),
@@ -701,7 +703,7 @@ func test_v09() -> void:
 	var cats := {}
 	for id in GameData.item_order:
 		cats[GrandExchange.category(GameData.item(id))] = true
-	check(cats.size() == 5 and cats.has("Consumables") and cats.has("Skilling"), "the Grand Exchange sorts items into 5 tabs (%s)" % str(cats.keys()))
+	check(cats.size() == 6 and cats.has("Consumables") and cats.has("Skilling") and cats.has("Materials"), "the Grand Exchange sorts items into 6 tabs (%s)" % str(cats.keys()))
 	check(GrandExchange.category(GameData.item("shark")) == "Consumables" and GrandExchange.category(GameData.item("dragon_boots")) == "Boots"
 		and GrandExchange.category(GameData.item("abyssal_whip")) == "Weapons" and GrandExchange.category(GameData.item("bandos_chestplate")) == "Armour", "items land in the right tab")
 	# Buff icons.
@@ -1518,16 +1520,16 @@ func test_potions() -> void:
 	check(c.buy_item("super_restore") and c.use_consumable(0) and c.status_sum("attack_damage_mult") >= 0.0 and c.get_defence(0) > d0 * 1.19,
 		"a super restore undoes the brew's penalties and keeps its Defence")
 	var tip := ItemSlot._tooltip(GameData.item("super_strength"), c)
-	check(tip.contains("Use: +8% Attack Damage for 60s (Strength +") and tip.contains("'perfect' (55 Herblore): +9% Attack Damage"),
+	check(tip.contains("Use: +10% Melee crit chance for 60s, +30% Melee Crit Damage for 60s (Strength +") and tip.contains("'perfect' (55 Herblore): +12% Melee crit chance"),
 		"potion tooltips say what they do to damage, levels as flavour (%s)" % tip)
 	check(str(GameData.item("super_strength").get("text", "")) != "", "potions have flavour text")
-	# Attack potions: crits.
+	# Strength potions: melee crits.
 	c.statuses.clear()
-	check(c.buy_item("super_attack") and c.use_consumable(0) and c.crit_chance() > 0.11, "a super attack: crit chance (+10%, 'perfect' +11.5%)")
+	check(c.buy_item("super_strength") and c.use_consumable(0) and c.crit_chance() > 0.11, "a super strength: melee crit chance (+10%, 'perfect' +11.5%)")
 	c.add_status("probe", "crit_chance", 1.0, 5.0)
 	var ci := DamageInfo.make(100.0, Combat.Style.MELEE, c)
 	c.modify_outgoing(ci, null)
-	check(is_equal_approx(ci.crit_mult, 1.5 * (1.0 + c.status_sum("crit_damage_mult"))) and ci.crit_mult > 1.5,
+	check(is_equal_approx(ci.crit_mult, 1.5 * (1.0 + c.styled_sum("crit_damage_mult", Combat.Style.MELEE))) and ci.crit_mult > 1.5,
 		"a crit hits for 150%%, more with Crit Damage (x%.2f)" % ci.crit_mult)
 	check(BuffBar.describe({"kind": "crit_chance", "amount": 0.1})["icon"] == "crit", "crit buffs have their own icon")
 	c.queue_free()
@@ -1683,3 +1685,67 @@ func test_v015_ui() -> void:
 	bars.queue_free()
 	c.queue_free()
 	GameData.load_all(1.0)
+
+
+func test_v016() -> void:
+	GameData.load_all()
+	# Names coloured by level like OSRS's right-click menu.
+	check(UnitBars.level_color(10, 10) == Color(1, 1, 0), "same level: yellow")
+	check(UnitBars.level_color(4, 10).g > 0.99 and UnitBars.level_color(4, 10).r < 0.01, "much lower: green")
+	check(UnitBars.level_color(16, 10).r > 0.99 and UnitBars.level_color(16, 10).g < 0.01, "much higher: red")
+	var orange := UnitBars.level_color(13, 10)
+	check(orange.r > 0.99 and orange.g > 0.3 and orange.g < 0.7, "a few higher: orange")
+	var me := _make("dharok", Combat.Team.SARADOMIN, Vector3(150, 0, -150))
+	var ally := _make("pure", Combat.Team.SARADOMIN, Vector3(152, 0, -150))
+	var foe := _make("pure", Combat.Team.ZAMORAK, Vector3(-150, 0, 150))
+	var bars := UnitBars.new()
+	bars.viewer = me
+	check(bars.team_fill(me) == UnitBars.SELF and bars.team_fill(ally) == UnitBars.ALLY and bars.team_fill(foe) == UnitBars.ENEMY,
+		"health bars tell the teams apart: green you, blue allies, red enemies")
+	bars.free()
+	# Items: every pair of boots builds from leather boots; materials build up.
+	for id in GameData.item_order:
+		var it := GameData.item(id)
+		if GrandExchange.category(it) == "Boots" and str(it.get("name", "")).to_lower().contains("boots") and id != "leather_boots":
+			check(me._builds_into("leather_boots", id), "%s builds from leather boots" % id)
+	for id in ["cowhide", "ball_of_wool", "logs", "feather", "iron_ore", "gold_ore"]:
+		check(GrandExchange.category(GameData.item(id)) == "Materials", "%s is a material" % id)
+		var used := false
+		for other in GameData.item_order:
+			used = used or (id in GameData.item(other).get("builds_from", []))
+		check(used, "%s builds into something" % id)
+	check(me._builds_into("bronze_boots", "dragon_boots") and me._builds_into("climbing_boots", "spiked_boots"), "bronze → rune → dragon boots; climbing → spiked")
+	check(me._builds_into("gold_ring", "ring_of_suffering") and me._builds_into("wizard_robe", "ahrims_robetop")
+		and me._builds_into("coif", "archer_helm") and me._builds_into("priest_gown", "justiciar_chestguard"), "base items build into the big ones")
+	var buyer := _make("justiciar", Combat.Team.SARADOMIN, Vector3(150, 0, -152))
+	buyer.gold = 10000.0
+	buyer.buy_item("leather_boots")
+	var full := int(GameData.item("dragon_boots")["cost"])
+	check(buyer.item_cost("dragon_boots") == full - 300, "leather boots count toward dragon boots, two steps down (%d)" % buyer.item_cost("dragon_boots"))
+	check(buyer.buy_item("dragon_boots") and buyer.inventory == ["dragon_boots"], "and are used up when you buy them (%s)" % str(buyer.inventory))
+	buyer.queue_free()
+	for id in GameData.item_order:
+		if not GameData.item(id).get("consumable", false):
+			check(Icons.item(id) != null, "%s has an icon" % id)
+	# Potions: attack = melee damage, strength = melee crits, ranging = ranged damage.
+	me.gold = 99999.0
+	me.buy_item("super_attack")
+	me.use_consumable(0)
+	check(me.style_damage_bonus(Combat.Style.MELEE) > 0.09 and is_zero_approx(me.style_damage_bonus(Combat.Style.RANGED)), "super attack: melee damage only")
+	check(is_zero_approx(me.crit_chance()), "attack potions give no crits")
+	me.buy_item("super_strength")
+	me.use_consumable(0)
+	check(me.crit_chance(Combat.Style.MELEE) > 0.09 and me.crit_multiplier(Combat.Style.MELEE) > 1.5 and is_zero_approx(me.crit_chance(Combat.Style.RANGED)),
+		"super strength: melee crit chance and crit damage")
+	ally.gold = 99999.0
+	ally.buy_item("ranging_potion")
+	ally.use_consumable(0)
+	check(ally.style_damage_bonus(Combat.Style.RANGED) > 0.07 and is_zero_approx(ally.style_damage_bonus(Combat.Style.MELEE)), "ranging potion: ranged damage only")
+	var txt := ", ".join(ItemSlot.use_parts(GameData.item("ranging_potion")["use"]))
+	check(txt.contains("Ranged Damage"), "the ranging potion says Ranged Damage (%s)" % txt)
+	# Ability icons: every champion has one for each slot.
+	for cid in GameData.champions.keys():
+		for slot in ["passive", "q", "w", "e", "r"]:
+			check(Icons.ability(str(cid), slot) != null or Icons.ability(str(cid), slot, "ranged") != null, "%s %s has an ability icon" % [cid, slot])
+	for c in [me, ally, foe]:
+		c.queue_free()
