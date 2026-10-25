@@ -114,10 +114,42 @@ def face_visible(model, f):
     return True
 
 
+DECAL_LIFT = 0.004    # metres a decal face is lifted per priority step above the face under it
+
+
+def _decal_offsets(model, wpos, fnorm):
+    """OSRS draws coplanar faces in priority order (the patterns on d'hide,
+    trims on armour); a depth buffer can't, so they flicker. Faces that share
+    a plane with lower-priority faces are lifted off it along their normal,
+    one small step per priority level. Returns {face: (dx, dy, dz)}."""
+    pr = model.priorities
+    if pr is None:
+        return {}
+    planes = {}
+    for f in range(model.face_count):
+        n = fnorm[f]
+        p = wpos[model.i1[f]]
+        d = n[0] * p[0] + n[1] * p[1] + n[2] * p[2]
+        key = (round(n[0], 2), round(n[1], 2), round(n[2], 2), round(d / 0.002))
+        planes.setdefault(key, []).append(f)
+    out = {}
+    for faces in planes.values():
+        levels = sorted({pr[f] for f in faces})
+        if len(levels) < 2:
+            continue
+        for f in faces:
+            k = levels.index(pr[f])
+            if k:
+                n = fnorm[f]
+                out[f] = (n[0] * DECAL_LIFT * k, n[1] * DECAL_LIFT * k, n[2] * DECAL_LIFT * k)
+    return out
+
+
 def build_primitives(g: Gltf, model, opts: MeshOptions, flip=False):
     """glTF primitives for one model, split by texture and transparency."""
     wpos = [to_world(x, y, z) for x, y, z in zip(model.vx, model.vy, model.vz)]
     vnorm, fnorm = _vertex_normals(model, wpos)
+    lift = _decal_offsets(model, wpos, fnorm)
     groups = {}
     for f in range(model.face_count):
         if not face_visible(model, f):
@@ -149,14 +181,19 @@ def build_primitives(g: Gltf, model, opts: MeshOptions, flip=False):
             else:
                 r, gg, b = hsl_to_linear(model.colors[f])
                 c = (r, gg, b, a)
+            off = lift.get(f)
             for k, vi in enumerate(idx):
                 n = fnorm[f] if flat else vnorm[vi]
                 u = uvs[k] if uvs else None
-                key = (vi, n, c, u)
+                key = (vi, n, c, u, off)
                 at = seen.get(key)
                 if at is None:
                     at = seen[key] = len(pos) // 3
-                    pos.extend(wpos[vi])
+                    if off:
+                        wp = wpos[vi]
+                        pos.extend((wp[0] + off[0], wp[1] + off[1], wp[2] + off[2]))
+                    else:
+                        pos.extend(wpos[vi])
                     nrm.extend(n)
                     col.extend(round(min(1.0, max(0.0, v)) * 65535) for v in c)
                     if u is not None:

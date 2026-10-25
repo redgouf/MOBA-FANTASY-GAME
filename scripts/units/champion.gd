@@ -188,6 +188,10 @@ func _cast_visuals(slot: String, target: Unit = null, point: Vector3 = Vector3.Z
 	if a.has("spec"):
 		var spec2 := OsrsModels.spec_config(str(a["spec"]))
 		osrs.spec(int(spec2.get("weapon", 0)), str(spec2.get("clip", "")), bool(spec2.get("two_handed", false)))
+	elif a.has("weapon"):
+		# The weapon the ability is named for (the Pure's whip for Energy
+		# Drain, the Skiller's axe for Timber!) replaces the main hand for its clip.
+		osrs.spec(int(a["weapon"]), str(a.get("clip", "")), bool(a.get("two_handed", false)))
 	elif a.has("clip"):
 		osrs.play(str(a["clip"]), 1.2)
 	else:

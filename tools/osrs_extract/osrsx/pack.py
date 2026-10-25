@@ -27,7 +27,7 @@ from .textures import Textures
 SLOT_HIDES_PART = {4: 2, 6: 3, 7: 5, 8: 0, 9: 4, 10: 6, 11: 1}
 SLOT_NAMES = {0: "head", 1: "cape", 2: "neck", 3: "weapon", 4: "body", 5: "shield", 7: "legs",
               9: "hands", 10: "feet", 12: "ring", 13: "ammo"}
-DEFAULT_KITS = [0, 10, 18, 26, 33, 36, 42]     # male: hair, jaw, torso, arms, hands, legs, feet
+DEFAULT_KITS = [0, 14, 18, 26, 33, 36, 42]     # male: hair, jaw (clean-shaven: beards poke through helmets), torso, arms, hands, legs, feet
 PART_NAMES = ["hair", "jaw", "torso", "arms", "hands", "legs", "feet"]
 
 # Base player clips the game always wants under these names.

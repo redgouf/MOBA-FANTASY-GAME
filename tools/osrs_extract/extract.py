@@ -50,6 +50,7 @@ def models_json_needs():
             items.add(int(f.get("weapon", 0)))
         for ab in c.get("abilities", {}).values():
             clips.add(trailing_id(ab.get("clip")))
+            items.add(int(ab.get("weapon", 0)))       # a weapon shown just for that ability
         clips.add(trailing_id(c.get("passive_clip")))
     for s in cfg.get("spec_weapons", {}).values():
         items.add(int(s.get("weapon", 0)))

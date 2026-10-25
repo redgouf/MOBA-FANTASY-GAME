@@ -29,7 +29,7 @@ FAMILIES = {
 
 # Item id -> family. Unlisted weapons are guessed from their name.
 ITEMS = {
-    4151: "whip", 4718: "dharok", 861: "bow", 12926: "blowpipe", 20997: "bow", 21015: "bulwark", 9084: "staff", 4587: "sword", 1333: "sword", 5698: "dagger",
+    4151: "whip", 12006: "whip", 1249: "spear", 4718: "dharok", 861: "bow", 12926: "blowpipe", 20997: "bow", 21015: "bulwark", 9084: "staff", 4587: "sword", 1333: "sword", 5698: "dagger",
     1215: "dagger", 4153: "maul", 13652: "claws", 11802: "godsword", 11804: "godsword", 11806: "godsword",
     11808: "godsword", 4675: "staff", 11791: "staff", 12904: "staff", 21902: "crossbow", 11785: "crossbow",
     6528: "maul", 13576: "blunt", 1377: "axe", 6739: "axe", 22325: "scythe", 4755: "blunt", 4747: "blunt",

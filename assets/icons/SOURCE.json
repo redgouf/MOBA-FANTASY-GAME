@@ -265,7 +265,9 @@
     "lunar_gloves": "lunarGloves",
     "lunar_boots": "lunarBoots",
     "uncut_gems": "uncutSapphire",
-    "gem_bag": "gemBag"
+    "gem_bag": "gemBag",
+    "armadyl_crossbow": "armadylCrossbow",
+    "abyssal_tentacle": "abyssalTentacle"
   },
   "overheads": {
     "protect_from_melee": "protectFromMeleeOverhead",

@@ -67,7 +67,7 @@ func _walk(dir: String) -> Array[String]:
 func _excluded_patterns() -> Array[String]:
 	var out: Array[String] = []
 	if not OS.get_cmdline_user_args().has("--all") and str(OsrsModels.manifest().get("source", "")) == "osrs_extract":
-		for d in ["maps", "spotanims", "items", "textures", "sprites"]:
+		for d in ["maps", "spotanims", "textures", "sprites"]:
 			out.append("private_assets/osrs/%s/*" % d)
 		var used_items := {}
 		var cfg_m := OsrsModels.config()
@@ -79,6 +79,22 @@ func _excluded_patterns() -> Array[String]:
 				used_items[str(int(f.get("weapon", 0)))] = true
 		for s in cfg_m.get("spec_weapons", {}).values():
 			used_items[str(int(s.get("weapon", 0)))] = true
+		for c in cfg_m.get("champions", {}).values():
+			for ab in c.get("abilities", {}).values():
+				used_items[str(int(ab.get("weapon", 0)))] = true
+		# Inventory models (items/<id>.glb): only the ones held as props and the Skiller's gems.
+		var held := {}
+		for c in cfg_m.get("champions", {}).values():
+			for prop in c.get("props", []):
+				if prop.has("item"):
+					held[str(int(prop["item"]))] = true
+		for ids in cfg_m.get("gems", {}).values():
+			if ids is Array:
+				for id in ids:
+					held[str(int(id))] = true
+		for f in DirAccess.get_files_at("res://private_assets/osrs/items"):
+			if not held.has(f.get_slice(".", 0)):
+				out.append("private_assets/osrs/items/%s" % f)
 		for id in OsrsModels.manifest().get("items", {}):
 			if not used_items.has(str(id)):
 				out.append("private_assets/osrs/player/items/%s.glb" % id)

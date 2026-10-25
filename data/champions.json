@@ -759,8 +759,8 @@
           "icon": "amulet_of_glory"
         },
         "weapon": {
-          "name": "Dragon crossbow",
-          "icon": "dragon_crossbow"
+          "name": "Armadyl crossbow",
+          "icon": "armadyl_crossbow"
         },
         "body": {
           "name": "Mystic robe top",
@@ -1549,8 +1549,8 @@
           "icon": "amulet_of_glory"
         },
         "weapon": {
-          "name": "Abyssal whip",
-          "icon": "abyssal_whip"
+          "name": "Abyssal tentacle",
+          "icon": "abyssal_tentacle"
         },
         "body": {
           "name": "Karil's leathertop",

@@ -142,6 +142,7 @@ func test_requirements() -> void:
 	check(tank.can_buy("elysian_spirit_shield"), "99 Defence, 99 Prayer tank can hold an Elysian")
 	var lunar := _make("lunar", Combat.Team.SARADOMIN, Vector3(-82, 0, 82))
 	lunar.skills["defence"] = 40   # (a lucky roll could reach the Elysian's 75)
+	lunar.skills["smithing"] = 1   # (or 85 Smithing, to make it yourself)
 	check(not lunar.meets_requirements("elysian_spirit_shield"), "40 Defence Lunar can't hold an Elysian")
 	var zerker := _make("zerker", Combat.Team.SARADOMIN, Vector3(-82, 0, 82))
 	check(zerker.meets_requirements("berserker_helm") and not zerker.meets_requirements("obsidian_platebody"),
@@ -1260,7 +1261,7 @@ func test_osrs_models() -> void:
 	var j := _make("justiciar", Combat.Team.SARADOMIN, Vector3(64, 0, 60))
 	await get_tree().physics_frame
 	j._cast_visuals("r")
-	check(j.osrs.weapon_id == 11802, "Warstrike swaps in a godsword")
+	check(j.osrs.weapon_id == 11804, "Bandos Rally swaps in the Bandos godsword")
 	await get_tree().create_timer(2.2).timeout
 	check(j.osrs.weapon_id == 21015, "then Dinh's bulwark comes back")
 	# Real build gear on the former stand-ins.
@@ -1273,6 +1274,25 @@ func test_osrs_models() -> void:
 	var sk := _make("skiller", Combat.Team.SARADOMIN, Vector3(70, 0, 60))
 	await get_tree().physics_frame
 	check(sk.osrs.weapon_id == 0 and sk.osrs.has_gem_hand() and sk.osrs._gem_holder.get_child_count() == 1, "the Skiller holds a gem, no weapon")
+	sk._cast_visuals("q")
+	check(sk.osrs.weapon_id == 6739 and not sk.osrs._gem_holder.visible, "Timber! puts a dragon axe in his hand instead of the gem")
+	# Abilities named for a weapon show it: the Pure's whip for Energy Drain.
+	var pu := _make("pure", Combat.Team.SARADOMIN, Vector3(74, 0, 60))
+	await get_tree().physics_frame
+	pu._cast_visuals("q")
+	check(pu.osrs.weapon_id == 4151, "Energy Drain swings an abyssal whip")
+	await get_tree().create_timer(2.2).timeout
+	check(pu.osrs.weapon_id == 4587 and sk.osrs.weapon_id == 0 and sk.osrs._gem_holder.visible, "then the dragon scimitar (and the Skiller's gem) come back")
+	pu.queue_free()
+	# Every weapon an ability or spec shows exists in the pack.
+	var cfg := OsrsModels.config()
+	for c in cfg["champions"].values():
+		for ab in c.get("abilities", {}).values():
+			if ab.has("weapon"):
+				check(not OsrsModels.item(int(ab["weapon"])).is_empty(), "ability weapon %d is in the pack" % int(ab["weapon"]))
+	for sname in cfg["spec_weapons"]:
+		var w := int(cfg["spec_weapons"][sname].get("weapon", 0))
+		check(w == 0 or not OsrsModels.item(w).is_empty(), "%s's weapon %d is in the pack" % [sname, w])
 	check(OsrsModels.gem_item("Red topaz", true) == 1629 and OsrsModels.scene("items/1629.glb") != null, "gems are the OSRS models (uncut red topaz)")
 	var held: Array = sk.next_gem.duplicate()
 	var foe := _make("pure", Combat.Team.ZAMORAK, Vector3(72, 0, 60))
@@ -1289,9 +1309,9 @@ func test_osrs_models() -> void:
 	await get_tree().physics_frame
 	var before := h.osrs.weapon_id
 	h.toggle_form()
-	check(before == 21902 and h.osrs.weapon_id == 4675, "the Hybrid's form switch swaps crossbow for staff")
+	check(before == 11785 and h.osrs.weapon_id == 4675, "the Hybrid's form switch swaps the Armadyl crossbow for the staff")
 	h.toggle_form()
-	check(h.osrs.weapon_id == 21902, "and back")
+	check(h.osrs.weapon_id == 11785, "and back")
 	z.die(null)
 	check(z.osrs._dead and z.visible, "a dying champion plays its death animation before vanishing")
 	z.respawn()

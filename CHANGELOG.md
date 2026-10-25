@@ -2,6 +2,19 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.20.0
+
+- Abilities named for a weapon now show it in the champion's hand for the swing, then their own weapon comes back:
+  - The Pure swings an abyssal whip for Energy Drain, and still a dragon dagger for Puncture.
+  - The Justiciar shoves with a dragon spear and raises the Elysian spirit shield for Elysian Ward.
+  - The Max Ranger throws a black chinchompa.
+  - The Skiller swings a dragon axe for Timber!, a dragon harpoon for Harpoon and an Imcando hammer for Anvil Drop.
+- Specs use their real weapons: the Bandos, Saradomin and Zamorak godswords (not all the Armadyl godsword), the dragon warhammer, the volatile nightmare staff, the Armadyl crossbow, the magic shortbow (i), the toxic staff of the dead, the dragon axe and Voidwaker.
+- Weapons match their descriptions: the Hybrid holds an Armadyl crossbow (it was a dragon crossbow), and the Slayer holds an abyssal tentacle (it was a whip).
+- Fixed: the Skiller's gem bag and gems were missing from the personal build, so his hands looked empty.
+- Fixed: patterns on some armour (black d'hide chaps) flickered.
+- Champions are clean-shaven, so beards no longer poke out through helmets.
+
 ## 0.19.0
 
 - Fixed: with the OSRS pack on Windows, most of the map was invisible (the ground, rocks, towers and buildings), leaving only see-through bits like lava edges. The models were drawn in two passes that no longer matched, so the second pass hid them.

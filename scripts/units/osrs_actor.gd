@@ -245,6 +245,8 @@ func _show_weapon(id: int) -> void:
 	for w in _weapons.values():
 		(w as MeshInstance3D).visible = false
 	weapon_id = id
+	if _gem_holder != null:
+		_gem_holder.visible = id <= 0      # the Skiller's gem hand is busy with a tool
 	if id <= 0 or skeleton == null:
 		return
 	if not _weapons.has(id):
