@@ -56,7 +56,9 @@ Then carry on from step 2 below. `extract.py` replaces `manifest.json`; back up 
 - **Champions never change their look.** Buying items doesn't change the model.
 - **Specs swap the weapon.** An item spec (or an ability tied to one in `models.json`, like the Zerker's Dragon claws ult) shows that weapon for the length of its clip, then the base weapon comes back. Two-handed spec weapons also hide the shield.
 - **The Hybrid's form switch** swaps crossbow and staff, so other players can see which form it's in.
-- **Stand-ins** (SkullSlayer pack only, which lacks some models): the Skiller's lumberjack outfit and Imcando hammer are missing there, so he shows the bare body holding only his chisel prop. With an osrs_extract pack every champion wears the gear in `champions.json`.
+- **Stand-ins** (SkullSlayer pack only, which lacks some models): the Skiller's lumberjack outfit is missing there. With an osrs_extract pack every champion wears the real gear of their build in `champions.json`: Masori and a twisted bow on the Max Ranger, a serpentine helm and toxic blowpipe on the Blowpiper, Justiciar armour and Dinh's bulwark on the Justiciar, the Lunar outfit and staff on the Lunar.
+- **Held items**: a `props` entry with `item` puts an item's inventory model in a hand (the Skiller's gem bag); one with `gem` marks the hand that holds the gem he throws next, picked from the cut and uncut gem models in `gems`.
+- **Depth pre-pass**: `OsrsModels.srgb_colors` rebuilds each mesh and drops its imported shadow mesh, which Forward+ draws in the depth pre-pass; keeping it made the rebuilt opaque surfaces fail the depth test and vanish.
 - **Monsters:** every camp has its model in `models.json` (abyssal demon, giants, wolves, rooster and chicken, ogres, rock crab, the moles, TzTok-Jad); the chromatic dragon's variants use the real green, blue, red and black dragons and the King Black Dragon. A model the installed pack doesn't have leaves that monster whitebox (the SkullSlayer pack has Jad, the Giant Mole and the King Black Dragon).
 
 ## The map, buildings, minions and props

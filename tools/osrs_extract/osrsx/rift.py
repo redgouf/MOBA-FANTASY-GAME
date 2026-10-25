@@ -31,7 +31,7 @@ OV_LAVA = 19          # TzHaar lava, texture 31
 OV_SCORCHED = 14      # dark burnt earth
 UN_DARK = 150         # the darkest Wilderness ground, under the dark floors
 
-ROCKS = [10790, 11182, 10791, 5512, 10790, 11182]   # the darker Wilderness boulders
+ROCKS = [10790, 11182, 10791, 10790, 11182, 10791]   # the grey Wilderness boulders
 WILD_UNDERLAYS = {72, 145, 146, 147, 148, 149, 150}
 LAVA_ROCKS = [14814, 14815, 14816, 14817]
 DEAD_TREES = [1282, 1283, 14514, 14515, 1286, 1289]

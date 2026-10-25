@@ -21,6 +21,12 @@ var _trail_timer := 0.0
 var _spin: Node3D
 var _color := Color.WHITE
 var _uncut := false
+var _gem_index := 0
+
+
+## A random gem: [index into GEMS, uncut].
+static func random_gem() -> Array:
+	return [randi() % GEMS.size(), randf() < 0.5]
 
 ## The Skiller's gems, opal to zenyte (shape "gem" picks one at random).
 const GEMS := [["Opal", Color(0.93, 0.88, 0.95)], ["Jade", Color(0.42, 0.78, 0.48)], ["Red topaz", Color(0.95, 0.45, 0.35)],
@@ -60,8 +66,11 @@ func _setup(source: Node3D, f: Dictionary, p_speed: float, from: Vector3 = Vecto
 	fx = f
 	var shape := str(f.get("shape", "orb"))
 	if shape == "gem":
-		var g: Array = GEMS.pick_random()
-		_uncut = randf() < 0.5
+		# The gem the thrower held (Unit.next_gem), or any gem.
+		var gi := int(f.get("gem_index", randi() % GEMS.size()))
+		var g: Array = GEMS[gi]
+		_gem_index = gi
+		_uncut = bool(f.get("uncut", randf() < 0.5))
 		f = f.duplicate()
 		f["color"] = g[1].darkened(0.25) if _uncut else g[1]
 		f["gem"] = ("Uncut " + str(g[0]).to_lower()) if _uncut else g[0]
@@ -125,7 +134,11 @@ func _build(shape: String) -> void:
 		"gem":
 			_spin = Node3D.new()
 			add_child(_spin)
-			if _uncut:
+			var model := OsrsModels.item_model(OsrsModels.gem_item(str(GEMS[_gem_index][0]), _uncut), 0.26) if OsrsModels.available() else null
+			if model != null:
+				# The real OSRS gem, cut or uncut.
+				_spin.add_child(model)
+			elif _uncut:
 				# A rough, dull lump.
 				var lump := SphereMesh.new()
 				lump.radius = 0.11

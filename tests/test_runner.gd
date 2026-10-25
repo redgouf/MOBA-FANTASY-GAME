@@ -1260,9 +1260,31 @@ func test_osrs_models() -> void:
 	var j := _make("justiciar", Combat.Team.SARADOMIN, Vector3(64, 0, 60))
 	await get_tree().physics_frame
 	j._cast_visuals("r")
-	check(j.osrs.weapon_id == 11802 and not j.osrs._shield.visible, "Warstrike swaps in a godsword and lowers the two-handed shield")
+	check(j.osrs.weapon_id == 11802, "Warstrike swaps in a godsword")
 	await get_tree().create_timer(2.2).timeout
-	check(j.osrs.weapon_id == 1333 and j.osrs._shield.visible, "then the scimitar and shield come back")
+	check(j.osrs.weapon_id == 21015, "then Dinh's bulwark comes back")
+	# Real build gear on the former stand-ins.
+	for pair in [["max_ranger", 20997], ["blowpiper", 12926], ["lunar", 9084]]:
+		var c := _make(str(pair[0]), Combat.Team.SARADOMIN, Vector3(68, 0, 60))
+		await get_tree().physics_frame
+		check(c.osrs.weapon_id == int(pair[1]), "%s holds item %d" % pair)
+		c.queue_free()
+	# The Skiller: no hammer, a gem bag in one hand and the gem he throws next in the other.
+	var sk := _make("skiller", Combat.Team.SARADOMIN, Vector3(70, 0, 60))
+	await get_tree().physics_frame
+	check(sk.osrs.weapon_id == 0 and sk.osrs.has_gem_hand() and sk.osrs._gem_holder.get_child_count() == 1, "the Skiller holds a gem, no weapon")
+	check(OsrsModels.gem_item("Red topaz", true) == 1629 and OsrsModels.scene("items/1629.glb") != null, "gems are the OSRS models (uncut red topaz)")
+	var held: Array = sk.next_gem.duplicate()
+	var foe := _make("pure", Combat.Team.ZAMORAK, Vector3(72, 0, 60))
+	sk.perform_attack(foe)
+	var gems := sk.get_parent().find_children("*", "Projectile", false, false)
+	var thrown: Projectile = null
+	for g in gems:
+		if (g as Projectile).fx.get("shape", "") == "gem":
+			thrown = g
+	check(thrown != null and thrown._gem_index == int(held[0]) and thrown._uncut == bool(held[1]), "he throws the gem he was holding")
+	sk.queue_free()
+	foe.queue_free()
 	var h := _make("hybrid", Combat.Team.SARADOMIN, Vector3(66, 0, 60))
 	await get_tree().physics_frame
 	var before := h.osrs.weapon_id
@@ -1306,8 +1328,8 @@ func test_osrs_extract_pack() -> void:
 	check(OsrsModels.clip_by_id("no_digits") == "", "and a name without an id finds nothing")
 	var sk := _make("skiller", Combat.Team.SARADOMIN, Vector3(76, 0, 60))
 	await get_tree().physics_frame
-	check(sk.osrs != null and sk.osrs.weapon_id == 25644, "the Skiller holds a real Imcando hammer")
-	check(sk.osrs.skeleton.find_children("*", "BoneAttachment3D", true, false).size() == 1, "and still a chisel prop in the other hand")
+	check(sk.osrs != null and sk.osrs.weapon_id == 0, "the Skiller holds no weapon")
+	check(sk.osrs.skeleton.find_children("*", "BoneAttachment3D", true, false).size() == 2, "a gem bag in one hand, a gem in the other")
 	var crab := Monster.new()
 	crab.init_monster("rock_crab", GameData.unit_def("monsters", "rock_crab"), Vector3(80, 0, 70), "test", 1)
 	add_child(crab)

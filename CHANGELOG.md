@@ -2,6 +2,17 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.19.0
+
+- Fixed: with the OSRS pack on Windows, most of the map was invisible (the ground, rocks, towers and buildings), leaving only see-through bits like lava edges. The models were drawn in two passes that no longer matched, so the second pass hid them.
+- The jungle walls use grey Wilderness boulders only; the gold rock clusters are gone.
+- Four champions that wore stand-in gear now wear their real builds:
+  - Max Ranger: Masori armour, a twisted bow, Ava's assembler, necklace of anguish, Zaryte vambraces and Pegasian boots.
+  - Blowpiper: a serpentine helm, black d'hide, Ava's accumulator and a toxic blowpipe, with the blowpipe's own attack and special animations.
+  - Justiciar: Justiciar armour, guardian boots and Dinh's bulwark, which he swings, shoves with (Q) and braces behind (E).
+  - Lunar: the full Lunar outfit and Lunar staff, with Lunar spell animations (Vengeance Other, Energy Transfer, group spells).
+- The Skiller no longer holds an Imcando hammer. He carries a gem bag in one hand and a gem in the other. He throws that gem, and a new random one, cut or uncut, appears in his hand. Every gem is its real OSRS model, from opal to zenyte.
+
 ## 0.18.0
 
 - Fixed: champions' shirts, trousers and hair no longer show through their armour, helmets and capes. Worn items hide the body parts they cover again.

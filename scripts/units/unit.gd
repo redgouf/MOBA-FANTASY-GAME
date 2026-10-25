@@ -53,6 +53,8 @@ var osrs: OsrsActor
 ## How basic attacks look: {"kind": "swipe", "arc": "slash"} or
 ## {"kind": "projectile", "shape": "arrow"}..., optionally keyed by style.
 var attack_fx: Dictionary = {}
+## The gem a gem-thrower (the Skiller) holds and throws next: [Projectile.GEMS index, uncut].
+var next_gem: Array = Projectile.random_gem()
 var _last_flat_pos := Vector3.ZERO
 var custom_model: Node3D                         # built model replacing the whitebox shape
 var crowd_push := Vector3.ZERO                   # this frame's spacing push (Crowd.solve)
@@ -523,6 +525,8 @@ func attach_osrs(actor: OsrsActor) -> void:
 	if actor == null:
 		return
 	osrs = actor
+	if actor.has_gem_hand():
+		actor.hold_gem(int(next_gem[0]), bool(next_gem[1]))
 	add_child(actor)
 	if _model != null:
 		_model.visible = false
@@ -654,7 +658,16 @@ func perform_attack(t: Unit) -> void:
 		# The hit lands projectile_hit_ticks() ticks after the swing, and the
 		# projectile is timed to arrive on that tick.
 		var ticks := projectile_hit_ticks(t)
-		var p := Projectile.launch(self, t, _projectile_fx(), Callable())
+		var pfx := _projectile_fx()
+		if str(pfx.get("shape", "")) == "gem":
+			# Throw the gem in hand, then take out the next one.
+			pfx = pfx.duplicate()
+			pfx["gem_index"] = int(next_gem[0])
+			pfx["uncut"] = bool(next_gem[1])
+			next_gem = Projectile.random_gem()
+			if osrs != null:
+				osrs.hold_gem(int(next_gem[0]), bool(next_gem[1]))
+		var p := Projectile.launch(self, t, pfx, Callable())
 		if p != null:
 			p.arrive_in(GameTick.seconds_until_tick(ticks))
 		GameTick.schedule(ticks, on_hit)

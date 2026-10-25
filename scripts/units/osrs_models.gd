@@ -61,6 +61,40 @@ static func item(id: int) -> Dictionary:
 	return manifest().get("items", {}).get(str(id), {})
 
 
+## An item's inventory / ground model (items/<id>.glb), as a fresh node with
+## the pack's materials, scaled so its longest side is `size` metres; null
+## without the pack or the model.
+static func item_model(id: int, size: float) -> Node3D:
+	var ps := scene("items/%d.glb" % id)
+	if ps == null:
+		return null
+	var root := ps.instantiate() as Node3D
+	apply_material(root)
+	var box := AABB()
+	var first := true
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var b := mi.get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	var longest := maxf(box.size.x, maxf(box.size.y, box.size.z))
+	var holder := Node3D.new()
+	holder.add_child(root)
+	root.position = -box.get_center()
+	holder.scale = Vector3.ONE * (size / maxf(longest, 0.001))
+	return holder
+
+
+## The Skiller's gem models: models.json "gems" has [cut, uncut] item ids by
+## gem name ("Red topaz" -> red_topaz).
+static func gem_item(gem_name: String, uncut: bool) -> int:
+	var gems: Dictionary = config().get("gems", {})
+	var key := gem_name.to_lower().replace(" ", "_")
+	var ids: Array = gems.get(key, [])
+	return int(ids[1 if uncut else 0]) if ids.size() == 2 else 0
+
+
 static func scene(path: String) -> PackedScene:
 	if not _scenes.has(path):
 		_scenes[path] = load(ROOT + path) if ResourceLoader.exists(ROOT + path) else null
@@ -150,6 +184,11 @@ static func srgb_colors(mesh: Mesh) -> void:
 		var idx := am.get_surface_count() - 1
 		am.surface_set_material(idx, sf[3])
 		am.surface_set_name(idx, sf[4])
+	# The imported shadow mesh is the old geometry (compressed, quantized
+	# differently). Forward+ draws it in the depth pre-pass, so the rebuilt
+	# opaque surfaces failed the depth test and vanished (the map, towers and
+	# rocks on Windows; Compatibility has no pre-pass). Use the mesh itself.
+	am.shadow_mesh = null
 
 
 ## A fresh weapon / gear mesh for item `id`, unparented (bind it to a skeleton).

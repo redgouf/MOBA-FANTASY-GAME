@@ -23,6 +23,8 @@ var _restore_after := false
 var _dead := false
 var _loco := ""
 var _clip_names: PackedStringArray = []
+var _gem_holder: Node3D       # the hand that holds the Skiller's next gem
+var _gem_size := 0.1
 
 
 ## A champion: the bare player body, its gear and its weapon.
@@ -52,7 +54,17 @@ static func player(cfg: Dictionary) -> OsrsActor:
 		if str(it.get("slot", "")) == "shield":
 			a._shield = mi
 	for prop in cfg.get("props", []):
-		a._attach_prop(str(prop.get("bone", "")), str(prop.get("prop", "")), prop.get("offset", [0, 0, 0]), prop.get("rotation", [0, 0, 0]))
+		var holder := a._attach_prop(str(prop.get("bone", "")), str(prop.get("prop", "")), prop.get("offset", [0, 0, 0]), prop.get("rotation", [0, 0, 0]))
+		if holder == null:
+			continue
+		if prop.has("item"):
+			# An inventory item held in the hand (the Skiller's gem bag).
+			var model := OsrsModels.item_model(int(prop["item"]), float(prop.get("size", 0.2)))
+			if model != null:
+				holder.add_child(model)
+		elif bool(prop.get("gem", false)):
+			a._gem_holder = holder
+			a._gem_size = float(prop.get("size", 0.1))
 	a._cast_clip = str(OsrsModels.config().get("default_cast_clip", "magic_cast_1162"))
 	a.set_base_weapon(int(cfg.get("weapon", 0)), str(cfg.get("attack", "slash")))
 	return a
@@ -91,11 +103,11 @@ func tint(color: Color) -> void:
 
 ## Tools held in a hand that the asset pack has no model for (the Skiller's
 ## chisel and Imcando hammer), built from shapes and pinned to a bone.
-func _attach_prop(bone: String, prop: String, offset: Array, rot: Array) -> void:
+func _attach_prop(bone: String, prop: String, offset: Array, rot: Array) -> Node3D:
 	if skeleton != null and skeleton.find_bone(bone) < 0:
 		bone = bone.get_slice("_", 0)     # packs from tools/osrs_extract name bones "L28", not "L28_hand_L"
 	if skeleton == null or skeleton.find_bone(bone) < 0:
-		return
+		return null
 	var att := BoneAttachment3D.new()
 	att.bone_name = bone
 	skeleton.add_child(att)
@@ -111,6 +123,22 @@ func _attach_prop(bone: String, prop: String, offset: Array, rot: Array) -> void
 		"chisel":
 			_prop_part(holder, _prop_cyl(0.018, 0.09), Color(0.42, 0.28, 0.15), Vector3(0, 0.0, 0))
 			_prop_part(holder, _prop_box(Vector3(0.016, 0.14, 0.03)), Color(0.72, 0.74, 0.78), Vector3(0, 0.11, 0))
+	return holder
+
+
+## Shows the gem the Skiller throws next in his hand (its real OSRS model).
+func hold_gem(index: int, uncut: bool) -> void:
+	if _gem_holder == null:
+		return
+	for c in _gem_holder.get_children():
+		c.queue_free()
+	var model := OsrsModels.item_model(OsrsModels.gem_item(str(Projectile.GEMS[index][0]), uncut), _gem_size)
+	if model != null:
+		_gem_holder.add_child(model)
+
+
+func has_gem_hand() -> bool:
+	return _gem_holder != null
 
 
 func _prop_part(parent: Node3D, mesh: Mesh, c: Color, pos: Vector3) -> void:

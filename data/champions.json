@@ -1050,36 +1050,36 @@
       "build": "Twisted bow + Masori",
       "equipment": {
         "head": {
-          "name": "Karil's coif",
-          "icon": "karils_coif"
+          "name": "Masori mask (f)",
+          "icon": "masori_mask_f"
         },
         "cape": {
-          "name": "Saradomin cape",
-          "icon": "saradomin_cape"
+          "name": "Ava's assembler",
+          "icon": "avas_assembler"
         },
         "neck": {
-          "name": "Amulet of fury",
-          "icon": "amulet_of_fury"
+          "name": "Necklace of anguish",
+          "icon": "necklace_of_anguish"
         },
         "weapon": {
-          "name": "Magic shortbow",
-          "icon": "magic_shortbow"
+          "name": "Twisted bow",
+          "icon": "twisted_bow"
         },
         "body": {
-          "name": "Karil's leathertop",
-          "icon": "karils_leathertop"
+          "name": "Masori body (f)",
+          "icon": "masori_body_f"
         },
         "legs": {
-          "name": "Karil's leatherskirt",
-          "icon": "karils_leatherskirt"
+          "name": "Masori chaps (f)",
+          "icon": "masori_chaps_f"
         },
         "hands": {
-          "name": "Barrows gloves",
-          "icon": "barrows_gloves"
+          "name": "Zaryte vambraces",
+          "icon": "zaryte_vambraces"
         },
         "feet": {
-          "name": "Rune boots",
-          "icon": "rune_boots"
+          "name": "Pegasian boots",
+          "icon": "pegasian_boots"
         }
       },
       "role": "Bot · marksman",
@@ -1293,20 +1293,20 @@
       "build": "Toxic blowpipe + venom",
       "equipment": {
         "head": {
-          "name": "Coif",
-          "icon": "coif"
+          "name": "Serpentine helm",
+          "icon": "serpentine_helm"
         },
         "cape": {
-          "name": "Zamorak cape",
-          "icon": "zamorak_cape"
+          "name": "Ava's accumulator",
+          "icon": "avas_accumulator"
         },
         "neck": {
           "name": "Amulet of glory",
           "icon": "amulet_of_glory"
         },
         "weapon": {
-          "name": "Magic shortbow",
-          "icon": "magic_shortbow"
+          "name": "Toxic blowpipe",
+          "icon": "toxic_blowpipe"
         },
         "body": {
           "name": "Black d'hide body",
@@ -2005,36 +2005,32 @@
       "build": "Justiciar + Elysian + Dinh's bulwark",
       "equipment": {
         "head": {
-          "name": "Torag's helm",
-          "icon": "torags_helm"
+          "name": "Justiciar faceguard",
+          "icon": "justiciar_faceguard"
         },
         "neck": {
           "name": "Amulet of fury",
           "icon": "amulet_of_fury"
         },
         "weapon": {
-          "name": "Rune scimitar",
-          "icon": "rune_scimitar"
+          "name": "Dinh's bulwark",
+          "icon": "dinhs_bulwark"
         },
         "body": {
-          "name": "Torag's platebody",
-          "icon": "torags_platebody"
-        },
-        "shield": {
-          "name": "Spirit shield",
-          "icon": "spirit_shield"
+          "name": "Justiciar chestguard",
+          "icon": "justiciar_chestguard"
         },
         "legs": {
-          "name": "Torag's platelegs",
-          "icon": "torags_platelegs"
+          "name": "Justiciar legguards",
+          "icon": "justiciar_legguards"
         },
         "hands": {
           "name": "Barrows gloves",
           "icon": "barrows_gloves"
         },
         "feet": {
-          "name": "Dragon boots",
-          "icon": "dragon_boots"
+          "name": "Guardian boots",
+          "icon": "guardian_boots"
         }
       },
       "role": "Support or Top · tank",
@@ -2282,36 +2278,36 @@
       "build": "Lunar spellbook",
       "equipment": {
         "head": {
-          "name": "Mystic hat",
-          "icon": "mystic_hat"
+          "name": "Lunar helm",
+          "icon": "lunar_helm"
         },
         "cape": {
-          "name": "Saradomin cape",
-          "icon": "saradomin_cape"
+          "name": "Lunar cape",
+          "icon": "lunar_cape"
+        },
+        "neck": {
+          "name": "Lunar amulet",
+          "icon": "lunar_amulet"
         },
         "weapon": {
-          "name": "Ancient staff",
-          "icon": "ancient_staff"
+          "name": "Lunar staff",
+          "icon": "lunar_staff"
         },
         "body": {
-          "name": "Mystic robe top",
-          "icon": "mystic_robe_top"
-        },
-        "shield": {
-          "name": "Mage's book",
-          "icon": "mages_book"
+          "name": "Lunar torso",
+          "icon": "lunar_torso"
         },
         "legs": {
-          "name": "Monk's robe",
-          "icon": "monks_robe"
+          "name": "Lunar legs",
+          "icon": "lunar_legs"
         },
         "hands": {
-          "name": "Barrows gloves",
-          "icon": "barrows_gloves"
+          "name": "Lunar gloves",
+          "icon": "lunar_gloves"
         },
         "feet": {
-          "name": "Mystic boots",
-          "icon": "mystic_boots"
+          "name": "Lunar boots",
+          "icon": "lunar_boots"
         }
       },
       "role": "Support · enchanter",
@@ -2512,7 +2508,7 @@
       "name": "Skiller",
       "tag": "SK",
       "title": "the Level-3",
-      "build": "Level-3 skiller: 1 combat, 99 skilling. Chisel and Imcando hammer in hand",
+      "build": "Level-3 skiller: 1 combat, 99 skilling. A gem bag in one hand, a gem to throw in the other",
       "equipment": {
         "head": {
           "name": "Lumberjack hat",
@@ -2521,10 +2517,6 @@
         "cape": {
           "name": "Woodcutting cape",
           "icon": "woodcutting_cape"
-        },
-        "weapon": {
-          "name": "Imcando hammer",
-          "icon": "imcando_hammer"
         },
         "body": {
           "name": "Lumberjack top",
@@ -2538,9 +2530,13 @@
           "name": "Lumberjack boots",
           "icon": "lumberjack_boots"
         },
+        "weapon": {
+          "name": "Uncut gems",
+          "icon": "uncut_gems"
+        },
         "shield": {
-          "name": "Chisel",
-          "icon": "chisel"
+          "name": "Gem bag",
+          "icon": "gem_bag"
         }
       },
       "role": "Mid or Support · zone control",
