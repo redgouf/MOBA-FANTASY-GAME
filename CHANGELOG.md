@@ -2,6 +2,13 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.17.0
+
+- New tool, `tools/osrs_extract`: builds the private OSRS model pack straight from the game cache, the same data RuneMonk and osrs.world show. It exports every champion's gear on one shared skeleton with their animations, any NPC with its own animations, map objects, spell and spec graphics, all textures and sprites, and whole OSRS map squares (terrain, floor textures, walls, scenery and roofs, with heights and object lists). See `tools/osrs_extract/README.md`.
+- With a pack built by the tool: the Skiller wears his lumberjack outfit and woodcutting cape and swings a real Imcando hammer, every jungle camp shows its OSRS monster (abyssal demon, fire and moss giants, wolves, rooster and chicken, ogres, rock crab, baby moles), and the chromatic dragon is a real green, blue, red or black dragon instead of a tinted King Black Dragon.
+- Textured and see-through parts of OSRS models (capes, ghosts, map floors) keep their textures and transparency.
+- The OSRS models are private and never part of the public build.
+
 ## 0.16.0
 
 - Champion names over the health bars are coloured by level against yours, like OSRS's right-click menu: green when lower, yellow when even, then orange and red the higher they are. The health bar colour now tells the teams apart: green for you, blue for allies, red for enemies and yellow for neutral monsters.

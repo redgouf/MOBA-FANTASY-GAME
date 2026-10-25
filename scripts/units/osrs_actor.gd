@@ -92,6 +92,8 @@ func tint(color: Color) -> void:
 ## Tools held in a hand that the asset pack has no model for (the Skiller's
 ## chisel and Imcando hammer), built from shapes and pinned to a bone.
 func _attach_prop(bone: String, prop: String, offset: Array, rot: Array) -> void:
+	if skeleton != null and skeleton.find_bone(bone) < 0:
+		bone = bone.get_slice("_", 0)     # packs from tools/osrs_extract name bones "L28", not "L28_hand_L"
 	if skeleton == null or skeleton.find_bone(bone) < 0:
 		return
 	var att := BoneAttachment3D.new()

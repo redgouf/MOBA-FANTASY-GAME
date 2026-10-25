@@ -114,6 +114,10 @@ godot --headless --path . --fixed-fps 60 -- --smoke-test --smoke-seconds=240
 
 CI runs both on every push (`.github/workflows/ci.yml`).
 
+## OSRS models (private)
+
+With the private model pack installed in `private_assets/osrs`, champions, monsters and effects use real OSRS models. Build the pack from the game cache with `tools/osrs_extract` (see [its README](tools/osrs_extract/README.md) and [docs/OSRS_MODELS.md](docs/OSRS_MODELS.md)); it can also export OSRS map squares for building the map. The pack is Jagex's material: never commit or publish it.
+
 ## Building the Windows .exe
 
 With Godot 4.7.2 and its export templates installed (Editor > Manage Export Templates):

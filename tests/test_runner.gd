@@ -1283,15 +1283,48 @@ func test_osrs_models() -> void:
 	dk.osrs.moving = true
 	dk.osrs._update_locomotion(true)
 	var cur := dk.osrs.anim.current_animation
-	check(cur.ends_with("dharok_axe_run_11466") and dk.osrs.anim.get_animation(cur).loop_mode != Animation.LOOP_NONE, "Dharok's greataxe run loops (got %s)" % cur)
+	check(cur.ends_with("_11466") and dk.osrs.anim.get_animation(cur).loop_mode != Animation.LOOP_NONE, "Dharok's greataxe run loops (got %s)" % cur)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	check(not dk.osrs.moving, "a unit standing still goes back to idle")
 	dk.queue_free()
+	await test_osrs_extract_pack()
 	OsrsModels.enabled = false
 	var plain := _make("dharok", Combat.Team.SARADOMIN, Vector3(70, 0, 60))
 	check(plain.osrs == null and plain._model.visible, "without the pack champions keep the whitebox shape")
 	for n in [z, dummy, j, h, jad, plain]:
+		n.queue_free()
+	await get_tree().process_frame
+
+
+## Extras that only packs built by tools/osrs_extract have (skipped otherwise).
+func test_osrs_extract_pack() -> void:
+	if str(OsrsModels.manifest().get("source", "")) != "osrs_extract":
+		print("SKIP: the installed OSRS pack wasn't built by tools/osrs_extract")
+		return
+	check(OsrsModels.clip_by_id("whip_attack_1658") != "", "a clip is found by the animation id its name ends with")
+	check(OsrsModels.clip_by_id("no_digits") == "", "and a name without an id finds nothing")
+	var sk := _make("skiller", Combat.Team.SARADOMIN, Vector3(76, 0, 60))
+	await get_tree().physics_frame
+	check(sk.osrs != null and sk.osrs.weapon_id == 25644, "the Skiller holds a real Imcando hammer")
+	check(sk.osrs.skeleton.find_children("*", "BoneAttachment3D", true, false).size() == 1, "and still a chisel prop in the other hand")
+	var crab := Monster.new()
+	crab.init_monster("rock_crab", GameData.unit_def("monsters", "rock_crab"), Vector3(80, 0, 70), "test", 1)
+	add_child(crab)
+	check(crab.osrs != null, "camps use their own OSRS models (rock crab)")
+	var base_drake: Dictionary = GameData.unit_def("monsters", "chromatic_dragon")
+	var red := Monster.new()
+	red.init_monster("chromatic_dragon", Monster.apply_variant(base_drake, base_drake["variants"]["colors"][2]), Vector3(84, 0, 70), "test", 6)
+	add_child(red)
+	check(red.osrs != null and red.osrs.get_child(0).scene_file_path.ends_with("red_dragon.glb"), "a red dragon variant uses the real red dragon model")
+	if OsrsMap.has_region(50, 50):
+		var lumb := OsrsMap.region(50, 50, Vector2i(3200, 3200), 0, false)
+		check(lumb != null and lumb.position == Vector3.ZERO, "a map square loads at its origin tile")
+		var d := OsrsMap.data(50, 50)
+		check(d.get("objects", []).size() > 1000 and d.get("heights", []).size() == 4, "and its heights and objects load")
+		check(is_finite(OsrsMap.height_at(d, 0, 10.5, 10.5)), "ground height can be sampled")
+		lumb.free()
+	for n in [sk, crab, red]:
 		n.queue_free()
 	await get_tree().process_frame
 

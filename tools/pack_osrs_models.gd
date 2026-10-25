@@ -2,7 +2,7 @@ extends SceneTree
 ## Builds osrs_models.pck: only the private OSRS model files (and their
 ## imported forms), for the personal setup (ModelPack loads it next to the
 ## exe). Run after an import, from the project folder:
-##   godot --headless --path . -s res://tools/pack_osrs_models.gd -- OUT.pck
+##   godot --headless --path . -s res://tools/pack_osrs_models.gd -- OUT.pck [--all]
 ## Files the personal export preset leaves out (unused models) stay out.
 ## Never publish the result.
 
@@ -58,9 +58,40 @@ func _walk(dir: String) -> Array[String]:
 	return out
 
 
-## The personal export preset's exclude_filter (unused models).
+## The personal export preset's exclude_filter (unused models), plus, for
+## packs built by tools/osrs_extract, everything the game doesn't load yet:
+## map squares, objects, spell graphics, inventory models, loose textures and
+## sprites, and the worn items and NPCs data/models.json doesn't name.
+## Pass --all after the output path to keep everything.
 func _excluded_patterns() -> Array[String]:
 	var out: Array[String] = []
+	if not OS.get_cmdline_user_args().has("--all") and str(OsrsModels.manifest().get("source", "")) == "osrs_extract":
+		for d in ["maps", "objects", "spotanims", "items", "textures", "sprites"]:
+			out.append("private_assets/osrs/%s/*" % d)
+		var used_items := {}
+		var cfg_m := OsrsModels.config()
+		for c in cfg_m.get("champions", {}).values():
+			for id in c.get("gear", []):
+				used_items[str(int(id))] = true
+			used_items[str(int(c.get("weapon", 0)))] = true
+			for f in c.get("forms", {}).values():
+				used_items[str(int(f.get("weapon", 0)))] = true
+		for s in cfg_m.get("spec_weapons", {}).values():
+			used_items[str(int(s.get("weapon", 0)))] = true
+		for id in OsrsModels.manifest().get("items", {}):
+			if not used_items.has(str(id)):
+				out.append("private_assets/osrs/player/items/%s.glb" % id)
+		var used_bosses := {}
+		for m in cfg_m.get("monsters", {}).values():
+			used_bosses[str(m.get("model", ""))] = true
+			used_bosses[str(m.get("fallback", ""))] = true
+			for v in m.get("variants", {}).values():
+				used_bosses[str(v)] = true
+		for b in OsrsModels.manifest().get("bosses", {}):
+			if not used_bosses.has(str(b)):
+				out.append("private_assets/osrs/bosses/%s.glb" % b)
+		out.append("private_assets/osrs/player/player_animations.glb")
+		return out
 	var cfg := ConfigFile.new()
 	if cfg.load("res://export_presets.cfg") != OK:
 		return out

@@ -24,3 +24,7 @@ Thumbs.db
 # Private OSRS models (SkullSlayer pack): Jagex assets for personal prototype use only.
 # Never commit or publish them. See docs/OSRS_MODELS.md.
 # private_assets/
+
+# osrs_extract: the downloaded game cache and Python caches (Jagex data, never commit)
+tools/osrs_extract/cache/
+__pycache__/

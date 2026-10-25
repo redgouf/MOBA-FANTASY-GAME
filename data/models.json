@@ -1,5 +1,5 @@
 {
-  "_comment": "How each unit looks when the private OSRS model pack is installed (private_assets/osrs, never committed). Numbers are OSRS item ids from the pack's manifest; clip names are the pack's animation names. Without the pack the game uses its whitebox shapes and ignores this file.",
+  "_comment": "How each unit looks when the private OSRS model pack is installed (private_assets/osrs, never committed). Numbers are OSRS item ids from the pack's manifest; clip names are the pack's animation names (packs built by tools/osrs_extract find a clip by the animation id its name ends with). A monster's model can depend on its variant; without the model a unit keeps its whitebox shape (\"fallback\" names a model to use instead). Without the pack the game uses its whitebox shapes and ignores this file.",
   "player_scale": 1.4,
   "default_cast_clip": "magic_cast_1162",
   "eat_clip": "a829",
@@ -51,9 +51,8 @@
       "abilities": {"q": {"clip": "magic_cast_1167"}, "w": {"clip": "magic_cast_1167"}, "e": {"clip": "magic_cast_711"}, "r": {"clip": "magic_cast_1979"}}
     },
     "skiller": {
-      "gear": [], "weapon": 0, "attack": "stab",
-      "props": [{"bone": "L50_weapon", "prop": "imcando_hammer", "offset": [0, -0.05, 0], "rotation": [60, 0, 0]},
-                {"bone": "L28_hand_L", "prop": "chisel", "offset": [0, -0.03, 0.02], "rotation": [70, 0, 0]}],
+      "gear": [10941, 9807, 10939, 10940, 10933], "weapon": 25644, "attack": "crush",
+      "props": [{"bone": "L28_hand_L", "prop": "chisel", "offset": [0, -0.03, 0.02], "rotation": [70, 0, 0]}],
       "abilities": {"q": {"clip": "a2846"}, "w": {"clip": "a733"}, "e": {"clip": "a618"}, "r": {"clip": "a898"}},
       "passive_clip": "a862"
     }
@@ -77,7 +76,17 @@
   "monsters": {
     "tztok_jad": {"model": "jad"},
     "giant_mole": {"model": "giant_mole"},
-    "baby_mole": {"model": "giant_mole"},
-    "chromatic_dragon": {"model": "kbd"}
+    "baby_mole": {"model": "baby_mole", "fallback": "giant_mole"},
+    "chromatic_dragon": {"model": "kbd", "variants": {"green": "green_dragon", "blue": "blue_dragon", "red": "red_dragon", "black": "black_dragon", "kbd": "kbd"}},
+    "abyssal_demon": {"model": "abyssal_demon"},
+    "fire_giant": {"model": "fire_giant"},
+    "moss_giant": {"model": "moss_giant"},
+    "big_wolf": {"model": "big_wolf"},
+    "white_wolf": {"model": "white_wolf"},
+    "rooster": {"model": "rooster"},
+    "chicken": {"model": "chicken"},
+    "ogre_chieftain": {"model": "ogre_chieftain"},
+    "ogre": {"model": "ogre"},
+    "rock_crab": {"model": "rock_crab"}
   }
 }

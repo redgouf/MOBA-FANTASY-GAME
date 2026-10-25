@@ -87,8 +87,41 @@ static func apply_material(root: Node) -> void:
 	for n in root.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
 		srgb_colors(mi.mesh)
-		mi.material_override = material()
+		_set_materials(mi)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+
+static var _textured: Dictionary = {}
+
+
+## The shared vertex-colour material for every plain surface. Surfaces with
+## a texture (capes, robes, map floors) or see-through faces keep them, on a
+## copy of the shared material, cached per source material.
+static func _set_materials(mi: MeshInstance3D) -> void:
+	var plain := true
+	for i in mi.mesh.get_surface_count():
+		var src := mi.mesh.surface_get_material(i) as BaseMaterial3D
+		if src != null and (src.albedo_texture != null or src.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED):
+			plain = false
+	if plain:
+		mi.material_override = material()
+		return
+	mi.material_override = null
+	for i in mi.mesh.get_surface_count():
+		var src := mi.mesh.surface_get_material(i) as BaseMaterial3D
+		if src == null or (src.albedo_texture == null and src.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED):
+			mi.set_surface_override_material(i, material())
+			continue
+		var key := src.get_instance_id()
+		if not _textured.has(key):
+			var m := material().duplicate() as StandardMaterial3D
+			m.albedo_texture = src.albedo_texture
+			m.transparency = src.transparency
+			m.alpha_scissor_threshold = src.alpha_scissor_threshold
+			m.cull_mode = src.cull_mode
+			m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+			_textured[key] = m
+		mi.set_surface_override_material(i, _textured[key])
 
 
 static var _srgb_done: Dictionary = {}
@@ -137,7 +170,7 @@ static func gear_mesh(id: int) -> MeshInstance3D:
 	mi.owner = null
 	root.free()
 	srgb_colors(mi.mesh)
-	mi.material_override = material()
+	_set_materials(mi)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	return mi
 
@@ -164,13 +197,30 @@ static func build_clip_library(names: Array[String]) -> AnimationLibrary:
 	var ap := root.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
 	var info: Dictionary = manifest().get("clips", {})
 	for n in names:
-		if not ap.has_animation(n) or lib.has_animation(n):
+		var src := n if ap.has_animation(n) else clip_by_id(n)
+		if src == "" or not ap.has_animation(src) or lib.has_animation(n):
 			continue
-		var a := ap.get_animation(n).duplicate(true) as Animation
-		a.loop_mode = Animation.LOOP_LINEAR if bool(info.get(n, {}).get("loop", false)) else Animation.LOOP_NONE
+		var a := ap.get_animation(src).duplicate(true) as Animation
+		var loop := bool(info.get(src, info.get(n, {})).get("loop", false))
+		a.loop_mode = Animation.LOOP_LINEAR if loop else Animation.LOOP_NONE
 		lib.add_animation(n, a)
 	root.free()
 	return lib
+
+
+static var _id_re: RegEx
+
+
+## The clip for the animation id a name ends with ("whip_attack_1658" ->
+## 1658), for packs built by tools/osrs_extract, which name clips by the
+## game's own animation names. "" when the pack has no such clip.
+static func clip_by_id(clip_name: String) -> String:
+	if _id_re == null:
+		_id_re = RegEx.create_from_string("(\\d+)$")
+	var m := _id_re.search(clip_name)
+	if m == null:
+		return ""
+	return str(manifest().get("clip_ids", {}).get(m.get_string(1), ""))
 
 
 ## Every clip named by data/models.json and the weapons it uses.

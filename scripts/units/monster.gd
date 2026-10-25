@@ -43,10 +43,17 @@ func init_monster(id: String, def: Dictionary, p_home: Vector3, p_camp: String, 
 	if def.has("color"):
 		color = Color(str(def["color"]))
 	setup_visuals(color, 1.2 + radius * 1.2, display_name)
-	var model := str(OsrsModels.monster_config(id).get("model", "")) if OsrsModels.available() else ""
+	var cfg := OsrsModels.monster_config(id) if OsrsModels.available() else {}
+	var model := str(cfg.get("model", ""))
+	var own_model := str(cfg.get("variants", {}).get(variant_id, ""))
+	var variant_model := own_model != "" and OsrsModels.scene("bosses/%s.glb" % own_model) != null
+	if variant_model:
+		model = own_model     # the variant has a model of its own (the real red dragon, not a tinted one)
+	elif model != "" and OsrsModels.scene("bosses/%s.glb" % model) == null:
+		model = str(cfg.get("fallback", ""))
 	if model != "":
 		var actor := OsrsActor.creature(model, radius * 2.4)
-		if actor != null and bool(def.get("tint", false)) and def.has("color"):
+		if actor != null and not variant_model and bool(def.get("tint", false)) and def.has("color"):
 			actor.tint(Color(str(def["color"])))
 		attach_osrs(actor)
 
