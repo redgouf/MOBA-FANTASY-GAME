@@ -43,6 +43,25 @@ func init_minion(id: String, def: Dictionary, p_team: int, p_lane: String, p_pat
 			setup_visuals(color.lightened(0.35), 2.2, "")
 		_:
 			setup_visuals(color, 1.2, "")
+	_setup_osrs_model(id)
+
+
+## The minion's OSRS NPC from the private pack (models.json "minions"),
+## per team where it lists one ("by_team": White and Black Knights).
+func _setup_osrs_model(id: String) -> void:
+	if not OsrsModels.available():
+		return
+	var cfg: Dictionary = OsrsModels.config().get("minions", {}).get(id, {})
+	var model := str(cfg.get("model", ""))
+	var by_team: Array = cfg.get("by_team", [])
+	if team < by_team.size() and OsrsModels.scene("bosses/%s.glb" % str(by_team[team])) != null:
+		model = str(by_team[team])
+	if model == "" or OsrsModels.scene("bosses/%s.glb" % model) == null:
+		return
+	var actor := OsrsActor.creature(model, radius * 2.4)
+	if actor != null:
+		actor.scale *= float(cfg.get("scale", 1.0))
+	attach_osrs(actor)
 
 
 ## Stat value after n upgrades from [base, per_upgrade, cap, late_per_upgrade?, late_from?].

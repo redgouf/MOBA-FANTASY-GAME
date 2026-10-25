@@ -59,7 +59,16 @@ func _exit_tree() -> void:
 
 
 func _build_visual() -> void:
-	# A stone altar with a white cloth, two candles and a glowing prayer star.
+	var osrs := OsrsProps.prop("prayer_altar", 0.0, 2.3)
+	if osrs != null:
+		add_child(osrs)       # the OSRS altar (private pack), with the same star and ring
+	else:
+		_build_whitebox_altar()
+	_build_glow()
+
+
+## A stone altar with a white cloth and two candles.
+func _build_whitebox_altar() -> void:
 	_mesh(_box(Vector3(1.9, 0.9, 1.1)), STONE, Vector3(0, 0.45, 0))
 	_mesh(_box(Vector3(2.05, 0.08, 1.25)), STONE.lightened(0.15), Vector3(0, 0.94, 0))
 	_mesh(_box(Vector3(1.4, 0.03, 1.27)), CLOTH, Vector3(0, 0.99, 0))
@@ -75,6 +84,10 @@ func _build_visual() -> void:
 		flame.radius = 0.06
 		flame.height = 0.16
 		_mesh(flame, Color(1.0, 0.75, 0.3), Vector3(x, 1.38, -0.25), true)
+
+
+## The glowing prayer star above the altar, the reach ring and the label.
+func _build_glow() -> void:
 	var star := PrismMesh.new()
 	star.size = Vector3(0.45, 0.45, 0.06)
 	_glow = _mesh(star, Color(0.75, 0.9, 1.0), Vector3(0, 1.75, 0), true)

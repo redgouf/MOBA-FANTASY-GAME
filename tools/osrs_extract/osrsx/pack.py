@@ -59,6 +59,9 @@ class Pack:
                 if old.get("source") == "osrs_extract":
                     for k in ("items", "clips", "clip_ids", "bosses", "npcs", "objects", "spotanims"):
                         self.manifest[k].update(old.get(k, {}))
+                    for k in ("maps", "rift"):      # steps not re-run keep their entries
+                        if k in old:
+                            self.manifest[k] = old[k]
             except ValueError:
                 pass
         self._player_skel = None

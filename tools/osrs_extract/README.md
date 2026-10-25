@@ -21,7 +21,7 @@ Useful options:
 
 | Option | What it does |
 | --- | --- |
-| `--only player,npcs` | Run some steps: `player`, `npcs`, `objects`, `spotanims`, `items`, `textures`, `maps`, and `sprites` (only when named) |
+| `--only player,npcs` | Run some steps: `player`, `npcs`, `objects`, `spotanims`, `items`, `textures`, `maps`, `rift`, and `sprites` (only when named) |
 | `--npc slug=id` | One more NPC, saved as `bosses/<slug>.glb` |
 | `--object id`, `--item id` | One more map object, or worn item |
 | `--region 50_50` or `--region 12850` | One more map square (64x64 tiles; region id = x*256 + y) |
@@ -43,6 +43,7 @@ Useful options:
 | `textures/<id>.png` | All 215 ground and model textures |
 | `sprites/<id>.png` | Every UI sprite (with `--only sprites`) |
 | `maps/<x>_<y>.glb` + `.json` | A map square: terrain with blended ground colours, tile shapes and floor textures, walls, decorations, scenery and roofs, one `level_N` node per floor (`terrain_N`, `objects_N`, `roofs_N`). The JSON has corner heights in metres, tile flags and every object placed (id, tile, level, shape, rotation, name) |
+| `rift/rift.glb` | The game's own map (the Wilderness Rift) dressed with OSRS ground, floors and scenery, built from `rift_layout.json`. Units are tiles; the manifest's `rift` entry gives the tile size in metres and where to place it. Re-export the layout with `godot --headless --path . -s res://tools/export_rift_layout.gd` after changing `MapLayout` |
 
 Units: 1 tile = 1 metre, y up; on maps east = +X and north = -Z, the square's south-west corner at the origin. `OsrsMap` (scripts/map/osrs_map.gd) places squares relative to any world tile.
 

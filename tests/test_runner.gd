@@ -1324,7 +1324,57 @@ func test_osrs_extract_pack() -> void:
 		check(d.get("objects", []).size() > 1000 and d.get("heights", []).size() == 4, "and its heights and objects load")
 		check(is_finite(OsrsMap.height_at(d, 0, 10.5, 10.5)), "ground height can be sampled")
 		lumb.free()
-	for n in [sk, crab, red]:
+	# Worn armour hides the body parts it covers (models.json lists parts as
+	# JSON numbers, which used to miss the body_N nodes: shirt through plate).
+	var dh := OsrsActor.player(OsrsModels.champion_config("dharok"))
+	var torso := dh.skeleton.get_node_or_null("body_2") as Node3D
+	var legs := dh.skeleton.get_node_or_null("body_5") as Node3D
+	check(torso != null and not torso.visible and legs != null and not legs.visible, "Dharok's armour hides the base shirt and legs")
+	dh.free()
+	# The game's own buildings and props.
+	var zt := OsrsProps.structure("tower_outer", Combat.Team.ZAMORAK)
+	check(zt != null and zt.get_child_count() == 1, "towers are OSRS objects")
+	var tinted := false
+	if zt != null:
+		for mi in zt.find_children("*", "MeshInstance3D", true, false):
+			var mat := (mi as MeshInstance3D).get_active_material(0) as BaseMaterial3D
+			tinted = tinted or (mat != null and mat.albedo_color.r < 0.6)
+		zt.free()
+	check(tinted, "and Zamorak's tower takes its darker tint")
+	for key in ["cannon", "prayer_altar", "yew"]:
+		var p := OsrsProps.prop(key)
+		check(p != null, "the %s prop loads" % key)
+		if p != null:
+			p.free()
+	check(OsrsProps.prop("no_such_prop") == null, "an unknown prop is null (whitebox stays)")
+	var tw := Structure.new()
+	tw.init_structure("tower", GameData.unit_def("structures", "tower_outer"), Combat.Team.SARADOMIN, "Test tower", "tower_outer")
+	add_child(tw)
+	tw.global_position = Vector3(88, 0, 88)
+	check(tw.custom_model != null, "a tower wears its OSRS look")
+	var gob := Minion.new()
+	gob.init_minion("goblin", GameData.unit_def("minions", "goblin"), Combat.Team.SARADOMIN, "mid", MapLayout.lane_path("mid", 0), 1)
+	add_child(gob)
+	check(gob.osrs != null, "melee minions are OSRS goblins")
+	var kn := Minion.new()
+	kn.init_minion("knight", GameData.unit_def("minions", "knight"), Combat.Team.ZAMORAK, "mid", MapLayout.lane_path("mid", 1), 1)
+	add_child(kn)
+	check(kn.osrs != null and kn.osrs.get_child(0).scene_file_path.ends_with("black_knight.glb"), "Zamorak's super minions are black knights")
+	if OsrsModels.manifest().has("rift"):
+		var mb := MapBuilder.new()
+		mb.nav_region = NavigationRegion3D.new()
+		mb.add_child(mb.nav_region)
+		add_child(mb)
+		mb._build_ground()
+		mb._build_markings()
+		mb._build_osrs_dressing()
+		check(mb.osrs_dressed and mb.get_node_or_null("OsrsRift") != null, "the Rift is dressed with OSRS ground and scenery")
+		var hidden := true
+		for v in mb._whitebox_visuals:
+			hidden = hidden and not v.visible
+		check(hidden, "and the whitebox ground, lanes and labels are hidden")
+		mb.queue_free()
+	for n in [sk, crab, red, tw, gob, kn]:
 		n.queue_free()
 	await get_tree().process_frame
 

@@ -2,6 +2,17 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.18.0
+
+- Fixed: champions' shirts, trousers and hair no longer show through their armour, helmets and capes. Worn items hide the body parts they cover again.
+- With the private OSRS pack, the whole match now uses OSRS models instead of whitebox shapes:
+  - The map is real OSRS ground: Wilderness earth and ground clutter, dirt lanes, the Wilderness Ditch as water, a cobbled Saradomin base, an obsidian and lava Zamorak base, lava-ringed epic pits, statues of Saradomin and Zamorak, and boulders, lava rocks and dead trees on every jungle wall and around the edge. The colliders and paths are unchanged.
+  - Towers, inhibitors, the nexus towers, altars and the team standards are OSRS buildings (castle towers and dark obelisks, Soul Wars obelisks, Saradomin and chaos altars, Castle Wars standards).
+  - Minions are goblins, dark wizards, and white or black knights.
+  - The Slayer's cannon and the siege carts carry a real dwarf multicannon, prayer altars are real altars, and the Skiller plants real yews.
+- Without the pack everything stays the way it was.
+- The OSRS models are private and never part of the public build.
+
 ## 0.17.0
 
 - New tool, `tools/osrs_extract`: builds the private OSRS model pack straight from the game cache, the same data RuneMonk and osrs.world show. It exports every champion's gear on one shared skeleton with their animations, any NPC with its own animations, map objects, spell and spec graphics, all textures and sprites, and whole OSRS map squares (terrain, floor textures, walls, scenery and roofs, with heights and object lists). See `tools/osrs_extract/README.md`.

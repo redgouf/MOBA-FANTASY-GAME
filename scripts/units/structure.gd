@@ -72,6 +72,10 @@ func init_structure(p_kind: String, def: Dictionary, p_team: int, label: String,
 			setup_visuals(color, 1.2, label, "box")
 			if str(def.get("model", "")) == "cannon":
 				attach_custom_model(CannonModel.build(Unit.team_color(team)))
+	if kind != "summon":
+		var look := OsrsProps.structure(def_id if def_id != "" else kind, team)
+		if look != null:
+			attach_custom_model(look)
 
 
 func _ready() -> void:

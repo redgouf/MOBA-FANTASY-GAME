@@ -13,7 +13,7 @@ extends Node3D
 ##   --smoke-seconds=N   game seconds to simulate in smoke-test mode (default 150)
 ##   --screenshot=PATH   save a PNG of the game at --screenshot-at=SECONDS, then quit
 ##   --no-osrs           ignore the private OSRS model pack (whitebox shapes)
-##   --shot-ui=NAME      before the screenshot: target | menu | settings | controls | shop | kit | skills | aim-chop | aim-plant | scoreboard | tooltip | teleport (--shot-tele-at=S)
+##   --shot-ui=NAME      before the screenshot: target | menu | settings | controls | shop | kit | skills | aim-chop | aim-plant | scoreboard | tooltip | teleport (--shot-tele-at=S) | look (--shot-pos=X,Z)
 ##   --demo-level=N      raise the viewed champion to level N with items (for screenshots)
 
 const ASSIST_WINDOW_SEC := 10.0
@@ -831,6 +831,18 @@ func _take_screenshot() -> void:
 					for k in 3:
 						AbilityRunner.execute(focused, focused.get_ability(slot), null, focused.global_position, 1)
 			await get_tree().create_timer(1.5).timeout
+		"look":
+			# The camera over any spot of the map (--shot-pos=x,z), no fog: map checks.
+			var v := str(_args.get("shot-pos", "0,0")).split(",")
+			var at := Vector3(float(v[0]), 0.0, float(v[1]))
+			if fog != null:
+				fog.set_enabled(false)
+			camera_rig.locked = false
+			camera_rig.follow = null
+			camera_rig.zoom = float(_args.get("shot-zoom", 30))
+			camera_rig._apply_zoom()
+			camera_rig.center_on(at)
+			await get_tree().create_timer(0.4).timeout
 		"lineup":
 			# Every champion in a row in mid lane, close up (model checks).
 			var origin := Vector3(-30.0, 0.0, 30.0)

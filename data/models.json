@@ -1,5 +1,5 @@
 {
-  "_comment": "How each unit looks when the private OSRS model pack is installed (private_assets/osrs, never committed). Numbers are OSRS item ids from the pack's manifest; clip names are the pack's animation names (packs built by tools/osrs_extract find a clip by the animation id its name ends with). A monster's model can depend on its variant; without the model a unit keeps its whitebox shape (\"fallback\" names a model to use instead). Without the pack the game uses its whitebox shapes and ignores this file.",
+  "_comment": "How each unit looks when the private OSRS model pack is installed (private_assets/osrs, never committed). Numbers are OSRS item ids from the pack's manifest; clip names are the pack's animation names (packs built by tools/osrs_extract find a clip by the animation id its name ends with). Minions, structures (towers, altars, standards) and props (cannon, prayer altars, yews) use NPC models and OSRS map objects from the pack. A monster's model can depend on its variant; without the model a unit keeps its whitebox shape (\"fallback\" names a model to use instead). Without the pack the game uses its whitebox shapes and ignores this file.",
   "player_scale": 1.4,
   "default_cast_clip": "magic_cast_1162",
   "eat_clip": "a829",
@@ -88,5 +88,19 @@
     "ogre_chieftain": {"model": "ogre_chieftain"},
     "ogre": {"model": "ogre"},
     "rock_crab": {"model": "rock_crab"}
-  }
+  },
+  "minions": {
+    "goblin": {"model": "goblin"},
+    "dark_wizard": {"model": "dark_wizard"},
+    "knight": {"model": "knight", "by_team": ["knight", "black_knight"]}
+  },
+  "structures": {
+    "tower_outer": {"saradomin": [{"object": 1939, "height": 6.4}], "zamorak": [{"object": 31554, "height": 6.4, "tint": [0.45, 0.27, 0.25]}]},
+    "tower_inner": {"saradomin": [{"object": 1939, "height": 6.4}], "zamorak": [{"object": 31554, "height": 6.4, "tint": [0.45, 0.27, 0.25]}]},
+    "tower_inhibitor": {"saradomin": [{"object": 40450, "height": 6.0}], "zamorak": [{"object": 40451, "height": 6.0}]},
+    "tower_nexus": {"saradomin": [{"object": 1939, "height": 7.2}], "zamorak": [{"object": 31554, "height": 7.2, "tint": [0.45, 0.27, 0.25]}]},
+    "altar": {"saradomin": [{"object": 26364, "width": 3.8}], "zamorak": [{"object": 26258, "width": 3.6}]},
+    "flag": {"saradomin": [{"object": 4387, "width": 4.8}, {"object": 4902, "height": 7.5}], "zamorak": [{"object": 4388, "width": 4.8}, {"object": 4903, "height": 7.5}]}
+  },
+  "props": {"cannon": 6, "prayer_altar": 409, "yew": 10822}
 }

@@ -28,6 +28,7 @@ static func build(accent: Color, on_cart: bool = false, size: float = 1.0) -> Ca
 
 func _build(accent: Color, on_cart: bool) -> void:
 	var base_y := 0.0
+	var osrs := OsrsProps.prop("cannon", 0.0, 1.5)
 	if on_cart:
 		# Cart bed and two big wheels; the tow bar trails behind (-Z is the
 		# way the barrel points, +Z the way the unit faces: see _process).
@@ -40,7 +41,7 @@ func _build(accent: Color, on_cart: bool) -> void:
 			var hub := _part(_cyl(0.1, 0.1, 0.16, 8), IRON_LIGHT, Vector3(x, 0.42, 0.0))
 			hub.rotation_degrees = Vector3(0, 0, 90)
 		base_y = 0.57
-	else:
+	elif osrs == null:
 		# Four splayed iron legs.
 		for k in 4:
 			var ang := PI * 0.25 + PI * 0.5 * k
@@ -50,6 +51,18 @@ func _build(accent: Color, on_cart: bool) -> void:
 			leg.basis = Basis(Quaternion(Vector3.UP, (top - foot).normalized()))
 			_part(_box(Vector3(0.16, 0.05, 0.16)), IRON_LIGHT, foot)
 		base_y = 0.48
+	if osrs != null:
+		# The real dwarf multicannon from the private pack, on its own legs
+		# (or the cart): the whole model turns to aim.
+		head = Node3D.new()
+		head.position.y = base_y - 0.1 if on_cart else 0.0
+		add_child(head)
+		barrel = Node3D.new()
+		head.add_child(barrel)
+		osrs.rotation_degrees.y = float(OsrsModels.config().get("cannon_yaw", 0.0))
+		barrel.add_child(osrs)
+		_barrel_rest = barrel.position
+		return
 	# Round base (the furnace drum) with a brass ring and a team-coloured band.
 	_part(_cyl(0.34, 0.4, 0.3, 16), IRON, Vector3(0, base_y + 0.15, 0))
 	_part(_cyl(0.42, 0.42, 0.05, 16), BRASS, Vector3(0, base_y + 0.3, 0))

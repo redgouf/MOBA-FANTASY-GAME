@@ -74,6 +74,19 @@ func _exit_tree() -> void:
 func _build_visual() -> void:
 	_pivot = Node3D.new()
 	add_child(_pivot)
+	var osrs := OsrsProps.prop("yew", 6.5)
+	if osrs != null:
+		_pivot.add_child(osrs)    # the OSRS yew (private pack)
+	else:
+		_build_whitebox_tree()
+	var stump_ring := CylinderMesh.new()
+	stump_ring.top_radius = block_radius
+	stump_ring.bottom_radius = block_radius
+	stump_ring.height = 0.08
+	_add_mesh(stump_ring, _mat(BARK.darkened(0.35)), Vector3(0, 0.04, 0), self)
+
+
+func _build_whitebox_tree() -> void:
 	var trunk := CylinderMesh.new()
 	trunk.top_radius = 0.25
 	trunk.bottom_radius = 0.38
@@ -84,11 +97,6 @@ func _build_visual() -> void:
 	crown.height = 3.0
 	_crown_mat = _mat(LEAVES)
 	_add_mesh(crown, _crown_mat, Vector3(0, 5.6, 0))
-	var stump_ring := CylinderMesh.new()
-	stump_ring.top_radius = block_radius
-	stump_ring.bottom_radius = block_radius
-	stump_ring.height = 0.08
-	_add_mesh(stump_ring, _mat(BARK.darkened(0.35)), Vector3(0, 0.04, 0), self)
 
 
 func _mat(c: Color) -> StandardMaterial3D:

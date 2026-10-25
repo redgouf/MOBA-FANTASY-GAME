@@ -41,7 +41,7 @@ static func player(cfg: Dictionary) -> OsrsActor:
 	for id in cfg.get("gear", []):
 		var it := OsrsModels.item(int(id))
 		for part in it.get("hides_body_parts", []):
-			var body := a.skeleton.get_node_or_null("body_" + str(part))
+			var body := a.skeleton.get_node_or_null("body_" + (str(int(part)) if part is float or part is int else str(part)))
 			if body != null:
 				body.visible = false
 		var mi := OsrsModels.gear_mesh(int(id))

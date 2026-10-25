@@ -60,13 +60,14 @@ func _walk(dir: String) -> Array[String]:
 
 ## The personal export preset's exclude_filter (unused models), plus, for
 ## packs built by tools/osrs_extract, everything the game doesn't load yet:
-## map squares, objects, spell graphics, inventory models, loose textures and
-## sprites, and the worn items and NPCs data/models.json doesn't name.
+## map squares, spell graphics, inventory models, loose textures and sprites,
+## and the worn items, NPCs and objects data/models.json doesn't name. The
+## dressed Rift (rift/) is always packed.
 ## Pass --all after the output path to keep everything.
 func _excluded_patterns() -> Array[String]:
 	var out: Array[String] = []
 	if not OS.get_cmdline_user_args().has("--all") and str(OsrsModels.manifest().get("source", "")) == "osrs_extract":
-		for d in ["maps", "objects", "spotanims", "items", "textures", "sprites"]:
+		for d in ["maps", "spotanims", "items", "textures", "sprites"]:
 			out.append("private_assets/osrs/%s/*" % d)
 		var used_items := {}
 		var cfg_m := OsrsModels.config()
@@ -82,6 +83,10 @@ func _excluded_patterns() -> Array[String]:
 			if not used_items.has(str(id)):
 				out.append("private_assets/osrs/player/items/%s.glb" % id)
 		var used_bosses := {}
+		for m in cfg_m.get("minions", {}).values():
+			used_bosses[str(m.get("model", ""))] = true
+			for v in m.get("by_team", []):
+				used_bosses[str(v)] = true
 		for m in cfg_m.get("monsters", {}).values():
 			used_bosses[str(m.get("model", ""))] = true
 			used_bosses[str(m.get("fallback", ""))] = true
@@ -90,6 +95,17 @@ func _excluded_patterns() -> Array[String]:
 		for b in OsrsModels.manifest().get("bosses", {}):
 			if not used_bosses.has(str(b)):
 				out.append("private_assets/osrs/bosses/%s.glb" % b)
+		var used_objects := {}
+		for st in cfg_m.get("structures", {}).values():
+			for side in st.values():
+				for part in side:
+					used_objects[str(int(part.get("object", 0)))] = true
+		for id in cfg_m.get("props", {}).values():
+			used_objects[str(int(id))] = true
+		for o in OsrsModels.manifest().get("objects", {}):
+			if not used_objects.has(str(o)):
+				out.append("private_assets/osrs/objects/%s.*" % o)
+				out.append("private_assets/osrs/objects/%s_*" % o)
 		out.append("private_assets/osrs/player/player_animations.glb")
 		return out
 	var cfg := ConfigFile.new()

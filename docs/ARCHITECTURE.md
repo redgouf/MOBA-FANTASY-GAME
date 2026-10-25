@@ -62,7 +62,7 @@ Rules:
 ## Models and effects
 
 - `CombatFx` draws attack and ability effects; `Projectile` carries ranged and magic damage and is shaped by the attacker's `attack_fx`.
-- `OsrsModels` and `OsrsActor` add the optional private OSRS models (see [OSRS_MODELS.md](OSRS_MODELS.md)); `OsrsMap` loads OSRS map squares from the same pack. `tools/osrs_extract` builds the pack from the game cache. `Unit.attach_osrs()` hides the whitebox shape; `Unit._attack_visuals()` and `Champion._cast_visuals()` drive animations and effects.
+- `OsrsModels` and `OsrsActor` add the optional private OSRS models (see [OSRS_MODELS.md](OSRS_MODELS.md)); `OsrsMap` loads OSRS map squares from the same pack, `OsrsProps` builds buildings and props from its objects, and `MapBuilder` lays the OSRS-dressed Rift over the whitebox map. `tools/osrs_extract` builds the pack from the game cache. `Unit.attach_osrs()` hides the whitebox shape; `Unit._attack_visuals()` and `Champion._cast_visuals()` drive animations and effects.
 
 ## UI
 

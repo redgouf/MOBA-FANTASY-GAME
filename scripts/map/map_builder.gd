@@ -21,6 +21,8 @@ var _rebake_pending := false
 var _bake_started_ms := 0
 var _watchdog := 0.0
 var resubmits := 0          # times the watchdog reloaded an empty navmesh
+var osrs_dressed := false   # the OSRS Rift from the private pack replaced the whitebox look
+var _whitebox_visuals: Array[Node3D] = []
 
 
 func build() -> void:
@@ -33,7 +35,34 @@ func build() -> void:
 	_build_walls()
 	_build_prayer_altars()
 	_build_markings()
+	_build_osrs_dressing()
 	_bake_navigation()
+
+
+## With the private model pack: the OSRS-dressed Rift (rift/rift.glb from
+## tools/osrs_extract: Wilderness ground, dirt lanes, the Ditch, the two bases
+## and pits, rocks and dead trees on every wall) replaces the whitebox
+## surfaces. Colliders and navigation stay exactly the same.
+func _build_osrs_dressing() -> void:
+	if not OsrsModels.available():
+		return
+	var info: Dictionary = OsrsModels.manifest().get("rift", {})
+	var ps := OsrsModels.scene(str(info.get("file", "rift/rift.glb")))
+	if ps == null:
+		return
+	var rift := ps.instantiate() as Node3D
+	rift.name = "OsrsRift"
+	OsrsModels.apply_material(rift)
+	for mi in rift.find_children("*", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if str(mi.name).begins_with("terrain") else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var tile := float(info.get("tile", 1.4))
+	var origin: Array = info.get("origin", [-110.6, 110.6])
+	rift.scale = Vector3.ONE * tile
+	rift.position = Vector3(float(origin[0]), 0.0, float(origin[1]))
+	add_child(rift)
+	osrs_dressed = true
+	for n in _whitebox_visuals:
+		n.visible = false
 
 
 func _build_environment() -> void:
@@ -73,6 +102,7 @@ func _build_ground() -> void:
 	mesh.mesh = plane
 	mesh.material_override = _material(GROUND_COLOR)
 	body.add_child(mesh)
+	_whitebox_visuals.append(mesh)
 	nav_region.add_child(body)
 
 
@@ -115,6 +145,7 @@ func _add_wall(pos: Vector3, size: Vector3) -> void:
 	mesh.mesh = box_mesh
 	mesh.material_override = _material(ROCK_COLOR)
 	body.add_child(mesh)
+	_whitebox_visuals.append(mesh)
 	nav_region.add_child(body)
 
 
@@ -146,6 +177,7 @@ func _strip(a: Vector3, b: Vector3, width: float, color: Color, y: float) -> voi
 	mi.position = (a + b) * 0.5 + Vector3(0.0, y, 0.0)
 	mi.rotation.y = atan2(b.x - a.x, b.z - a.z)
 	add_child(mi)
+	_whitebox_visuals.append(mi)
 
 
 func _disc(pos: Vector3, radius: float, color: Color, y: float) -> void:
@@ -158,6 +190,7 @@ func _disc(pos: Vector3, radius: float, color: Color, y: float) -> void:
 	mi.material_override = _material(color)
 	mi.position = pos + Vector3(0.0, y, 0.0)
 	add_child(mi)
+	_whitebox_visuals.append(mi)
 
 
 func _ground_label(text: String, pos: Vector3) -> void:
@@ -170,6 +203,7 @@ func _ground_label(text: String, pos: Vector3) -> void:
 	label.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
 	label.position = pos + Vector3(0.0, 0.06, 0.0)
 	add_child(label)
+	_whitebox_visuals.append(label)
 
 
 func _material(color: Color) -> StandardMaterial3D:

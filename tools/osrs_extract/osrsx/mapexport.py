@@ -521,6 +521,74 @@ def place_loc(pack, sink_models, scene, lid, x, y, level, shape, rot, ox, oy, dr
 
 
 # ------------------------------------------------------------- export
+def write_scene_nodes(pack, sink, models):
+    """Turns a terrain Sink ({(node, tex, alpha): tris}, node = "<name>_<level>")
+    and placed models ({(level, group): [ModelData]}) into glTF nodes grouped
+    by level. Returns (Gltf, {level: [node]})."""
+    g = Gltf()
+    level_nodes = {}
+
+    def level_node(dl):
+        if dl not in level_nodes:
+            level_nodes[dl] = []
+        return level_nodes[dl]
+    # terrain
+    by_node = {}
+    for (node, tex, alpha), d in sink.groups.items():
+        by_node.setdefault(node, []).append((tex, alpha, d))
+    for node, parts in sorted(by_node.items()):
+        prims = []
+        # smooth terrain normals: average face normals per corner position (whole level)
+        acc = {}
+        for tex, alpha, d in parts:
+            fn = _face_normals(d["pos"])
+            for i in range(0, len(d["pos"]), 3):
+                key = tuple(round(v, 4) for v in d["pos"][i:i + 3])
+                a = acc.setdefault(key, [0.0, 0.0, 0.0])
+                a[0] += fn[i]
+                a[1] += fn[i + 1]
+                a[2] += fn[i + 2]
+        for k, a in acc.items():
+            ln = math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]) or 1.0
+            acc[k] = (a[0] / ln, a[1] / ln, a[2] / ln)
+        for tex, alpha, d in parts:
+            pos, nrm, col, uv, idx, seen = [], [], [], [], [], {}
+            for v in range(len(d["pos"]) // 3):
+                p3 = tuple(round(x, 4) for x in d["pos"][v * 3:v * 3 + 3])
+                c4 = tuple(d["col"][v * 4:v * 4 + 4])
+                u2 = tuple(d["uv"][v * 2:v * 2 + 2]) if tex != -1 else ()
+                key = (p3, c4, u2)
+                at = seen.get(key)
+                if at is None:
+                    at = seen[key] = len(pos) // 3
+                    pos.extend(p3)
+                    nrm.extend(acc[p3])
+                    col.extend(round(min(1.0, max(0.0, x)) * 65535) for x in c4)
+                    uv.extend(u2)
+                idx.append(at)
+            n = len(pos) // 3
+            attrs = {"POSITION": g.accessor(pos, "VEC3", minmax=True), "NORMAL": g.accessor(nrm, "VEC3"),
+                     "COLOR_0": g.accessor(col, "VEC4", comp=USHORT, normalized=True)}
+            ti = None
+            if tex != -1:
+                attrs["TEXCOORD_0"] = g.accessor(uv, "VEC2")
+                ti = _tex(g, pack.textures, tex)
+            ind = g.accessor(idx, "SCALAR", comp=UINT if n > 65535 else USHORT, target=ELEMENT_ARRAY_BUFFER)
+            mat = g.material("floor_tex%d" % tex if tex != -1 else "floor_vc", ti)
+            prims.append({"attributes": attrs, "indices": ind, "material": mat})
+        dl = int(node.split("_")[1])
+        level_node(dl).append(g.node(node, mesh=g.mesh(node, prims)))
+    # objects
+    g.__dict__["_tex_cache"] = g.__dict__.get("_tex_cache", {})
+    for (dl, group), ms in sorted(models.items()):
+        merged = ModelData.merge(ms)
+        prims = build_primitives(g, merged, MeshOptions(pack.textures, None, group))
+        if prims:
+            name = "%s_%d" % (group, dl)
+            level_node(dl).append(g.node(name, mesh=g.mesh(name, prims)))
+    return g, level_nodes
+
+
 def export_region(pack, region_id, levels=LEVELS):
     rx, ry = region_id >> 8, region_id & 255
     cache, defs = pack.cache, pack.defs
@@ -583,67 +651,7 @@ def export_region(pack, region_id, levels=LEVELS):
         place_loc(pack, models, scene, lid, x, y, level, shape, rot, BORDER, BORDER, dl)
         placements.append({"id": lid, "x": lx, "y": ly, "level": level, "draw_level": dl,
                            "shape": shape, "rotation": rot, "name": (defs.loc(lid).name if defs.loc(lid) else None)})
-    g = Gltf()
-    level_nodes = {}
-
-    def level_node(dl):
-        if dl not in level_nodes:
-            level_nodes[dl] = []
-        return level_nodes[dl]
-    # terrain
-    by_node = {}
-    for (node, tex, alpha), d in sink.groups.items():
-        by_node.setdefault(node, []).append((tex, alpha, d))
-    for node, parts in sorted(by_node.items()):
-        prims = []
-        # smooth terrain normals: average face normals per corner position (whole level)
-        acc = {}
-        for tex, alpha, d in parts:
-            fn = _face_normals(d["pos"])
-            for i in range(0, len(d["pos"]), 3):
-                key = tuple(round(v, 4) for v in d["pos"][i:i + 3])
-                a = acc.setdefault(key, [0.0, 0.0, 0.0])
-                a[0] += fn[i]
-                a[1] += fn[i + 1]
-                a[2] += fn[i + 2]
-        for k, a in acc.items():
-            ln = math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]) or 1.0
-            acc[k] = (a[0] / ln, a[1] / ln, a[2] / ln)
-        for tex, alpha, d in parts:
-            pos, nrm, col, uv, idx, seen = [], [], [], [], [], {}
-            for v in range(len(d["pos"]) // 3):
-                p3 = tuple(round(x, 4) for x in d["pos"][v * 3:v * 3 + 3])
-                c4 = tuple(d["col"][v * 4:v * 4 + 4])
-                u2 = tuple(d["uv"][v * 2:v * 2 + 2]) if tex != -1 else ()
-                key = (p3, c4, u2)
-                at = seen.get(key)
-                if at is None:
-                    at = seen[key] = len(pos) // 3
-                    pos.extend(p3)
-                    nrm.extend(acc[p3])
-                    col.extend(round(min(1.0, max(0.0, x)) * 65535) for x in c4)
-                    uv.extend(u2)
-                idx.append(at)
-            n = len(pos) // 3
-            attrs = {"POSITION": g.accessor(pos, "VEC3", minmax=True), "NORMAL": g.accessor(nrm, "VEC3"),
-                     "COLOR_0": g.accessor(col, "VEC4", comp=USHORT, normalized=True)}
-            ti = None
-            if tex != -1:
-                attrs["TEXCOORD_0"] = g.accessor(uv, "VEC2")
-                ti = _tex(g, pack.textures, tex)
-            ind = g.accessor(idx, "SCALAR", comp=UINT if n > 65535 else USHORT, target=ELEMENT_ARRAY_BUFFER)
-            mat = g.material("floor_tex%d" % tex if tex != -1 else "floor_vc", ti)
-            prims.append({"attributes": attrs, "indices": ind, "material": mat})
-        dl = int(node.split("_")[1])
-        level_node(dl).append(g.node(node, mesh=g.mesh(node, prims)))
-    # objects
-    g.__dict__["_tex_cache"] = g.__dict__.get("_tex_cache", {})
-    for (dl, group), ms in sorted(models.items()):
-        merged = ModelData.merge(ms)
-        prims = build_primitives(g, merged, MeshOptions(pack.textures, None, group))
-        if prims:
-            name = "%s_%d" % (group, dl)
-            level_node(dl).append(g.node(name, mesh=g.mesh(name, prims)))
+    g, level_nodes = write_scene_nodes(pack, sink, models)
     kids = [g.node("level_%d" % dl, children=nodes) for dl, nodes in sorted(level_nodes.items())]
     root = g.node("region_%d_%d" % (rx, ry), children=kids)
     g.add_root(root)

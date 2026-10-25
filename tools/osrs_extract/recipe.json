@@ -301,7 +301,8 @@
   "thrall_ghost": 10878,
   "thrall_skeleton": 10881,
   "thrall_zombie": 10884,
-  "phoenix": 3077
+  "phoenix": 3077,
+  "black_knight": 516
  },
  "objects": [
   "gv:yewtree",

@@ -57,4 +57,15 @@ Then carry on from step 2 below. `extract.py` replaces `manifest.json`; back up 
 - **Specs swap the weapon.** An item spec (or an ability tied to one in `models.json`, like the Zerker's Dragon claws ult) shows that weapon for the length of its clip, then the base weapon comes back. Two-handed spec weapons also hide the shield.
 - **The Hybrid's form switch** swaps crossbow and staff, so other players can see which form it's in.
 - **Stand-ins** (SkullSlayer pack only, which lacks some models): the Skiller's lumberjack outfit and Imcando hammer are missing there, so he shows the bare body holding only his chisel prop. With an osrs_extract pack every champion wears the gear in `champions.json`.
-- **Monsters:** every camp has its model in `models.json` (abyssal demon, giants, wolves, rooster and chicken, ogres, rock crab, the moles, TzTok-Jad); the chromatic dragon's variants use the real green, blue, red and black dragons and the King Black Dragon. A model the installed pack doesn't have leaves that monster whitebox (the SkullSlayer pack has Jad, the Giant Mole and the King Black Dragon). Minions and structures stay whitebox for now; osrs_extract already exports Pest Control monsters and portals for them.
+- **Monsters:** every camp has its model in `models.json` (abyssal demon, giants, wolves, rooster and chicken, ogres, rock crab, the moles, TzTok-Jad); the chromatic dragon's variants use the real green, blue, red and black dragons and the King Black Dragon. A model the installed pack doesn't have leaves that monster whitebox (the SkullSlayer pack has Jad, the Giant Mole and the King Black Dragon).
+
+## The map, buildings, minions and props
+
+With a pack built by osrs_extract (v0.18.0), the match itself is dressed in OSRS models; without one, everything keeps its whitebox shape.
+
+- **The Rift:** `rift/rift.glb` is built by the extractor's `rift` step from `tools/osrs_extract/rift_layout.json` (written from `MapLayout` by `tools/export_rift_layout.gd`; re-run both after changing the layout). It is an OSRS tile terrain at the champions' scale (1.4 m per tile) with real Wilderness ground colours and clutter, dirt lanes, the Ditch as water, cobbles in the Saradomin base, obsidian and lava in the Zamorak base and the pits, and boulders and dead trees on the jungle walls. `MapBuilder._build_osrs_dressing()` places it and hides the whitebox ground, walls, lanes and labels. Colliders and navigation don't change.
+- **Buildings:** `models.json` `structures` lists, per structure and team, the objects that make its look (`object`, and `height` or `width` in metres, optional `offset`, `rotation`, `stack` and `tint`). `OsrsProps.structure()` builds it; `Structure` uses it when it exists.
+- **Minions:** `models.json` `minions` names each minion's NPC model (`by_team` for a model per team).
+- **Props:** `models.json` `props` names the objects used for the dwarf multicannon (`cannon_yaw` turns it if its barrel doesn't point down -Z), the prayer altars and the Skiller's yews.
+- `tools/pack_osrs_models.gd` packs only the objects and NPCs these name, plus `rift/`.
+

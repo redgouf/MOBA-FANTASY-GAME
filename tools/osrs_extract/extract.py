@@ -25,7 +25,7 @@ from osrsx.pack import Pack            # noqa: E402
 from osrsx.weapons import anims_for    # noqa: E402
 
 REPO = os.path.normpath(os.path.join(HERE, "..", ".."))
-STEPS = ["player", "npcs", "objects", "spotanims", "items", "textures", "maps"]
+STEPS = ["player", "npcs", "objects", "spotanims", "items", "textures", "maps", "rift"]
 EXTRA_STEPS = ["sprites"]          # only when asked for with --only
 
 
@@ -60,6 +60,22 @@ def models_json_needs():
     items.discard(0)
     clips.discard(None)
     return items, clips
+
+
+def models_json_objects():
+    """Object ids data/models.json uses for structures and props."""
+    p = os.path.join(REPO, "data", "models.json")
+    out = set()
+    if not os.path.exists(p):
+        return out
+    cfg = json.load(open(p))
+    for s in cfg.get("structures", {}).values():
+        for parts in s.values():
+            for part in parts:
+                out.add(int(part.get("object", 0)))
+    out.update(int(v) for v in cfg.get("props", {}).values())
+    out.discard(0)
+    return out
 
 
 class Resolver:
@@ -177,7 +193,7 @@ def main():
 
     if "objects" in steps:
         n = 0
-        for entry in recipe.get("objects", []) + args.object:
+        for entry in recipe.get("objects", []) + args.object + sorted(models_json_objects()):
             for lid in res.ids("loc", entry):
                 n += pack.object(lid)
         pack.log("objects: %d" % n)
@@ -212,6 +228,13 @@ def main():
             if rid is not None:
                 export_region(pack, rid)
         pack.save_manifest()
+
+    if "rift" in steps:
+        from osrsx.rift import build_rift
+        lp = os.path.join(HERE, "rift_layout.json")
+        if os.path.exists(lp):
+            build_rift(pack, lp)
+            pack.save_manifest()
 
     pack.log("done in %.0fs -> %s" % (time.time() - t0, args.out))
 
