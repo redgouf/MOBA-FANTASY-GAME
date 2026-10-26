@@ -231,6 +231,14 @@ func _begin(view: Champion, welcome: String) -> void:
 	unit_bars.viewer = view
 	unit_bars.camera = camera_rig.camera
 	bars_layer.add_child(unit_bars)
+	# Hitsplats draw on the same layer after the bars: always on top of them.
+	var splat_layer := Control.new()
+	splat_layer.name = "Hitsplats"
+	splat_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	splat_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bars_layer.add_child(splat_layer)
+	Hitsplat.overlay = splat_layer
+	Hitsplat.camera = camera_rig.camera
 	fog = FogOfWar.new()
 	fog.name = "FogOfWar"
 	add_child(fog)
@@ -238,6 +246,7 @@ func _begin(view: Champion, welcome: String) -> void:
 	camera_rig.camera.cull_mask &= ~FogOfWar.FOG_LAYER
 	camera_rig.follow = view
 	camera_rig.locked = spectating
+	camera_rig.set_spectator(spectating)
 	camera_rig.center_on(view.global_position)
 	selection_ring.viewer_team = view.team
 

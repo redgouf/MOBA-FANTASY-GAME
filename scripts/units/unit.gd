@@ -55,6 +55,9 @@ var osrs: OsrsActor
 var attack_fx: Dictionary = {}
 ## The gem a gem-thrower (the Skiller) holds and throws next: [Projectile.GEMS index, uncut].
 var next_gem: Array = Projectile.random_gem()
+## Seconds into the attack animation before a projectile leaves the hands
+## (the dark wizard's casting wind-up); its hit still lands on the same tick.
+var fire_delay := 0.0
 var _last_flat_pos := Vector3.ZERO
 var custom_model: Node3D                         # built model replacing the whitebox shape
 var crowd_push := Vector3.ZERO                   # this frame's spacing push (Crowd.solve)
@@ -288,7 +291,8 @@ func get_move_speed() -> float:
 	if not can_move():
 		return 0.0
 	var slow := minf(status_sum("slow"), 0.9)
-	return base_move_speed * maxf(0.1, 1.0 + status_sum("haste") - slow)
+	# rules.move_speed_scale scales every unit's speed to the map's size.
+	return base_move_speed * float(GameData.rule("move_speed_scale", 1.0)) * maxf(0.1, 1.0 + status_sum("haste") - slow)
 
 
 func can_act() -> bool:
@@ -667,9 +671,22 @@ func perform_attack(t: Unit) -> void:
 			next_gem = Projectile.random_gem()
 			if osrs != null:
 				osrs.hold_gem(int(next_gem[0]), bool(next_gem[1]))
-		var p := Projectile.launch(self, t, pfx, Callable())
-		if p != null:
-			p.arrive_in(GameTick.seconds_until_tick(ticks))
+		var arrive := GameTick.seconds_until_tick(ticks)
+		var wait := minf(fire_delay, maxf(0.0, arrive - 0.2))
+		if wait > 0.0:
+			var me: WeakRef = weakref(self)
+			var tgt: WeakRef = weakref(t)
+			get_tree().create_timer(wait, false).timeout.connect(func() -> void:
+				var s: Unit = me.get_ref()
+				var tt: Unit = tgt.get_ref()
+				if s != null and tt != null and s.is_inside_tree() and not s.is_dead and not tt.is_dead:
+					var p2 := Projectile.launch(s, tt, pfx, Callable())
+					if p2 != null:
+						p2.arrive_in(maxf(0.1, arrive - wait)))
+		else:
+			var p := Projectile.launch(self, t, pfx, Callable())
+			if p != null:
+				p.arrive_in(arrive)
 		GameTick.schedule(ticks, on_hit)
 	else:
 		var dealt := t.take_damage(info)
@@ -758,6 +775,8 @@ static func flat_distance(a: Vector3, b: Vector3) -> float:
 
 
 func face_toward(point: Vector3) -> void:
+	if is_structure():
+		return          # towers and buildings never turn
 	var d := point - global_position
 	d.y = 0.0
 	if d.length_squared() > 0.0001:
@@ -852,6 +871,8 @@ func steer_around_trees(dir: Vector3) -> Vector3:
 ## Moves the unit quickly toward a point. Used for dashes and knockbacks alike;
 ## Champion checks Tele Block before starting voluntary dashes.
 func start_dash(destination: Vector3, speed: float, ignore_walls: bool = false) -> void:
+	if is_structure():
+		return          # buildings can't be knocked back or pulled
 	_dash_target = Vector3(destination.x, 0.0, destination.z)
 	_dash_speed = speed
 	_dash_ignore_walls = ignore_walls

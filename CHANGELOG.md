@@ -2,6 +2,21 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.23.0
+
+- Everything moves at half speed (champions, minions and monsters) to suit the map's size. `rules.move_speed_scale` sets it.
+- Towers never turn or get pushed. A beam in the tower's team colour shows what it's attacking.
+- Teleport Home: the purple teleport graphic starts at the champion's chest. Purple rings build outward on the ground, up to four over the channel, so everyone nearby can see someone is teleporting.
+- Health bars sit higher above champions, with the name further above the bar. The champion level (1–18) is bold, on the bar and in your portrait.
+- Hitsplats always draw on top of every health bar, your own included. They're bigger, with the number in OSRS's small font sitting inside the splat, like in OSRS.
+- The stats panel uses bigger text and icons, filling the panel.
+- A sword cursor shows when you hover anything you can attack.
+- Camera: players can zoom out 5 wheel steps from fully zoomed in. Spectators can zoom out until the whole map is on screen.
+- With the OSRS pack:
+  - Dark wizards stand as tall as champions, goblins are bigger, and knights are to scale.
+  - Dark wizards finish their casting wind-up before their spell leaves their hands. The hit still lands on time.
+  - The siege minion is the gnome ballista from the Tree Gnome Village instead of the cannon cart.
+
 ## 0.22.1
 
 - Teleport Home: the champion now teleports at the moment the OSRS teleport animation has shrunk them away. It no longer grows back to full size first. The cast is timed to the teleport, holds the smallest pose until the champion lands, and the landing animation grows them back at home.

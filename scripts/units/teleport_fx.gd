@@ -81,12 +81,47 @@ func _ready() -> void:
 		_build_arms()
 
 
+## Purple rings on the ground that build outward over the channel, one by
+## one up to four, so everyone can see a champion is teleporting home.
+const RING_COUNT := 4
+const RING_COLOR := Color(0.62, 0.3, 0.95)
+var _rings: Array[MeshInstance3D] = []
+
+
+func _update_rings() -> void:
+	var total := maxf(0.1, look_end + 1.32)
+	for i in RING_COUNT:
+		var start := total * float(i) / float(RING_COUNT)
+		if elapsed < start:
+			continue
+		if i >= _rings.size():
+			var t := TorusMesh.new()
+			t.inner_radius = 0.92
+			t.outer_radius = 1.0
+			t.rings = 48
+			t.ring_segments = 4
+			var mi := MeshInstance3D.new()
+			mi.mesh = t
+			mi.material_override = CombatFx.fade_material(Color(RING_COLOR.r, RING_COLOR.g, RING_COLOR.b, 0.85), false)
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mi.layers = FogOfWar.FOG_LAYER if champ.fog_hidden else 1    # hidden in the fog like the champion
+			add_child(mi)
+			mi.position = Vector3(0, 0.06, 0)
+			_rings.append(mi)
+		# Each ring grows slowly out to its place: 0.9 m, 1.4 m, 1.9 m, 2.4 m.
+		var k := clampf((elapsed - start) / 1.2, 0.0, 1.0)
+		var r := lerpf(0.3, 0.9 + 0.5 * float(i), _ease(k))
+		_rings[i].scale = Vector3(r, 0.25, r)
+		_rings[i].rotation.y = -champ.rotation.y + elapsed * (0.4 + 0.15 * i) * (1.0 if i % 2 == 0 else -1.0)
+
+
 func _process(delta: float) -> void:
 	if not is_instance_valid(champ) or champ.is_dead or not champ.is_recalling():
 		_restore()
 		queue_free()
 		return
 	elapsed += delta
+	_update_rings()
 	if elapsed < look_end:
 		# Sneak a look around: glance left, then right, again and again.
 		if champ.osrs != null and not champ.osrs.is_busy():
@@ -123,7 +158,8 @@ func _start_cast() -> void:
 		a.visible = true
 	# The OSRS teleport graphic, when the pack has it.
 	var gfx := int(OsrsModels.config().get("teleport", {}).get("cast_gfx", 0)) if champ.osrs != null else 0
-	if OsrsGfx.spawn(champ.get_parent(), gfx, champ.global_position, champ) != null:
+	# On the chest, not the feet.
+	if OsrsGfx.spawn(champ.get_parent(), gfx, champ.global_position + Vector3.UP * champ.visual_height() * 0.55, champ) != null:
 		return
 	# The swirl of light rising around the caster (OSRS teleport gfx).
 	_swirl = CPUParticles3D.new()

@@ -1903,3 +1903,22 @@ func test_v021() -> void:
 	# The 8 s recall and the OSRS teleport clips.
 	check(is_equal_approx(float(GameData.rule("recall_channel_sec", 0)), 8.0), "Teleport Home takes 8 s")
 	check(str(OsrsModels.config().get("teleport", {}).get("cast_clip", "")) == "a714", "it casts the normal OSRS teleport (714)")
+	# Towers never turn or move; everything moves at half speed; zoom limits.
+	var tw := Structure.new()
+	tw.init_structure("tower", GameData.unit_def("structures", "tower_outer"), Combat.Team.SARADOMIN, "Test tower")
+	add_child(tw)
+	tw.rotation.y = 0.3
+	tw.face_toward(tw.global_position + Vector3(5, 0, 1))
+	tw.start_dash(tw.global_position + Vector3(4, 0, 0), 10.0)
+	check(is_equal_approx(tw.rotation.y, 0.3) and not tw._dashing, "towers don't turn to face targets or get knocked around")
+	tw.queue_free()
+	var walker := _make("pure", Combat.Team.SARADOMIN, Vector3(30, 0, 30))
+	check(is_equal_approx(walker.get_move_speed(), walker.base_move_speed * 0.5), "units move at half their listed speed (rules.move_speed_scale)")
+	walker.queue_free()
+	var rig := CameraRig.new()
+	add_child(rig)
+	rig.set_spectator(false)
+	check(is_equal_approx(rig.max_zoom, CameraRig.MIN_ZOOM + 10.0), "players zoom out 5 steps from fully in")
+	rig.set_spectator(true)
+	check(rig.max_zoom >= 200.0, "spectators zoom out to the whole map")
+	rig.queue_free()

@@ -7,6 +7,10 @@ extends Node3D
 
 const MIN_ZOOM := 16.0
 const MAX_ZOOM := 50.0
+const ZOOM_STEP := 2.0
+## Players can zoom out 5 wheel steps from fully in; spectators out to the whole map.
+const PLAYER_ZOOM_STEPS := 5
+const SPECTATOR_MAX_ZOOM := 230.0
 const PAN_SPEED := 45.0
 const EDGE_MARGIN := 14.0
 const PITCH_DEG := 58.0
@@ -14,7 +18,15 @@ const PITCH_DEG := 58.0
 var camera: Camera3D
 var follow: Node3D
 var locked := false
-var zoom := 30.0
+var zoom := 26.0
+var max_zoom := MIN_ZOOM + ZOOM_STEP * PLAYER_ZOOM_STEPS
+
+
+## Players: 5 steps out from fully zoomed in. Spectators: out to the whole map.
+func set_spectator(on: bool) -> void:
+	max_zoom = SPECTATOR_MAX_ZOOM if on else MIN_ZOOM + ZOOM_STEP * PLAYER_ZOOM_STEPS
+	zoom = minf(zoom, max_zoom)
+	_apply_zoom()
 var dragging := false
 
 var _drag_anchor := Vector3.ZERO
@@ -122,10 +134,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("camera_zoom_in"):
-		zoom = maxf(MIN_ZOOM, zoom - 2.0)
+		zoom = maxf(MIN_ZOOM, zoom - (ZOOM_STEP if zoom <= MAX_ZOOM else zoom * 0.15))
 		_apply_zoom()
 	elif event.is_action_pressed("camera_zoom_out"):
-		zoom = minf(MAX_ZOOM, zoom + 2.0)
+		zoom = minf(max_zoom, zoom + (ZOOM_STEP if zoom < MAX_ZOOM else zoom * 0.15))
 		_apply_zoom()
 	elif event.is_action_pressed("camera_lock"):
 		locked = not locked

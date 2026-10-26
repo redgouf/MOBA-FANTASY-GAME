@@ -60,7 +60,12 @@ func _setup_osrs_model(id: String) -> void:
 		return
 	var actor := OsrsActor.creature(model, radius * 2.4)
 	if actor != null:
+		if bool(cfg.get("player_scale", false)):
+			# Humanoid NPCs at the champions' scale, so a dark wizard stands as
+			# tall as a player (a wide robe made the footprint fit far too big).
+			actor.scale = Vector3.ONE * float(OsrsModels.config().get("player_scale", 1.4))
 		actor.scale *= float(cfg.get("scale", 1.0))
+		fire_delay = float(cfg.get("fire_delay", 0.0))
 	attach_osrs(actor)
 
 

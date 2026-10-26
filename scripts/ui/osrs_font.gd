@@ -27,6 +27,20 @@ static func get_font(font_name: String) -> FontFile:
 	return _fonts[font_name]
 
 
+## A copy of a font that scales to any size (not only whole multiples), for
+## text that has to be a bit bigger (the stats panel at 1.5x). Draw it with
+## nearest filtering to keep the pixels sharp.
+static func get_font_any_size(font_name: String) -> FontFile:
+	var key := font_name + "@any"
+	if not _fonts.has(key):
+		var f := get_font(font_name)
+		var copy: FontFile = f.duplicate() if f != null else null
+		if copy != null:
+			copy.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
+		_fonts[key] = copy
+	return _fonts[key]
+
+
 ## Switches the whole interface to the OSRS font, when the pack has it.
 static func apply() -> bool:
 	if not OsrsModels.available():

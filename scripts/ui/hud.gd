@@ -230,6 +230,8 @@ func _build_bottom_left(root: Control) -> void:
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(badge)
 	_level_badge = UiStyle.label(badge, "1", 15, UiStyle.GOLD)
+	if OsrsFont.active:
+		_level_badge.add_theme_font_override("font", OsrsFont.get_font("b12_full"))
 	UiStyle.fill(_level_badge)
 	_level_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_level_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -252,7 +254,10 @@ func _build_bottom_left(root: Control) -> void:
 	if osrs_ui:
 		# The OSRS stone panel, and a skill icon in front of each stat.
 		OsrsSprites.stone_panel(p)
-		grid.add_theme_constant_override("v_separation", 1)
+		grid.add_theme_constant_override("v_separation", 6)
+		grid.add_theme_constant_override("h_separation", 8)
+		grid.position = Vector2(116, 12)
+		p.size.x += 12
 	for key in ["damage", "magic", "attack_speed", "range", "move", "melee_def", "ranged_def", "magic_def", "armor_pen", "combat"]:
 		var holder: Control = grid
 		if osrs_ui:
@@ -262,7 +267,7 @@ func _build_bottom_left(root: Control) -> void:
 			grid.add_child(row)
 			var icon := TextureRect.new()
 			icon.texture = OsrsSprites.get_sprite(STAT_ICONS.get(key, "stats"))
-			icon.custom_minimum_size = Vector2(17, 17)
+			icon.custom_minimum_size = Vector2(25, 25)
 			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -272,7 +277,12 @@ func _build_bottom_left(root: Control) -> void:
 			_stat_icons[key] = icon
 			holder = row
 		var l := UiStyle.label(holder, "", 13)
-		l.custom_minimum_size = Vector2(80 if not osrs_ui else 64, 0)
+		l.custom_minimum_size = Vector2(80 if not osrs_ui else 62, 0)
+		if osrs_ui and OsrsFont.active:
+			# Bigger stats, filling the panel: the OSRS font at 1.5x, crisp.
+			l.add_theme_font_override("font", OsrsFont.get_font_any_size("p12_full"))
+			l.add_theme_font_size_override("font_size", 24)
+			l.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		l.mouse_filter = Control.MOUSE_FILTER_PASS   # hover: the base value
 		_stats[key] = l
 
@@ -280,20 +290,20 @@ func _build_bottom_left(root: Control) -> void:
 	items.columns = 3
 	items.add_theme_constant_override("h_separation", 4)
 	items.add_theme_constant_override("v_separation", 4)
-	items.position = Vector2(296, 10)
+	items.position = Vector2(296 if not osrs_ui else 310, 10)
 	p.add_child(items)
 	for i in 6:
 		_item_slots.append(ItemSlot.create(items, 52, str(i + 1)))
 
 	var belt := HBoxContainer.new()
 	belt.add_theme_constant_override("separation", 4)
-	belt.position = Vector2(296, 124)
+	belt.position = Vector2(296 if not osrs_ui else 310, 124)
 	p.add_child(belt)
 	for i in 4:
 		_belt_slots.append(ItemSlot.create(belt, 38, str((i + 7) % 10), true))
 
 	_gold = UiStyle.label(p, "", 15, UiStyle.GOLD)
-	_gold.position = Vector2(296, 166)
+	_gold.position = Vector2(296 if not osrs_ui else 310, 166)
 	_gold.size = Vector2(164, 20)
 
 
@@ -565,7 +575,7 @@ func _update_bottom_left() -> void:
 	_stat("magic", "Magic %d", champ.effective_damage(true), champ.base_magic_power, "%d")
 	_stat("attack_speed", "Atk %.1fs", champ.get_attack_interval(), champ.base_attack_interval(), "%.1fs", true)
 	_stat("range", "Range %.1f", champ.get_attack_range(), champ.base_attack_range, "%.1f")
-	_stat("move", "Move %.1f", champ.get_move_speed(), champ.base_move_speed, "%.1f")
+	_stat("move", "Move %.1f", champ.get_move_speed(), champ.base_move_speed * float(GameData.rule("move_speed_scale", 1.0)), "%.1f")
 	_stat("melee_def", "Melee def %d", champ.get_defence(0), champ.base_defence[0], "%d")
 	_stat("ranged_def", "Range def %d", champ.get_defence(1), champ.base_defence[1], "%d")
 	_stat("magic_def", "Magic def %d", champ.get_defence(2), champ.base_defence[2], "%d")

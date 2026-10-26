@@ -62,6 +62,8 @@ static func spawn(parent: Node, id: int, at: Vector3, follow: Node3D = null, loo
 		mi.material_override = glow_material()
 	g.scale = Vector3.ONE * float(OsrsModels.config().get("player_scale", 1.4))
 	g._follow = follow
+	if follow != null:
+		g._offset = at - follow.global_position     # keep riding at the same height (the chest)
 	parent.add_child(g)
 	g.global_position = at
 	var players := root.find_children("*", "AnimationPlayer", true, false)
@@ -135,7 +137,7 @@ func _process(delta: float) -> void:
 		if not is_instance_valid(_follow) or not _follow.is_inside_tree():
 			queue_free()
 			return
-		global_position = _follow.global_position
+		global_position = _follow.global_position + _offset
 	_life -= delta
 	if _life <= 0.0:
 		queue_free()

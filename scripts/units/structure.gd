@@ -245,3 +245,53 @@ func _dead_tick(dt: float) -> void:
 		health = max_health * respawn_health_pct
 		visible = true
 		collision_layer = LAYER_UNITS
+
+
+# --- Targeting laser -----------------------------------------------------------
+## A tower shows what it's attacking: a thin beam from its top to the target,
+## in its team's colour, for everyone who can see the target.
+var _laser: MeshInstance3D
+
+
+func _process(_delta: float) -> void:
+	if not is_structure() or base_attack_range <= 0.0:
+		return
+	var t := attack_target
+	var show := not is_dead and t != null and is_instance_valid(t) and not t.is_dead and not t.fog_hidden and t.is_inside_tree()
+	if not show:
+		if _laser != null:
+			_laser.visible = false
+		return
+	if _laser == null:
+		_laser = MeshInstance3D.new()
+		_laser.name = "TargetLaser"
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = 0.045
+		cyl.bottom_radius = 0.045
+		cyl.height = 1.0
+		cyl.radial_segments = 6
+		cyl.rings = 1
+		_laser.mesh = cyl
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		var c := Unit.team_color(team).lightened(0.1)
+		m.albedo_color = Color(c.r, c.g, c.b, 0.85)
+		_laser.material_override = m
+		_laser.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_laser.top_level = true
+		add_child(_laser)
+	var from := global_position + Vector3.UP * maxf(1.5, visual_height() * 0.92)
+	var to := t.global_position + Vector3.UP * t.visual_height() * 0.6
+	var length := from.distance_to(to)
+	if length < 0.1:
+		_laser.visible = false
+		return
+	_laser.visible = true
+	var mid := (from + to) * 0.5
+	var dir := (to - from) / length
+	var up := dir
+	var side := up.cross(Vector3.FORWARD if absf(up.dot(Vector3.FORWARD)) < 0.9 else Vector3.RIGHT).normalized()
+	var fwd := side.cross(up).normalized()
+	_laser.global_transform = Transform3D(Basis(side, up * length, fwd), mid)

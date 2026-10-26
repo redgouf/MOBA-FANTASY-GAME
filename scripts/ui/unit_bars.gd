@@ -63,7 +63,8 @@ func _draw() -> void:
 
 ## Where a unit's bar goes: just above its head, in screen pixels.
 func _anchor(cam: Camera3D, u: Unit) -> Variant:
-	var head := u.global_position + Vector3.UP * (u.visual_height() + 0.35)
+	# Champions' bars sit well above their heads (room for hitsplats and overheads).
+	var head := u.global_position + Vector3.UP * (u.visual_height() + (0.95 if u.is_class_champion() else 0.35))
 	if cam.is_position_behind(head):
 		return null
 	return cam.unproject_position(head)
@@ -131,11 +132,11 @@ func _draw_champion(cam: Camera3D, c: Champion) -> void:
 	var bc := Vector2(x - badge_r - 3.0, top + (CHAMP_HP_H + CHAMP_PR_H) * 0.5)
 	draw_circle(bc, badge_r + 1.5, Color(0.75, 0.62, 0.3))
 	draw_circle(bc, badge_r, Color(0.22, 0.05, 0.04) if c.team != (viewer.team if is_instance_valid(viewer) else c.team) else Color(0.05, 0.1, 0.22))
-	_text(bc + Vector2(0, 5.0), str(c.level), 13, Color(1, 1, 1))
+	_text(bc + Vector2(0, 5.0), str(c.level), 13, Color(1, 1, 1), OsrsFont.get_font("b12_full") if OsrsFont.active else null)
 	# Name and combat level above ("Dharok  (level-115)", OSRS right-click
 	# style: the level coloured against yours), the overhead prayer above that.
 	var mine := (viewer as Champion).combat_level() if is_instance_valid(viewer) and viewer is Champion else c.combat_level()
-	_name_with_level(Vector2(p.x, top - 5.0), c.display_name, c.combat_level(), level_color(c.combat_level(), mine))
+	_name_with_level(Vector2(p.x, top - 9.0), c.display_name, c.combat_level(), level_color(c.combat_level(), mine))
 	var oh := c.overhead_prayer()
 	if oh != "":
 		var tex := Icons.overhead(oh)
@@ -143,8 +144,8 @@ func _draw_champion(cam: Camera3D, c: Champion) -> void:
 			draw_texture_rect(tex, Rect2(Vector2(p.x - 13.0, top - 46.0), Vector2(26, 26)), false)
 
 
-func _text(center_bottom: Vector2, s: String, size: int, color: Color) -> void:
-	var font := get_theme_default_font()
+func _text(center_bottom: Vector2, s: String, size: int, color: Color, with_font: Font = null) -> void:
+	var font := with_font if with_font != null else get_theme_default_font()
 	var w := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 	var pos := Vector2(center_bottom.x - w * 0.5, center_bottom.y)
 	draw_string_outline(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 4, Color(0, 0, 0, 0.9))

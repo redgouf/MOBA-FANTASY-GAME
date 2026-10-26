@@ -30,6 +30,21 @@ func _build(accent: Color, on_cart: bool) -> void:
 	var base_y := 0.0
 	var osrs := OsrsProps.prop("cannon", 0.0, 1.5)
 	if on_cart:
+		# The siege minion: the gnome ballista from the Tree Gnome Village
+		# (object 2181) when the pack has it, on its own wooden frame.
+		var ballista := OsrsProps.prop("ballista", 0.0, 2.4)
+		if ballista != null:
+			if osrs != null:
+				osrs.queue_free()
+			head = Node3D.new()
+			add_child(head)
+			barrel = Node3D.new()
+			head.add_child(barrel)
+			ballista.rotation_degrees.y = float(OsrsModels.config().get("ballista_yaw", 0.0))
+			barrel.add_child(ballista)
+			_barrel_rest = barrel.position
+			return
+	if on_cart:
 		# Cart bed and two big wheels; the tow bar trails behind (-Z is the
 		# way the barrel points, +Z the way the unit faces: see _process).
 		_part(_box(Vector3(1.3, 0.14, 1.6)), WOOD, Vector3(0, 0.5, 0))

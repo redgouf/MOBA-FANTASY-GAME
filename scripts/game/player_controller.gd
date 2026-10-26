@@ -44,6 +44,49 @@ func _process(_delta: float) -> void:
 	if rig != null:
 		hovered = pick_unit(get_viewport().get_mouse_position())
 	_update_aim()
+	_update_cursor()
+
+
+# --- Attack cursor -------------------------------------------------------------
+static var _sword: Texture2D
+var _sword_on := false
+
+
+## A sword cursor over anything you can attack (an enemy unit or monster).
+func _update_cursor() -> void:
+	var attackable := hovered != null and champion != null and is_instance_valid(hovered) and not hovered.is_dead \
+		and hovered.team != champion.team and aiming == ""
+	if attackable == _sword_on:
+		return
+	_sword_on = attackable
+	if attackable:
+		Input.set_custom_mouse_cursor(sword_cursor(), Input.CURSOR_ARROW, Vector2(2, 2))
+	else:
+		Input.set_custom_mouse_cursor(null)
+
+
+## The cursor image: OSRS's Attack sword (private pack), else a scimitar icon.
+static func sword_cursor() -> Texture2D:
+	if _sword == null:
+		var tex: Texture2D = OsrsSprites.get_sprite("attack")
+		if tex == null:
+			tex = Icons.item("rune_scimitar")
+		if tex == null:
+			return null
+		var img := tex.get_image()
+		if img.is_compressed():
+			img.decompress()
+		var target := 32
+		if img.get_width() != target:
+			img.resize(target, target, Image.INTERPOLATE_NEAREST)
+		img.flip_x()     # the blade's tip at the top left, where the cursor points
+		_sword = ImageTexture.create_from_image(img)
+	return _sword
+
+
+func _exit_tree() -> void:
+	if _sword_on:
+		Input.set_custom_mouse_cursor(null)
 
 
 # --- Aiming --------------------------------------------------------------------

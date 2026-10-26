@@ -16,6 +16,12 @@ const SLOTS: Array[Vector2] = [Vector2(0, 0), Vector2(0, 0.9), Vector2(-0.82, -0
 
 ## The unit whose hits are shown bright (the player, or the spectated champion).
 static var viewer: Node = null
+## The screen overlay splats are drawn on (the health-bar layer: splats added
+## after the bars draw on top of every bar, your own included). Main sets it;
+## without it (tests) splats are 3D sprites.
+static var overlay: Node = null
+static var camera: Camera3D = null
+const SCREEN_SPLAT_PX := 46.0     # a splat's width on screen (OSRS sprites drawn 2x)
 static var _textures: Dictionary = {}
 
 var slot := 0
@@ -70,7 +76,74 @@ static func spawn(parent: Node, at: Vector3, amount: float, kind: String, tinted
 	return h
 
 
+var _view: Control              # the splat on the screen overlay
+
+
+## The splat drawn flat on the screen, OSRS-style: the sprite at whole-pixel
+## scale and the number in OSRS's small font with a black drop shadow, sized
+## to sit inside the splat.
+func _build_screen(amount: float, kind: String, tinted: bool) -> void:
+	var tex := texture(kind, tinted)
+	var w := float(tex.get_width()) if tex != null else 24.0
+	var scale_px := maxf(1.0, round(SCREEN_SPLAT_PX / w)) if w < 64.0 else SCREEN_SPLAT_PX / w
+	var size := Vector2(w, float(tex.get_height()) if tex != null else 24.0) * scale_px
+	_view = Control.new()
+	_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_view.size = size
+	_view.pivot_offset = size * 0.5
+	var pic := TextureRect.new()
+	pic.texture = tex
+	pic.size = size
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_SCALE
+	pic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_view.add_child(pic)
+	var font: Font = OsrsFont.get_font("p11_full") if OsrsFont.active else null
+	var font_size := 24 if OsrsFont.active else (17 if amount < 100.0 else 15)
+	for shadow in [true, false]:
+		var l := Label.new()
+		l.text = str(int(round(amount)))
+		if font != null:
+			l.add_theme_font_override("font", font)
+		l.add_theme_font_size_override("font_size", font_size)
+		l.add_theme_color_override("font_color", Color(0, 0, 0) if shadow else (Color.WHITE if not tinted else Color(0.85, 0.85, 0.85)))
+		if font == null:
+			l.add_theme_constant_override("outline_size", 0)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.size = size
+		l.position = Vector2(2, 2) if shadow else Vector2.ZERO
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_view.add_child(l)
+	_view.modulate.a = 0.85 if tinted else 1.0
+	_alpha = _view.modulate.a
+	overlay.add_child(_view)
+	_place_view()
+
+
+func _place_view() -> void:
+	var cam := camera if is_instance_valid(camera) else get_viewport().get_camera_3d()
+	if cam == null or _view == null:
+		return
+	if cam.is_position_behind(global_position):
+		_view.visible = false
+		return
+	_view.visible = true
+	var p := cam.unproject_position(global_position)
+	var off := SLOTS[clampi(slot, 0, SLOTS.size() - 1)] * _view.size.x * 0.9
+	_view.position = p - _view.size * 0.5 + Vector2(off.x, -off.y)
+
+
+func _exit_tree() -> void:
+	if _view != null and is_instance_valid(_view):
+		_view.queue_free()
+
+
 func _build(amount: float, kind: String, tinted: bool) -> void:
+	if overlay != null and is_instance_valid(overlay):
+		_build_screen(amount, kind, tinted)
+		return
 	var off := SLOTS[clampi(slot, 0, SLOTS.size() - 1)] * SIZE_PX * 0.92
 	_sprite = Sprite3D.new()
 	_sprite.texture = texture(kind, tinted)
@@ -131,6 +204,10 @@ func _process(delta: float) -> void:
 	if u != null and u.is_inside_tree():
 		global_position = u.global_position + Vector3.UP * height
 	var fade := clampf((LIFETIME - _age) / 0.15, 0.0, 1.0) * _alpha
+	if _view != null:
+		_place_view()
+		_view.modulate.a = fade
+		return
 	_sprite.modulate.a = fade
 	_label.modulate.a = fade
 	_label.outline_modulate.a = fade

@@ -374,6 +374,7 @@
   "respawn_base_sec": 6,
   "respawn_per_level": 2,
   "recall_channel_sec": 8,
+  "move_speed_scale": 0.5,
   "fountain_radius": 12,
   "fountain_heal_pct_per_sec": 0.1,
   "first_wave_sec": 30,
