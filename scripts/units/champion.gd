@@ -517,7 +517,9 @@ func item_cost(item_id: String) -> int:
 ## Each owned item is used once; a part you own stops the search down its branch.
 func owned_parts(item_id: String, owned: Array = []) -> Array[String]:
 	if owned.is_empty():
-		owned = inventory.duplicate()
+		for held in inventory:
+			if held != "":
+				owned.append(held)
 	var out: Array[String] = []
 	for comp in GameData.item(item_id).get("builds_from", []):
 		var idx := owned.find(comp)
@@ -535,7 +537,7 @@ func can_buy(item_id: String) -> bool:
 		return false
 	if bool(it.get("consumable", false)):
 		return consumables.size() < int(GameData.rule("consumable_slots", 4)) and gold >= float(it.get("cost", 0))
-	var slots_after := inventory.size() - owned_parts(item_id).size() + 1
+	var slots_after := item_count() - owned_parts(item_id).size() + 1
 	return gold >= float(item_cost(item_id)) and slots_after <= int(GameData.rule("item_slots", 6))
 
 
@@ -549,9 +551,9 @@ func buy_item(item_id: String) -> bool:
 		return true
 	var cost := item_cost(item_id)
 	for part in owned_parts(item_id):
-		inventory.erase(part)
 		_forget_recent_buy(part)
-	inventory.append(item_id)
+		inventory[inventory.find(part)] = ""
+	_put_in_inventory(item_id)
 	gold -= float(cost)
 	recent_buys.append({"id": item_id, "time": Combat.clock})
 	_rebuild_item_stats()
@@ -583,7 +585,8 @@ func sell_slot(index: int) -> bool:
 	var item_id := inventory[index]
 	var price := sell_price(item_id)
 	_forget_recent_buy(item_id)
-	inventory.remove_at(index)
+	inventory[index] = ""
+	_trim_inventory()
 	gold += float(price)
 	_rebuild_item_stats()
 	recompute_stats(false)
@@ -594,6 +597,48 @@ func sell_slot(index: int) -> bool:
 func sell_item(item_id: String) -> bool:
 	var idx := inventory.find(item_id)
 	return idx >= 0 and sell_slot(idx)
+
+
+# --- Inventory layout ----------------------------------------------------------
+## `inventory` is the six item slots in order, "" for an empty one (trailing
+## empty slots are cut off), so you can drag items around and leave gaps.
+
+func item_count() -> int:
+	var n := 0
+	for id in inventory:
+		if id != "":
+			n += 1
+	return n
+
+
+## Puts a new item in the first empty slot (a crafted item takes the place of its parts).
+func _put_in_inventory(item_id: String) -> void:
+	var i := inventory.find("")
+	if i >= 0:
+		inventory[i] = item_id
+	else:
+		inventory.append(item_id)
+
+
+func _trim_inventory() -> void:
+	while not inventory.is_empty() and inventory.back() == "":
+		inventory.pop_back()
+
+
+## Drag and drop: moves the item in slot `from` to slot `to`; an item already
+## there swaps places with it.
+func move_item(from: int, to: int) -> bool:
+	var slots := int(GameData.rule("item_slots", 6))
+	if from == to or from < 0 or to < 0 or from >= slots or to >= slots:
+		return false
+	while inventory.size() <= maxi(from, to):
+		inventory.append("")
+	var moved := inventory[from] != "" or inventory[to] != ""
+	var held := inventory[from]
+	inventory[from] = inventory[to]
+	inventory[to] = held
+	_trim_inventory()
+	return moved
 
 
 func _recent_buy_index(item_id: String) -> int:

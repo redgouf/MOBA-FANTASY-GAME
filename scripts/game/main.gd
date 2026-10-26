@@ -13,7 +13,7 @@ extends Node3D
 ##   --smoke-seconds=N   game seconds to simulate in smoke-test mode (default 150)
 ##   --screenshot=PATH   save a PNG of the game at --screenshot-at=SECONDS, then quit
 ##   --no-osrs           ignore the private OSRS model pack (whitebox shapes)
-##   --shot-ui=NAME      before the screenshot: target | menu | settings | controls | shop | kit | skills | aim-chop | aim-plant | scoreboard | tooltip | teleport (--shot-tele-at=S) | look (--shot-pos=X,Z)
+##   --shot-ui=NAME      before the screenshot: target | menu | settings | controls | hotkeys | shop | kit | skills | aim-chop | aim-plant | scoreboard | tooltip | teleport (--shot-tele-at=S) | look (--shot-pos=X,Z)
 ##   --shot-tab / --shot-item / --shot-search=TEXT / --shot-own=a,b   shop screenshots (tab, selected item, search, items owned)
 ##   --demo-level=N      raise the viewed champion to level N with items (for screenshots)
 
@@ -798,6 +798,13 @@ func _take_screenshot() -> void:
 		"controls":
 			pause_menu.open()
 			pause_menu._show_page("controls")
+		"hotkeys":
+			pause_menu.open()
+			pause_menu._show_page("hotkeys")
+			Controls.persist = false
+			Controls.bind_key("item_2", KEY_F)
+			Controls.unbind("consume_3")
+			Controls.bind_key("item_4", KEY_Q)
 		"shop":
 			focused.gold = 2600.0
 			hud.toggle_shop()

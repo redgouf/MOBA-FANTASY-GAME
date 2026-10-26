@@ -5,6 +5,11 @@ extends Panel
 
 ## Right-click (the HUD sells the item while the shop is open).
 signal secondary_pressed
+## Another inventory slot's item was dragged onto this one: (from slot, to slot).
+signal item_dropped(from_slot: int, to_slot: int)
+
+## Which inventory slot this is (0-5); -1 for the potion belt, which isn't draggable.
+var slot_index := -1
 
 var item_id := ""
 ## Extra last line of the tooltip ("Right-click to sell: 840 gp"), set by the HUD.
@@ -63,6 +68,34 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		secondary_pressed.emit()
 		accept_event()
+
+
+## Drag an item to another slot to move it there (or swap with what's there).
+func _get_drag_data(_at_position: Vector2) -> Variant:
+	if slot_index < 0 or item_id == "":
+		return null
+	var preview := Control.new()
+	var icon := Icons.rect(preview, Icons.item(item_id), Vector2(40, 40))
+	icon.position = Vector2(-20, -20)
+	icon.size = Vector2(40, 40)
+	icon.modulate = Color(1, 1, 1, 0.85)
+	if icon.texture == null:
+		var l := UiStyle.label(preview, str(GameData.item(item_id).get("name", item_id)), 12)
+		l.position = Vector2(-30, -8)
+	set_drag_preview(preview)
+	return {"inventory_slot": slot_index, "id": item_id}
+
+
+func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
+	return slot_index >= 0 and data is Dictionary and (data as Dictionary).has("inventory_slot") and int(data["inventory_slot"]) != slot_index
+
+
+func _drop_data(_at_position: Vector2, data: Variant) -> void:
+	item_dropped.emit(int(data["inventory_slot"]), slot_index)
+
+
+func set_key_text(t: String) -> void:
+	_key.text = t
 
 
 func _get_tooltip(_at_position: Vector2) -> String:

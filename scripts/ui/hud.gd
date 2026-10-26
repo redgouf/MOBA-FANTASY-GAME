@@ -293,8 +293,10 @@ func _build_bottom_left(root: Control) -> void:
 	items.position = Vector2(296 if not osrs_ui else 310, 10)
 	p.add_child(items)
 	for i in 6:
-		var slot := ItemSlot.create(items, 52, str(i + 1))
+		var slot := ItemSlot.create(items, 52, Controls.key_text("item_%d" % (i + 1)))
+		slot.slot_index = i
 		slot.secondary_pressed.connect(_sell_slot.bind(i))
+		slot.item_dropped.connect(_move_item)
 		_item_slots.append(slot)
 
 	var belt := HBoxContainer.new()
@@ -302,7 +304,8 @@ func _build_bottom_left(root: Control) -> void:
 	belt.position = Vector2(296 if not osrs_ui else 310, 124)
 	p.add_child(belt)
 	for i in 4:
-		_belt_slots.append(ItemSlot.create(belt, 38, str((i + 7) % 10), true))
+		_belt_slots.append(ItemSlot.create(belt, 38, Controls.key_text("consume_%d" % (i + 1)), true))
+	Controls.bindings_changed.connect(_update_key_labels)
 
 	_gold = UiStyle.label(p, "", 15, UiStyle.GOLD)
 	_gold.position = Vector2(296 if not osrs_ui else 310, 166)
@@ -469,6 +472,20 @@ func _build_shop(root: Control) -> void:
 
 
 # --- Shop --------------------------------------------------------------------
+
+## Dragging an item onto another slot moves or swaps them.
+func _move_item(from_slot: int, to_slot: int) -> void:
+	if not spectator and champ != null:
+		champ.move_item(from_slot, to_slot)
+
+
+## The key shown on each item and potion slot follows your bindings.
+func _update_key_labels() -> void:
+	for i in _item_slots.size():
+		_item_slots[i].set_key_text(Controls.key_text("item_%d" % (i + 1)))
+	for i in _belt_slots.size():
+		_belt_slots[i].set_key_text(Controls.key_text("consume_%d" % (i + 1)))
+
 
 ## Right-click on an inventory item sells it while the shop is open.
 func _sell_slot(index: int) -> void:

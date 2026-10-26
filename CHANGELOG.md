@@ -2,6 +2,15 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.26.0
+
+- Drag items between inventory slots: dropping one on another swaps them, and dropping on an empty slot moves it there (gaps are fine). The 1–6 keys follow the slot, so you choose which item sits on which key. New items fill the first empty slot, and a crafted item takes the place of its parts.
+- Inventory hotkeys can be changed: ESC menu > Inventory hotkeys. Click a slot's key, then press any key (or a side mouse button; Esc cancels). It covers the six item slots and the four food and potion slots.
+  - Each slot has Reset (back to its default) and Unbind (no key).
+  - Reset all asks for a second click before it does anything.
+  - Binding a key another slot uses takes it from that slot. A key an ability or other action also uses is flagged, but allowed.
+  - The numbers on the inventory and potion slots show your keys. They're saved in user://keybinds.cfg.
+
 ## 0.25.0
 
 - You can sell items, like in League Classic. You get 70% of an item's full price back (`rules.sell_back_pct`), or all of it if you bought it in the last 10 seconds (`rules.sell_full_refund_sec`), so a misclick costs nothing. Selling works where buying does, at your base. Potions and food can't be sold.

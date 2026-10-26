@@ -16,7 +16,7 @@ Q W E R — abilities (R is your special attack): press to show the indicator, l
    (right-click cancels it and walks, and it can be brought up while walking; Esc cancels; other modes in Settings > Ability casting)
 Ctrl + Q W E R — spend a skill point (R unlocks at level 6)
 1 – 6 — item special attacks
-7 8 9 0 — food and potions
+7 8 9 0 — food and potions   (rebind them in Inventory hotkeys; drag items between slots to rearrange them)
 V — switch your prayer on/off (picked at champion select; drains prayer points)
 Z X C — Protect from Melee / Missiles / Magic (tank and main builds)
 Right-click a prayer altar (beside each red and blue buff) — pray to restore prayer to full
@@ -39,6 +39,12 @@ var _dim: ColorRect
 var _panel: PanelContainer
 var _pages: Dictionary = {}
 var _title: Label
+var _hotkey_rows: Dictionary = {}
+var _hotkey_note: Label
+var _reset_all: Button
+var _reset_armed := false
+var _reset_token := 0
+var _listening := ""
 
 
 func _ready() -> void:
@@ -66,6 +72,7 @@ func _ready() -> void:
 	_pages["main"] = _build_main(col)
 	_pages["settings"] = _build_settings(col)
 	_pages["controls"] = _build_controls(col)
+	_pages["hotkeys"] = _build_hotkeys(col)
 	_show_page("main")
 	visible = false
 
@@ -78,6 +85,7 @@ func _build_main(parent: Control) -> Control:
 	_menu_button(page, "Resume", close)
 	_menu_button(page, "Settings", _show_page.bind("settings"))
 	_menu_button(page, "Controls", _show_page.bind("controls"))
+	_menu_button(page, "Inventory hotkeys", _show_page.bind("hotkeys"))
 	_menu_button(page, "Restart match", func() -> void: restart_requested.emit())
 	if spectating:
 		_menu_button(page, "Play a match", func() -> void: change_champion_requested.emit())
@@ -111,6 +119,111 @@ func _build_controls(parent: Control) -> Control:
 	l.custom_minimum_size = Vector2(560, 0)
 	_menu_button(page, "Back", _show_page.bind("main"))
 	return page
+
+
+# --- Inventory hotkeys ---------------------------------------------------------
+
+## The six item slots and four potion slots, each with its key and Reset and
+## Unbind buttons, then Reset all (which asks you to click twice).
+func _build_hotkeys(parent: Control) -> Control:
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 5)
+	page.custom_minimum_size = Vector2(620, 0)
+	parent.add_child(page)
+	var hint := UiStyle.label(page, "Click a key, then press the key (or a side mouse button) you want. Esc cancels. Any key works.", 14, UiStyle.MUTED)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.custom_minimum_size = Vector2(620, 0)
+	for action in Controls.REBINDABLE:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		page.add_child(row)
+		var name_label := UiStyle.label(row, Controls.action_title(action), 15)
+		name_label.custom_minimum_size = Vector2(120, 0)
+		var key := UiStyle.button(row, "", 15)
+		key.custom_minimum_size = Vector2(150, 30)
+		key.pressed.connect(_start_listening.bind(action))
+		var reset := UiStyle.button(row, "Reset", 14)
+		reset.custom_minimum_size = Vector2(70, 30)
+		reset.tooltip_text = "Back to the default key"
+		reset.pressed.connect(func() -> void: Controls.reset(action))
+		var unbind := UiStyle.button(row, "Unbind", 14)
+		unbind.custom_minimum_size = Vector2(80, 30)
+		unbind.tooltip_text = "No key for this slot"
+		unbind.pressed.connect(func() -> void: Controls.unbind(action))
+		var warn := UiStyle.label(row, "", 13, UiStyle.GOLD)
+		warn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_hotkey_rows[action] = {"key": key, "reset": reset, "unbind": unbind, "warn": warn}
+	_hotkey_note = UiStyle.label(page, "", 14, UiStyle.GOLD)
+	_hotkey_note.custom_minimum_size = Vector2(0, 20)
+	_reset_all = UiStyle.button(page, "Reset all", 16)
+	_reset_all.custom_minimum_size = Vector2(0, 36)
+	_reset_all.pressed.connect(_on_reset_all)
+	_menu_button(page, "Back", _show_page.bind("main"))
+	Controls.bindings_changed.connect(_refresh_hotkeys)
+	return page
+
+
+func _refresh_hotkeys() -> void:
+	for action in _hotkey_rows:
+		var r: Dictionary = _hotkey_rows[action]
+		var listening: bool = _listening == action
+		(r["key"] as Button).text = "Press a key..." if listening else (Controls.key_text(action) if Controls.is_bound(action) else "Unbound")
+		(r["reset"] as Button).disabled = Controls.is_default(action)
+		(r["unbind"] as Button).disabled = not Controls.is_bound(action)
+		var others: Array[String] = Controls.conflicts(action)
+		(r["warn"] as Label).text = "" if others.is_empty() else "also: " + ", ".join(others.map(func(a: String) -> String: return Controls.action_name(a)))
+
+
+func _start_listening(action: String) -> void:
+	_listening = action
+	_hotkey_note.text = ""
+	_disarm_reset_all()
+	_refresh_hotkeys()
+
+
+func _stop_listening() -> void:
+	_listening = ""
+
+
+func _disarm_reset_all() -> void:
+	_reset_armed = false
+	_reset_token += 1
+	if _reset_all != null:
+		_reset_all.text = "Reset all"
+
+
+## Reset all asks for a second click (within a few seconds) before it does anything.
+func _on_reset_all() -> void:
+	if not _reset_armed:
+		_reset_armed = true
+		_reset_token += 1
+		var token := _reset_token
+		_reset_all.text = "Click again to reset every hotkey"
+		get_tree().create_timer(4.0).timeout.connect(func() -> void:
+			if token == _reset_token:
+				_disarm_reset_all())
+		return
+	_disarm_reset_all()
+	Controls.reset_all()
+	_hotkey_note.text = "All hotkeys are back to their defaults."
+
+
+## Takes the next key press while a slot is waiting for its key.
+func _capture_key(event: InputEvent) -> void:
+	var pressed_key := event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo
+	var pressed_btn := event is InputEventMouseButton and (event as InputEventMouseButton).pressed and (event as InputEventMouseButton).button_index in Controls.BINDABLE_MOUSE
+	if not pressed_key and not pressed_btn:
+		return
+	get_viewport().set_input_as_handled()
+	var action := _listening
+	_listening = ""
+	if pressed_key and (event as InputEventKey).physical_keycode == KEY_ESCAPE:
+		_refresh_hotkeys()
+		return
+	var taken := Controls.bind(action, event)
+	_hotkey_note.text = "%s is now %s%s." % [Controls.action_title(action), Controls.key_text(action),
+		"" if taken == "" else " (taken from %s, which is now unbound)" % taken]
+	_refresh_hotkeys()
 
 
 func _menu_button(parent: Control, text: String, action: Callable) -> Button:
@@ -172,7 +285,10 @@ func _slider(parent: Control, text: String, value: float, key: String) -> void:
 func _show_page(page_name: String) -> void:
 	for k in _pages:
 		_pages[k].visible = k == page_name
-	_title.text = {"main": "Paused", "settings": "Settings", "controls": "Controls"}[page_name]
+	_title.text = {"main": "Paused", "settings": "Settings", "controls": "Controls", "hotkeys": "Inventory hotkeys"}[page_name]
+	_stop_listening()
+	_disarm_reset_all()
+	_refresh_hotkeys()
 
 
 func open() -> void:
@@ -190,6 +306,9 @@ func close() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _listening != "" and visible:
+		_capture_key(event)
+		return
 	if not event.is_action_pressed("menu"):
 		return
 	get_viewport().set_input_as_handled()

@@ -50,6 +50,7 @@ func _ready() -> void:
 	test_v016()
 	test_v021()
 	test_selling()
+	test_inventory_layout_and_hotkeys()
 	test_potions()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
@@ -1982,3 +1983,67 @@ func test_selling() -> void:
 	check(not c.can_sell(0), "...but not away from it")
 	Combat.clock -= float(GameData.rule("sell_full_refund_sec", 10.0)) + 1.0
 	c.queue_free()
+
+
+func test_inventory_layout_and_hotkeys() -> void:
+	var c := _make("pure", Combat.Team.SARADOMIN, MapLayout.base_position(Combat.Team.SARADOMIN))
+	c.gold = 20000.0
+	c.inventory.clear()
+	c.inventory.append_array(["rune_scimitar", "boots_of_lightness"])
+	check(c.move_item(0, 3), "an item dragged to an empty slot moves there (leaving a gap)")
+	check(c.inventory.size() == 4 and c.inventory[0] == "" and c.inventory[3] == "rune_scimitar", "slot 0 is empty, the scimitar is in slot 3")
+	check(c.move_item(1, 3) and c.inventory[1] == "rune_scimitar" and c.inventory[3] == "boots_of_lightness", "dropping an item on another swaps them")
+	check(not c.move_item(2, 2) and not c.move_item(0, 2), "nothing moves between empty slots or onto itself")
+	check(not c.move_item(0, 9), "slots past the sixth don't exist")
+	check(c.item_count() == 2, "two items held")
+	c.buy_item("dragon_dagger")
+	check(c.inventory[0] == "dragon_dagger", "a new item takes the first empty slot (%s)" % str(c.inventory))
+	c.sell_slot(3)
+	check(c.inventory.size() == 2, "emptied slots at the end are trimmed (%s)" % str(c.inventory))
+	c.queue_free()
+	# The slots take a dragged item: onto another slot, never onto itself or the belt.
+	var host := Control.new()
+	add_child(host)
+	var slot := ItemSlot.create(host, 52, "3")
+	slot.slot_index = 2
+	var got: Array = []
+	slot.item_dropped.connect(func(a: int, b: int) -> void: got.append([a, b]))
+	check(slot._can_drop_data(Vector2.ZERO, {"inventory_slot": 0, "id": "x"}), "a slot accepts an item dragged from another slot")
+	check(not slot._can_drop_data(Vector2.ZERO, {"inventory_slot": 2, "id": "x"}), "...but not from itself")
+	slot._drop_data(Vector2.ZERO, {"inventory_slot": 0, "id": "x"})
+	check(got == [[0, 2]], "dropping reports (from, to)")
+	slot.set_item("rune_scimitar")
+	check(slot._get_drag_data(Vector2.ZERO) != null, "a filled slot can be dragged")
+	slot.slot_index = -1
+	check(slot._get_drag_data(Vector2.ZERO) == null and not slot._can_drop_data(Vector2.ZERO, {"inventory_slot": 0}), "the potion belt isn't draggable")
+	host.queue_free()
+	# Hotkeys: rebind, steal, unbind, reset, reset all, save and load.
+	Controls.persist = false
+	Controls.reset_all()
+	check(Controls.key_text("item_1") == "1" and Controls.is_default("item_1"), "item slot 1 starts on 1")
+	check(Controls.bind_key("item_1", KEY_F) == "" and Controls.key_text("item_1") == "F", "rebind item 1 to F")
+	check(not Controls.is_default("item_1"), "a changed key isn't the default")
+	check(Controls.bind_key("item_2", KEY_F) == "Item slot 1" and not Controls.is_bound("item_1"), "taking a key already used by another slot unbinds that slot")
+	Controls.bind_key("item_3", KEY_Q)
+	check("ability_q" in Controls.conflicts("item_3"), "a key shared with an ability is flagged")
+	var ev := InputEventKey.new()
+	ev.physical_keycode = KEY_ESCAPE
+	Controls.bind("item_4", ev)
+	check(Controls.key_text("item_4") == "4", "Esc can't be bound")
+	var mb := InputEventMouseButton.new()
+	mb.button_index = MOUSE_BUTTON_XBUTTON1
+	Controls.bind("item_5", mb)
+	check(Controls.key_text("item_5") == "Mouse 4", "a side mouse button can be bound")
+	Controls.unbind("consume_1")
+	check(not Controls.is_bound("consume_1") and Controls.key_text("consume_1") == "", "unbind leaves a slot with no key")
+	var path := "user://test_keybinds.cfg"
+	Controls.save_to(path)
+	Controls.reset_all()
+	check(Controls.key_text("item_1") == "1" and Controls.key_text("consume_1") == "7", "reset all restores every default")
+	Controls.load_from(path)
+	check(Controls.key_text("item_2") == "F" and not Controls.is_bound("consume_1") and Controls.key_text("item_5") == "Mouse 4", "bindings survive a save and load")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	Controls.reset("item_2")
+	check(Controls.key_text("item_2") == "2", "reset one key")
+	Controls.reset_all()
+	Controls.persist = true

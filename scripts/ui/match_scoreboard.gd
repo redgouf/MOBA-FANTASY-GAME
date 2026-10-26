@@ -151,9 +151,8 @@ func is_seen_by(c: Champion, team: int) -> bool:
 
 ## Items shown for `c`: live for allies (and spectators), last seen for enemies.
 func shown_items(c: Champion) -> Array:
-	if viewer_team < 0 or c.team == viewer_team:
-		return c.inventory
-	return _seen.get(c, {}).get("items", [])
+	var items: Array = c.inventory if viewer_team < 0 or c.team == viewer_team else _seen.get(c, {}).get("items", [])
+	return items.filter(func(id: Variant) -> bool: return str(id) != "")
 
 
 func refresh() -> void:
