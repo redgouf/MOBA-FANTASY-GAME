@@ -3,7 +3,12 @@ extends Panel
 ## One inventory square: the item's OSRS icon (or its name), hotkey,
 ## and a cooldown shade for spec weapons. Hover for the full description.
 
+## Right-click (the HUD sells the item while the shop is open).
+signal secondary_pressed
+
 var item_id := ""
+## Extra last line of the tooltip ("Right-click to sell: 840 gp"), set by the HUD.
+var sell_line := ""
 var compact := false
 ## Whose item this is (tooltips show Perfect food and make-your-own for them).
 var champ: Champion
@@ -52,6 +57,18 @@ func _build(key_text: String) -> void:
 	_cd.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_key = UiStyle.label(self, key_text, 10, UiStyle.MUTED)
 	_key.position = Vector2(3, 0)
+
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		secondary_pressed.emit()
+		accept_event()
+
+
+func _get_tooltip(_at_position: Vector2) -> String:
+	if sell_line == "" or tooltip_text == "":
+		return tooltip_text
+	return tooltip_text + "\n\n" + sell_line
 
 
 ## cooldown_left/cooldown_total in seconds (0 = ready or no active).

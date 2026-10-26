@@ -358,6 +358,8 @@
   "item_slots": 6,
   "consumable_slots": 4,
   "shop_radius": 14,
+  "sell_back_pct": 0.7,
+  "sell_full_refund_sec": 10,
   "max_level": 18,
   "starting_skill_points": 1,
   "basic_max_rank": 5,

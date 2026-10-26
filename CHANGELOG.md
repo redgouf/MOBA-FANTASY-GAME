@@ -2,6 +2,14 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.25.0
+
+- You can sell items, like in League Classic. You get 70% of an item's full price back (`rules.sell_back_pct`), or all of it if you bought it in the last 10 seconds (`rules.sell_full_refund_sec`), so a misclick costs nothing. Selling works where buying does, at your base. Potions and food can't be sold.
+  - Right-click an item in your inventory while the shop is open to sell it. Its tooltip shows what it sells for.
+  - The shop's detail panel gets a Sell button next to Buy when you own the selected item.
+- Right-click any item in the shop (the grid, the recipe tree, or "Builds into") to buy it.
+- The shop window is 15% smaller, so it covers less of the game and your inventory stays visible.
+
 ## 0.24.0
 
 - New shop, styled after the OSRS Grand Exchange and laid out like League's shop:

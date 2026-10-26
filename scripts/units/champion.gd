@@ -59,6 +59,8 @@ var skill_points := 1
 var creep_score := 0
 var inventory: Array[String] = []
 var consumables: Array[String] = []
+## Items bought lately ({id, time}): they sell back in full for a few seconds.
+var recent_buys: Array = []
 
 var is_bot := false
 var bot_lane := "mid"
@@ -548,11 +550,67 @@ func buy_item(item_id: String) -> bool:
 	var cost := item_cost(item_id)
 	for part in owned_parts(item_id):
 		inventory.erase(part)
+		_forget_recent_buy(part)
 	inventory.append(item_id)
 	gold -= float(cost)
+	recent_buys.append({"id": item_id, "time": Combat.clock})
 	_rebuild_item_stats()
 	recompute_stats(false)
 	return true
+
+
+# --- Selling (League Classic style) ---------------------------------------------
+
+## What an item sells for: a share of its full price (rules.sell_back_pct, 70%),
+## all of it when it was bought in the last few seconds (rules.sell_full_refund_sec).
+func sell_price(item_id: String) -> int:
+	var full := float(GameData.item(item_id).get("cost", 0))
+	var pct := 1.0 if _recent_buy_index(item_id) >= 0 else float(GameData.rule("sell_back_pct", 0.7))
+	return roundi(full * pct)
+
+
+## Can the item in inventory slot `index` be sold now? Only at your base, like
+## buying; potions and food (the belt) can't be sold back.
+func can_sell(index: int) -> bool:
+	if index < 0 or index >= inventory.size() or not in_shop_range():
+		return false
+	return int(GameData.item(inventory[index]).get("cost", 0)) > 0
+
+
+func sell_slot(index: int) -> bool:
+	if not can_sell(index):
+		return false
+	var item_id := inventory[index]
+	var price := sell_price(item_id)
+	_forget_recent_buy(item_id)
+	inventory.remove_at(index)
+	gold += float(price)
+	_rebuild_item_stats()
+	recompute_stats(false)
+	return true
+
+
+## Sells the first copy of `item_id` in your inventory.
+func sell_item(item_id: String) -> bool:
+	var idx := inventory.find(item_id)
+	return idx >= 0 and sell_slot(idx)
+
+
+func _recent_buy_index(item_id: String) -> int:
+	var window := float(GameData.rule("sell_full_refund_sec", 10.0))
+	for i in recent_buys.size():
+		var r: Dictionary = recent_buys[i]
+		if str(r["id"]) == item_id and Combat.clock - float(r["time"]) <= window and inventory.has(item_id):
+			return i
+	return -1
+
+
+func _forget_recent_buy(item_id: String) -> void:
+	var i := _recent_buy_index(item_id)
+	if i >= 0:
+		recent_buys.remove_at(i)
+	while recent_buys.size() > 12:
+		recent_buys.pop_front()
 
 
 func use_consumable(index: int) -> bool:

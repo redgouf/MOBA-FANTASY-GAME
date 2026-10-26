@@ -293,7 +293,9 @@ func _build_bottom_left(root: Control) -> void:
 	items.position = Vector2(296 if not osrs_ui else 310, 10)
 	p.add_child(items)
 	for i in 6:
-		_item_slots.append(ItemSlot.create(items, 52, str(i + 1)))
+		var slot := ItemSlot.create(items, 52, str(i + 1))
+		slot.secondary_pressed.connect(_sell_slot.bind(i))
+		_item_slots.append(slot)
 
 	var belt := HBoxContainer.new()
 	belt.add_theme_constant_override("separation", 4)
@@ -459,12 +461,24 @@ func _build_shop(root: Control) -> void:
 	var holder := Control.new()
 	UiStyle.place(holder, Control.PRESET_CENTER, -GrandExchange.SIZE * 0.5 + Vector2(0, -40), GrandExchange.SIZE)
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.pivot_offset = GrandExchange.SIZE * 0.5
+	holder.scale = Vector2.ONE * GrandExchange.WINDOW_SCALE
 	root.add_child(holder)
 	_shop = GrandExchange.create(holder, champ)
 	_shop.visible = false
 
 
 # --- Shop --------------------------------------------------------------------
+
+## Right-click on an inventory item sells it while the shop is open.
+func _sell_slot(index: int) -> void:
+	if spectator or not _shop.visible or champ == null or index >= champ.inventory.size():
+		return
+	if not champ.in_shop_range():
+		announce("Return to your base to sell.")
+	elif champ.sell_slot(index):
+		_shop.refresh()
+
 
 func is_shop_open() -> bool:
 	return _shop.visible
@@ -594,6 +608,9 @@ func _update_bottom_left() -> void:
 		var total := float(GameData.item(id).get("spec_active", {}).get("cooldown", 0.0)) if key != "" else 0.0
 		_item_slots[i].champ = champ
 		_item_slots[i].set_item(id, left, total)
+		_item_slots[i].sell_line = ""
+		if id != "" and _shop.visible and champ.can_sell(i):
+			_item_slots[i].sell_line = "Right-click to sell: %s gp" % GrandExchange._commas(champ.sell_price(id))
 		if key != "" and Engine.get_process_frames() % 15 == i:
 			# Spec weapons: add the live damage breakdown of their special attack.
 			var spec_tip := AbilityInfo.tooltip(champ, key)

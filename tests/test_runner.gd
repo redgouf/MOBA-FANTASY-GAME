@@ -49,6 +49,7 @@ func _ready() -> void:
 	await test_v015_ui()
 	test_v016()
 	test_v021()
+	test_selling()
 	test_potions()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
@@ -1953,3 +1954,31 @@ func test_v021() -> void:
 	check((cloth_mesh.material_override as BaseMaterial3D).disable_receive_shadows, "a flag's cloth doesn't receive shadows")
 	check(cloth_mesh.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_ON, "...but still casts them")
 	cloth.free()
+
+
+func test_selling() -> void:
+	var c := _make("pure", Combat.Team.SARADOMIN, MapLayout.base_position(Combat.Team.SARADOMIN))
+	c.gold = 5000.0
+	c.inventory.clear()
+	var before := c.gold
+	check(c.buy_item("rune_scimitar"), "buy a rune scimitar")
+	var full := int(GameData.item("rune_scimitar").get("cost", 0))
+	check(c.sell_price("rune_scimitar") == full, "bought just now: it sells back in full")
+	check(c.sell_item("rune_scimitar") and is_equal_approx(c.gold, before), "selling right away refunds everything")
+	check(not c.inventory.has("rune_scimitar"), "the sold item leaves your inventory")
+	c.buy_item("rune_scimitar")
+	Combat.clock += float(GameData.rule("sell_full_refund_sec", 10.0)) + 1.0
+	var pct := float(GameData.rule("sell_back_pct", 0.7))
+	check(is_equal_approx(pct, 0.7), "League's 70% sell back")
+	check(c.sell_price("rune_scimitar") == roundi(full * pct), "later it sells for %d%%" % roundi(pct * 100.0))
+	var g := c.gold
+	check(c.sell_slot(0) and is_equal_approx(c.gold, g + roundf(full * pct)), "sold for 70%% (+%d gp)" % roundi(full * pct))
+	c.gold = 9000.0
+	c.inventory.clear()
+	check(not c.can_sell(0), "an empty slot sells nothing")
+	c.buy_item("rune_scimitar")
+	check(c.can_sell(0), "an item in your inventory sells at your base")
+	c.global_position = Vector3.ZERO
+	check(not c.can_sell(0), "...but not away from it")
+	Combat.clock -= float(GameData.rule("sell_full_refund_sec", 10.0)) + 1.0
+	c.queue_free()

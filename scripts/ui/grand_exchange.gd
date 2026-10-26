@@ -7,8 +7,11 @@ extends Panel
 ## low). Right, in its own window: "Builds into" along the top, the selected
 ## item's recipe tree under it (the item at the top, its parts below; parts
 ## you own are green and come off the price), then its stats, effects and
-## the Buy button. Click an item to see it, double-click (or Buy) to buy;
-## click any item in the tree or the "Builds into" row to jump to it.
+## the Buy button (and a Sell button for an item you own). Click an item to
+## see it, double-click, right-click (or Buy) to buy; click any item in the
+## tree or the "Builds into" row to jump to it. Selling is League's: you get
+## sell_back_pct of the price back (all of it in the first few seconds), from
+## the Sell button or by right-clicking the item in your inventory.
 ##
 ## With the private model pack the frames are the real GE sprites (steel
 ## border, trade backing, item boxes, buttons, chatbox parchment; see
@@ -16,6 +19,8 @@ extends Panel
 ## code (OsrsUi), so the public build looks close.
 
 const SIZE := Vector2(1000, 700)
+## How big the window is drawn (the HUD scales it down so less of the game is covered).
+const WINDOW_SCALE := 0.85
 const TILE := Vector2(132, 92)
 const TABS: Array[String] = ["Weapons", "Defence", "Consumables", "Boots", "Skilling", "Materials"]
 const TAB_ICONS := {
@@ -56,6 +61,7 @@ var _d_name: Label
 var _d_price: Label
 var _d_body: RichTextLabel
 var _d_buy: Button
+var _d_sell: Button
 var _d_status: Label
 var _refresh := 0.0
 var _inv_key := ""
@@ -408,6 +414,7 @@ func _build_detail() -> void:
 		icon.position = Vector2(6, 4)
 		icon.size = Vector2(30, 30)
 		b.pressed.connect(_pick_into.bind(i))
+		b.gui_input.connect(_right_click_buy.bind(func() -> String: return str(_into[i]["id"])))
 		d.add_child(b)
 		_into.append({"button": b, "icon": icon, "id": ""})
 	divider(d, 86, 8, w - 16)
@@ -455,6 +462,14 @@ func _build_detail() -> void:
 	big_font(_d_buy, true)
 	_d_buy.pressed.connect(func() -> void: buy(selected))
 	d.add_child(_d_buy)
+	_d_sell = Button.new()
+	_d_sell.position = Vector2(16, 582)
+	_d_sell.size = Vector2(w - 32, 38)
+	style_bevel(_d_sell, 18, OsrsUi.ORANGE)
+	big_font(_d_sell, true)
+	_d_sell.visible = false
+	_d_sell.pressed.connect(func() -> void: sell(selected))
+	d.add_child(_d_sell)
 
 
 # --- Browsing ------------------------------------------------------------------
@@ -524,6 +539,7 @@ func _add_tile(id: String) -> void:
 	b.gui_input.connect(func(e: InputEvent) -> void:
 		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and e.double_click:
 			buy(id))
+	b.gui_input.connect(_right_click_buy.bind(func() -> String: return id))
 	b.pressed.connect(select.bind(id))
 	_grid.add_child(b)
 	_tiles[id] = {"button": b, "price": price, "icon": icon, "name": n}
@@ -614,6 +630,24 @@ func buy(id: String) -> void:
 		refresh()
 
 
+## Right-click on an item anywhere in the shop buys it (like League).
+func _right_click_buy(e: InputEvent, id_of: Callable) -> void:
+	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_RIGHT:
+		var id: String = id_of.call()
+		if id != "":
+			if id != selected:
+				select(id)
+			buy(id)
+
+
+## Sells your copy of an item (the Sell button).
+func sell(id: String) -> void:
+	if champ == null or id == "" or not champ.in_shop_range():
+		return
+	if champ.sell_item(id):
+		refresh()
+
+
 func _process(delta: float) -> void:
 	if not visible:
 		return
@@ -641,6 +675,7 @@ func refresh() -> void:
 		(t["name"] as Label).modulate = dim
 	if selected == "":
 		_d_buy.disabled = true
+		_d_sell.visible = false
 		_d_status.text = ""
 		return
 	var key := "%s|%s" % [selected, ",".join(champ.inventory)]
@@ -664,6 +699,27 @@ func refresh() -> void:
 		status = "Your inventory is full."
 	_d_status.text = status
 	_d_buy.disabled = status != ""
+	_refresh_sell()
+
+
+## The Sell button, shown beside Buy when you own the selected item.
+func _refresh_sell() -> void:
+	var w := RIGHT.size.x - 32.0
+	var idx := champ.inventory.find(selected) if selected != "" else -1
+	_d_sell.visible = idx >= 0
+	if idx < 0:
+		_d_buy.size.x = w
+		return
+	var half := floorf((w - 8.0) * 0.5)
+	_d_buy.size.x = half
+	_d_sell.position.x = 16.0 + half + 8.0
+	_d_sell.size.x = w - half - 8.0
+	var price := champ.sell_price(selected)
+	_d_sell.text = "Sell: %s gp" % _commas(price)
+	_d_sell.disabled = not champ.can_sell(idx)
+	var pct := roundi(float(GameData.rule("sell_back_pct", 0.7)) * 100.0)
+	_d_sell.tooltip_text = UiStyle.wrap("Sell for %d%% of its full price (%s gp). Bought in the last %d seconds, it sells back in full. You can also right-click an item in your inventory to sell it." % [
+		pct, _commas(int(GameData.item(selected).get("cost", 0))), int(GameData.rule("sell_full_refund_sec", 10.0))])
 
 
 static func _commas(n: int) -> String:
@@ -760,6 +816,7 @@ class RecipeTree extends Control:
 			g.set_corner_radius_all(3)
 			b.add_theme_stylebox_override("normal", g)
 		b.tooltip_text = UiStyle.wrap(ItemSlot._tooltip(GameData.item(id), ge.champ))
+		b.gui_input.connect(ge._right_click_buy.bind(func() -> String: return id))
 		if row > 0:
 			b.pressed.connect(ge.select.bind(id))
 			b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
