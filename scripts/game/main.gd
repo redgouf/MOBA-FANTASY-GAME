@@ -754,8 +754,9 @@ func _take_screenshot() -> void:
 			camera_rig._apply_zoom()
 			camera_rig.center_on(origin + Vector3(1.0, 0, 0.5))
 			await get_tree().process_frame
-			(s.custom_model as CannonModel).fire(origin + Vector3(-4.0, 0, -6.0))
-			(cart.custom_model as CannonModel).fire(origin + Vector3(8.0, 0, -4.0))
+			if not _args.has("shot-nofire"):
+				(s.custom_model as CannonModel).fire(origin + Vector3(-4.0, 0, -6.0))
+				(cart.custom_model as CannonModel).fire(origin + Vector3(8.0, 0, -4.0))
 			await get_tree().create_timer(0.08).timeout
 		"teleport":
 			# Home teleport mid-cast (--shot-tele-at=S seconds into the channel).

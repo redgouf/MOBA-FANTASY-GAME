@@ -149,8 +149,8 @@
     "tower_nexus": {"saradomin": [{"object": 1939, "height": 7.2}], "zamorak": [{"object": 31554, "height": 7.2, "tint": [0.45, 0.27, 0.25]}]},
     "altar": {"saradomin": [{"object": 26364, "width": 3.8}], "zamorak": [{"object": 26258, "width": 3.6}]},
     "flag": {
-      "saradomin": [{"object": 4387, "width": 4.8}, {"object": 4902, "height": 7.5}],
-      "zamorak": [{"object": 4388, "width": 4.8}, {"object": 4903, "height": 7.5}]
+      "saradomin": [{"object": 4387, "width": 4.8, "receive_shadows": false}, {"object": 4902, "height": 7.5, "receive_shadows": false}],
+      "zamorak": [{"object": 4388, "width": 4.8, "receive_shadows": false}, {"object": 4903, "height": 7.5, "receive_shadows": false}]
     }
   },
   "props": {"cannon": 6, "prayer_altar": 409, "yew": 10822, "ballista": 2181},

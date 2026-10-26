@@ -6,6 +6,8 @@ extends Node3D
 
 signal navigation_ready
 
+## How far ground clutter is lifted off the terrain (metres).
+const CLUTTER_LIFT := 0.03
 const GROUND_COLOR := Color(0.33, 0.31, 0.22)
 const LANE_COLOR := Color(0.56, 0.48, 0.34)
 const RIVER_COLOR := Color(0.2, 0.36, 0.5)
@@ -58,6 +60,10 @@ func _build_osrs_dressing() -> void:
 	var tile := float(info.get("tile", 1.4))
 	var origin: Array = info.get("origin", [-110.6, 110.6])
 	rift.scale = Vector3.ONE * tile
+	# Pebbles and ground clutter sit exactly flush with the terrain: lift them a
+	# hair so they stop z-fighting with it (flickering dark specks).
+	for n in rift.find_children("clutter*", "MeshInstance3D", true, false):
+		(n as MeshInstance3D).position.y += CLUTTER_LIFT / tile
 	rift.position = Vector3(float(origin[0]), 0.0, float(origin[1]))
 	add_child(rift)
 	osrs_dressed = true

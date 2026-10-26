@@ -58,6 +58,8 @@ static func structure(def_id: String, team: int) -> Node3D:
 		var off: Array = p.get("offset", [0, 0, 0])
 		o.position = Vector3(float(off[0]), float(off[1]) + (y if bool(p.get("stack", false)) else 0.0), float(off[2]))
 		o.rotation_degrees.y = float(p.get("rotation", 0.0))
+		if not bool(p.get("receive_shadows", true)):
+			no_receive_shadows(o)
 		root.add_child(o)
 		if bool(p.get("stack", false)):
 			y += _bounds(o).size.y
@@ -68,6 +70,27 @@ static func structure(def_id: String, team: int) -> Node3D:
 static func prop(key: String, height: float = 0.0, width: float = 0.0) -> Node3D:
 	var id := int(OsrsModels.config().get("props", {}).get(key, 0))
 	return object(id, height, width) if id > 0 else null
+
+
+## Stops a model's surfaces receiving shadows (it still casts them onto the
+## ground and everything else): thin two-faced cloth, like the team standards'
+## banners, shadows itself in stripes otherwise. Works on copies of the
+## shared materials.
+static func no_receive_shadows(root: Node3D) -> void:
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		if mi.material_override is BaseMaterial3D:
+			var d := (mi.material_override as BaseMaterial3D).duplicate() as BaseMaterial3D
+			d.disable_receive_shadows = true
+			mi.material_override = d
+			continue
+		for i in mi.mesh.get_surface_count():
+			var src := mi.get_active_material(i) as BaseMaterial3D
+			if src == null:
+				continue
+			var d := src.duplicate() as BaseMaterial3D
+			d.disable_receive_shadows = true
+			mi.set_surface_override_material(i, d)
 
 
 ## Multiplies every surface's colour by `tint` (a darker or team-coloured

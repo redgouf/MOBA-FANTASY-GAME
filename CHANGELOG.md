@@ -2,6 +2,12 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.23.1
+
+- Siege minion: the ballista now points the way the minion travels (the cart was turned the wrong way round).
+- Textures flickering (z-fighting) fixed. The camera's near plane was 0.05 m, which left almost no depth precision for distant ground, so flat tiles, pebbles and rock bases flickered; it's now 3 m. Pebbles and other ground clutter are also lifted 3 cm off the terrain they sat flush on.
+- The Zamorak and Saradomin standards no longer receive shadows, so the cloth and its pole stop shading themselves in stripes. They still cast shadows on the ground and the rest of the map.
+
 ## 0.23.0
 
 - Everything moves at half speed (champions, minions and monsters) to suit the map's size. `rules.move_speed_scale` sets it.

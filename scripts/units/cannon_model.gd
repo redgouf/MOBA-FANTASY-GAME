@@ -42,6 +42,9 @@ func _build(accent: Color, on_cart: bool) -> void:
 			head.add_child(barrel)
 			ballista.rotation_degrees.y = float(OsrsModels.config().get("ballista_yaw", 0.0))
 			barrel.add_child(ballista)
+			# The barrel points along -Z and the minion walks along +Z, so the
+			# whole cart is turned round: the ballista leads the way it travels.
+			rotation.y = PI
 			_barrel_rest = barrel.position
 			return
 	if on_cart:

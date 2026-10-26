@@ -35,6 +35,10 @@ var _drag_anchor := Vector3.ZERO
 func _ready() -> void:
 	camera = Camera3D.new()
 	camera.fov = 45.0
+	# The nearest thing it ever shows is metres away: a near plane of 0.05 m
+	# spent most of the depth buffer on empty space, so flat ground, pebbles
+	# and rock bases z-fought (flickered) at distance.
+	camera.near = 3.0
 	camera.far = 600.0
 	add_child(camera)
 	camera.current = true
