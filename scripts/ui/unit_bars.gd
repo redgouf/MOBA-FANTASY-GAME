@@ -5,9 +5,10 @@ extends Control
 ## bars in the world:
 ##   champions  name, then a framed bar: a level badge, health (a tick every
 ##              chunk of health) and the prayer bar (blue) under it, the
-##              overhead prayer icon above the name. The name is coloured by
-##              level against yours, like OSRS's right-click menu: green lower,
-##              yellow even, orange then red higher
+##              overhead prayer icon above the name. After the name, the
+##              champion's OSRS combat level, coloured against yours like
+##              OSRS's right-click menu: green lower, yellow even, orange then
+##              red higher. The game level (1-18) is in the badge.
 ## The health colour tells the teams apart: green you, blue allies, red
 ## enemies, yellow neutral monsters; dark where health is missing.
 ##   minions    a thin bar, no name
@@ -21,8 +22,6 @@ const ALLY := Color(0.2, 0.55, 0.95)
 const ENEMY := Color(0.86, 0.16, 0.12)
 const NEUTRAL := Color(0.92, 0.75, 0.18)
 const MISSING := Color(0.1, 0.1, 0.1, 0.9)
-## Level difference at which a name is fully green or red.
-const LEVEL_SPAN := 5.0
 const PRAYER := Color(0.3, 0.72, 0.95)
 const FRAME := Color(0.03, 0.03, 0.03, 0.92)
 const CHAMP_W := 128.0
@@ -133,8 +132,10 @@ func _draw_champion(cam: Camera3D, c: Champion) -> void:
 	draw_circle(bc, badge_r + 1.5, Color(0.75, 0.62, 0.3))
 	draw_circle(bc, badge_r, Color(0.22, 0.05, 0.04) if c.team != (viewer.team if is_instance_valid(viewer) else c.team) else Color(0.05, 0.1, 0.22))
 	_text(bc + Vector2(0, 5.0), str(c.level), 13, Color(1, 1, 1))
-	# Name above, and the overhead prayer above that.
-	_text(Vector2(p.x, top - 5.0), c.display_name, 13, level_color(c.level, viewer.level if is_instance_valid(viewer) and viewer is Champion else c.level))
+	# Name and combat level above ("Dharok  (level-115)", OSRS right-click
+	# style: the level coloured against yours), the overhead prayer above that.
+	var mine := (viewer as Champion).combat_level() if is_instance_valid(viewer) and viewer is Champion else c.combat_level()
+	_name_with_level(Vector2(p.x, top - 5.0), c.display_name, c.combat_level(), level_color(c.combat_level(), mine))
 	var oh := c.overhead_prayer()
 	if oh != "":
 		var tex := Icons.overhead(oh)
@@ -147,6 +148,7 @@ func _text(center_bottom: Vector2, s: String, size: int, color: Color) -> void:
 	var w := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 	var pos := Vector2(center_bottom.x - w * 0.5, center_bottom.y)
 	draw_string_outline(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 4, Color(0, 0, 0, 0.9))
+	draw_string(font, pos + Vector2(1, 1), s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(0, 0, 0, 1))   # OSRS drop shadow
 	draw_string(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
 
 
@@ -160,12 +162,40 @@ func team_fill(u: Unit) -> Color:
 	return ALLY if u.team == my_team else ENEMY
 
 
-## OSRS right-click colours by level: green when lower than yours, yellow
-## when even, then orange to red as they get higher.
+## The OSRS client's right-click colours for a combat level against yours,
+## in its steps of 3 levels: green when far lower, through lime, yellow when
+## even, orange, to red when 10 or more higher.
 static func level_color(level: int, mine: int) -> Color:
-	var t := clampf(float(level - mine) / LEVEL_SPAN, -1.0, 1.0)
-	if t < 0.0:
-		return Color(1.0, 1.0, 0.0).lerp(Color(0.0, 1.0, 0.0), -t)
-	if t < 0.5:
-		return Color(1.0, 1.0, 0.0).lerp(Color(1.0, 0.56, 0.0), t * 2.0)
-	return Color(1.0, 0.56, 0.0).lerp(Color(1.0, 0.0, 0.0), (t - 0.5) * 2.0)
+	var d := level - mine
+	if d < -9:
+		return Color8(0x00, 0xff, 0x00)
+	if d < -6:
+		return Color8(0x40, 0xff, 0x00)
+	if d < -3:
+		return Color8(0x80, 0xff, 0x00)
+	if d < 0:
+		return Color8(0xc0, 0xff, 0x00)
+	if d == 0:
+		return Color8(0xff, 0xff, 0x00)
+	if d <= 3:
+		return Color8(0xff, 0xc0, 0x00)
+	if d <= 6:
+		return Color8(0xff, 0x80, 0x00)
+	if d <= 9:
+		return Color8(0xff, 0x40, 0x00)
+	return Color8(0xff, 0x00, 0x00)
+
+
+## "Name  (level-115)": the name in white, the level in its colour, centred.
+func _name_with_level(center_bottom: Vector2, n: String, combat: int, color: Color) -> void:
+	var font := get_theme_default_font()
+	var size := 13
+	var lvl := "  (level-%d)" % combat
+	var w1 := font.get_string_size(n, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	var w2 := font.get_string_size(lvl, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	var x := center_bottom.x - (w1 + w2) * 0.5
+	for part in [[n, Color(1, 1, 1), x], [lvl, color, x + w1]]:
+		var pos := Vector2(float(part[2]), center_bottom.y)
+		draw_string_outline(font, pos, str(part[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, size, 4, Color(0, 0, 0, 0.9))
+		draw_string(font, pos + Vector2(1, 1), str(part[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(0, 0, 0, 1))
+		draw_string(font, pos, str(part[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, size, part[1])

@@ -1,19 +1,25 @@
 class_name TeleportFx
 extends Node3D
-## The home teleport (recall), played over the channel the way OSRS does it:
-## the champion looks left, then right, then throws its arms out and casts
-## the teleport (OSRS animation 714 with the white-and-blue swirl), and
-## arrives at the fountain with the landing animation (715).
+## The home teleport (recall), played over the 8 s channel: the champion
+## spends most of it looking around sneakily (OSRS "sneaky look around",
+## glancing left and right), then for the last moments casts the normal OSRS
+## teleport (animation 714 with its teleport graphics), and arrives at the
+## fountain with the landing animation (715). models.json "teleport" names
+## the clips and the graphic; without the pack a swirl of light and two
+## stand-in arms play instead.
 ## Purely visual: Champion's recall timer decides when the teleport happens.
 
-const LOOK_END := 1.5            # seconds spent looking left and right
-const LOOK_ANGLE := deg_to_rad(55.0)
+const CAST_TIME := 1.8           # the teleport cast at the end of the channel
+const GLANCE_PERIOD := 2.6       # one look left and right
+const LOOK_ANGLE := deg_to_rad(50.0)
 const CAST_CLIP := "a714"
 const ARRIVE_CLIP := "a715"
+const LOOK_CLIP := "a10684"
 const SWIRL := Color(0.78, 0.88, 1.0)
 
 var champ: Champion
 var elapsed := 0.0
+var look_end := 1.5              # when the looking around stops and the cast starts
 var _base_yaw := 0.0
 var _cast_started := false
 var _arms: Array[MeshInstance3D] = []
@@ -56,11 +62,12 @@ static func finish(c: Champion, from: Vector3) -> void:
 	CombatFx.ring(parent, c.global_position, 1.6, Color(SWIRL.r, SWIRL.g, SWIRL.b, 0.7), 0.6, 0.1)
 	CombatFx.glow(c, SWIRL, 0.8)
 	if c.osrs != null:
-		c.osrs.play(ARRIVE_CLIP, 1.2)
+		c.osrs.play(_clip("arrive_clip", ARRIVE_CLIP), 1.2)
 
 
 func _ready() -> void:
 	_base_yaw = champ.rotation.y
+	look_end = maxf(0.5, champ.recall_timer - CAST_TIME) if champ.recall_timer > 0.0 else 1.5
 	if champ.osrs == null:
 		_build_arms()
 
@@ -71,9 +78,11 @@ func _process(delta: float) -> void:
 		queue_free()
 		return
 	elapsed += delta
-	if elapsed < LOOK_END:
-		# Look left, look right, back to the front.
-		var t := elapsed / LOOK_END
+	if elapsed < look_end:
+		# Sneak a look around: glance left, then right, again and again.
+		if champ.osrs != null and not champ.osrs.is_busy():
+			champ.osrs.play(_clip("look_clip", LOOK_CLIP), minf(2.0, look_end - elapsed))
+		var t := fmod(elapsed, GLANCE_PERIOD) / GLANCE_PERIOD
 		var yaw := 0.0
 		if t < 0.3:
 			yaw = LOOK_ANGLE * _ease(t / 0.3)
@@ -87,7 +96,7 @@ func _process(delta: float) -> void:
 	if not _cast_started:
 		_start_cast()
 	# Arms out (whitebox stand-in for the OSRS cast pose).
-	var k := clampf((elapsed - LOOK_END) / 0.35, 0.0, 1.0)
+	var k := clampf((elapsed - look_end) / 0.35, 0.0, 1.0)
 	for i in _arms.size():
 		var side := -1.0 if i == 0 else 1.0
 		_arms[i].rotation = Vector3(0.0, 0.0, side * lerpf(0.15, 1.9, _ease(k)))
@@ -99,9 +108,13 @@ func _start_cast() -> void:
 	_cast_started = true
 	if champ.osrs != null:
 		var left := maxf(0.6, champ.recall_timer)
-		champ.osrs.play(CAST_CLIP, minf(1.58, left))
+		champ.osrs.play(_clip("cast_clip", CAST_CLIP), minf(1.58, left))
 	for a in _arms:
 		a.visible = true
+	# The OSRS teleport graphic, when the pack has it.
+	var gfx := int(OsrsModels.config().get("teleport", {}).get("cast_gfx", 0)) if champ.osrs != null else 0
+	if OsrsGfx.spawn(champ.get_parent(), gfx, champ.global_position, champ) != null:
+		return
 	# The swirl of light rising around the caster (OSRS teleport gfx).
 	_swirl = CPUParticles3D.new()
 	_swirl.amount = 70
@@ -178,13 +191,17 @@ func _build_arms() -> void:
 
 
 func _restore() -> void:
-	if is_instance_valid(champ) and elapsed < LOOK_END:
+	if is_instance_valid(champ) and elapsed < look_end:
 		champ.rotation.y = _base_yaw
 	for a in _arms:
 		if is_instance_valid(a):
 			a.visible = false
 	if _swirl != null:
 		_swirl.emitting = false
+
+
+static func _clip(key: String, fallback: String) -> String:
+	return str(OsrsModels.config().get("teleport", {}).get(key, fallback))
 
 
 static func _ease(t: float) -> float:

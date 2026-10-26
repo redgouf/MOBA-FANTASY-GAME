@@ -1,0 +1,47 @@
+class_name OsrsFont
+extends RefCounted
+## The real OSRS interface fonts, from the private model pack
+## (private_assets/osrs/ui/fonts, made by tools/osrs_extract's "ui" step):
+## p12 ("plain 12") for all text, b12 (bold) for titles and q8 (the quill
+## font) for big headings. apply() makes p12 the default font for every
+## Control and Label3D; without the pack the game keeps Godot's font.
+## They're pixel fonts: drawn at their own size (or whole multiples of it),
+## so they stay crisp like in OSRS.
+
+const DIR := "res://private_assets/osrs/ui/fonts/"
+
+static var _fonts: Dictionary = {}
+static var active := false
+
+
+## Loads a font by name ("p12_full", "b12_full", "q8_full", "p11_full"), or null.
+static func get_font(font_name: String) -> FontFile:
+	if not _fonts.has(font_name):
+		var path := DIR + font_name + ".fnt"
+		var f: FontFile = load(path) if ResourceLoader.exists(path) else null
+		if f != null:
+			f.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_INTEGER_ONLY
+			f.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+			f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+		_fonts[font_name] = f
+	return _fonts[font_name]
+
+
+## Switches the whole interface to the OSRS font, when the pack has it.
+static func apply() -> bool:
+	if not OsrsModels.available():
+		return false
+	var f := get_font("p12_full")
+	if f == null:
+		return false
+	ThemeDB.fallback_font = f                      # Label3D and anything without a theme
+	ThemeDB.get_default_theme().default_font = f   # every Control
+	active = true
+	return true
+
+
+## The font for a heading of this size: bold for titles, quill for big ones.
+static func heading(size: int) -> Font:
+	if not active:
+		return null
+	return get_font("q8_full") if size >= 30 else get_font("b12_full")

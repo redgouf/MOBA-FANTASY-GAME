@@ -24,6 +24,7 @@ var _dead := false
 var _loco := ""
 var _clip_names: PackedStringArray = []
 var _gem_holder: Node3D       # the hand that holds the Skiller's next gem
+var _hanging: Array[Node3D] = []   # props that hang straight down from a hand (the gem bag)
 var _gem_size := 0.1
 
 
@@ -59,9 +60,12 @@ static func player(cfg: Dictionary) -> OsrsActor:
 			continue
 		if prop.has("item"):
 			# An inventory item held in the hand (the Skiller's gem bag).
-			var model := OsrsModels.item_model(int(prop["item"]), float(prop.get("size", 0.2)))
+			var hang := bool(prop.get("hang", false))
+			var model := OsrsModels.item_model(int(prop["item"]), float(prop.get("size", 0.2)), hang)
 			if model != null:
 				holder.add_child(model)
+				if hang:
+					a._hanging.append(holder)
 		elif bool(prop.get("gem", false)):
 			a._gem_holder = holder
 			a._gem_size = float(prop.get("size", 0.1))
@@ -285,6 +289,10 @@ func revive() -> void:
 
 
 func _process(delta: float) -> void:
+	# Hanging props keep upright whatever the hand does (a sack hangs by its cinch).
+	for h in _hanging:
+		if is_instance_valid(h) and h.is_inside_tree():
+			h.global_basis = Basis(global_basis.get_rotation_quaternion()).scaled(h.global_basis.get_scale())
 	if _dead or anim == null:
 		return
 	if _oneshot_left > 0.0:

@@ -67,10 +67,28 @@ func _walk(dir: String) -> Array[String]:
 func _excluded_patterns() -> Array[String]:
 	var out: Array[String] = []
 	if not OS.get_cmdline_user_args().has("--all") and str(OsrsModels.manifest().get("source", "")) == "osrs_extract":
-		for d in ["maps", "spotanims", "textures", "sprites"]:
-			out.append("private_assets/osrs/%s/*" % d)
-		var used_items := {}
 		var cfg_m := OsrsModels.config()
+		for d in ["maps", "textures", "sprites"]:
+			out.append("private_assets/osrs/%s/*" % d)
+		# Spell graphics: only the ones models.json uses.
+		var used_gfx := {str(int(cfg_m.get("teleport", {}).get("cast_gfx", 0))): true}
+		var gfx_lists: Array = []
+		for c in cfg_m.get("champions", {}).values():
+			for ab in c.get("abilities", {}).values():
+				gfx_lists.append(ab.get("gfx", {}))
+		for s in cfg_m.get("spec_weapons", {}).values():
+			gfx_lists.append(s.get("gfx", {}))
+		while not gfx_lists.is_empty():
+			var g: Dictionary = gfx_lists.pop_back()
+			for k in g:
+				if g[k] is Dictionary:
+					gfx_lists.append(g[k])
+				elif k in ["cast", "travel", "impact"]:
+					used_gfx[str(int(g[k]))] = true
+		for f in DirAccess.get_files_at("res://private_assets/osrs/spotanims"):
+			if not used_gfx.has(f.get_slice(".", 0)):
+				out.append("private_assets/osrs/spotanims/%s" % f)
+		var used_items := {}
 		for c in cfg_m.get("champions", {}).values():
 			for id in c.get("gear", []):
 				used_items[str(int(id))] = true

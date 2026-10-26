@@ -119,6 +119,8 @@ static func text(parent: Node, s: String, size: int = 14, color: Color = WHITE, 
 	var l := Label.new()
 	l.text = s
 	l.add_theme_font_size_override("font_size", size)
+	if size >= 18 and OsrsFont.heading(size) != null:
+		l.add_theme_font_override("font", OsrsFont.heading(size))
 	l.add_theme_color_override("font_color", color)
 	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1))
 	l.add_theme_constant_override("shadow_offset_x", 1)

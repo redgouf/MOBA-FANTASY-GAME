@@ -66,6 +66,7 @@ func _ready() -> void:
 	_smoke = _args.has("smoke-test")
 	if _args.has("no-osrs"):
 		OsrsModels.enabled = false     # whitebox shapes even with the private pack installed
+	OsrsFont.apply()                   # the OSRS fonts, with the private pack
 	_smoke_seconds = float(_args.get("smoke-seconds", 150))
 	_shot_path = str(_args.get("screenshot", ""))
 	_shot_at = float(_args.get("screenshot-at", 20))
@@ -749,7 +750,7 @@ func _take_screenshot() -> void:
 			await get_tree().create_timer(0.08).timeout
 		"teleport":
 			# Home teleport mid-cast (--shot-tele-at=S seconds into the channel).
-			var spot := MapLayout.point_along(MapLayout.lane_path("mid", focused.team), 30.0)
+			var spot := MapLayout.point_along(MapLayout.lane_path("mid", focused.team), 40.0)
 			focused.global_position = spot
 			camera_rig.center_on(spot)
 			await get_tree().create_timer(0.3).timeout

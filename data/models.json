@@ -29,9 +29,9 @@
       "weapon": 4675,
       "attack": "cast",
       "abilities": {
-        "q": {"clip": "magic_cast_1979"},
-        "w": {"clip": "magic_cast_1979"},
-        "e": {"clip": "magic_cast_1979"},
+        "q": {"clip": "magic_cast_1979", "gfx": {"travel": 368, "impact": 369, "area": true}},
+        "w": {"clip": "magic_cast_1979", "gfx": {"impact": 377, "area": true}},
+        "e": {"clip": "magic_cast_1979", "gfx": {"impact": 383, "area": true}},
         "r": {"spec": "volatile_nightmare_staff"}
       }
     },
@@ -40,7 +40,12 @@
       "weapon": 11785,
       "attack": "stab",
       "forms": {"ranged": {"weapon": 11785, "attack": "stab"}, "magic": {"weapon": 4675, "attack": "cast"}},
-      "abilities": {"w": {"clip": "magic_cast_1167"}, "e": {"clip": "a829"}, "r": {"spec": "armadyl_crossbow"}}
+      "abilities": {
+        "w": {"clip": "magic_cast_1167", "gfx": {"impact": 345}},
+        "e": {"clip": "a829"},
+        "r": {"spec": "armadyl_crossbow", "gfx": {"travel": 301, "impact": 369}},
+        "q": {"gfx": {"magic": {"travel": 362, "impact": 363}, "ranged": {}}}
+      }
     },
     "max_ranger": {
       "gear": [27235, 27238, 27241, 22109, 19547, 26235, 13237],
@@ -48,7 +53,7 @@
       "attack": "stab",
       "abilities": {
         "q": {"clip": "bow_attack_426"},
-        "w": {"weapon": 11959, "clip": "a7618"},
+        "w": {"weapon": 11959, "clip": "a7618", "gfx": {"impact": 1272}},
         "e": {"clip": "bow_attack_426"},
         "r": {"clip": "special_attack_1074"}
       }
@@ -57,7 +62,7 @@
       "gear": [12931, 2503, 2497, 2491, 10499, 1704, 3105],
       "weapon": 12926,
       "attack": "stab",
-      "abilities": {"q": {"clip": "a5061"}, "w": {"clip": "a7618"}, "e": {"clip": "a829"}, "r": {"clip": "a876"}}
+      "abilities": {"q": {"clip": "a5061"}, "w": {"clip": "a7618"}, "e": {"clip": "a829"}, "r": {"clip": "a876", "gfx": {"travel": 1043}}}
     },
     "slayer": {
       "gear": [10828, 21793, 1704, 4736, 12954, 4751, 7462, 31088],
@@ -86,14 +91,14 @@
       "gear": [9096, 9097, 9098, 9099, 9100, 9101, 9102],
       "weapon": 9084,
       "attack": "cast",
-      "abilities": {"q": {"clip": "a4409"}, "w": {"clip": "a8316"}, "e": {"clip": "a4414"}, "r": {"clip": "a4409"}}
+      "abilities": {"q": {"clip": "a4409"}, "w": {"clip": "a8316", "gfx": {"impact": 726}}, "e": {"clip": "a4414"}, "r": {"clip": "a4409"}}
     },
     "skiller": {
       "gear": [10941, 9807, 10939, 10940, 10933],
       "weapon": 0,
       "attack": "crush",
       "props": [
-        {"bone": "L28", "item": 12020, "offset": [0, -0.02, 0.03], "rotation": [0, 0, 0], "size": 0.22},
+        {"bone": "L28", "item": 12020, "offset": [0, -0.03, 0.0], "rotation": [0, 0, 0], "size": 0.26, "hang": true},
         {"bone": "L27", "gem": true, "offset": [0, -0.03, 0.03], "rotation": [0, 0, 0], "size": 0.14}
       ],
       "abilities": {"q": {"weapon": 6739, "clip": "a2846"}, "w": {"clip": "a733"}, "e": {"weapon": 21028, "clip": "a618"}, "r": {"weapon": 25644, "clip": "a898"}},
@@ -101,17 +106,17 @@
     }
   },
   "spec_weapons": {
-    "dragon_dagger": {"weapon": 5698, "clip": "special_attack_1062"},
-    "granite_maul": {"weapon": 4153, "clip": "special_attack_1667", "two_handed": true},
-    "dragon_warhammer": {"weapon": 13576, "clip": "a1378"},
-    "dragon_claws": {"weapon": 13652, "clip": "special_attack_7514", "two_handed": true},
+    "dragon_dagger": {"weapon": 5698, "clip": "special_attack_1062", "gfx": {"cast": 252}},
+    "granite_maul": {"weapon": 4153, "clip": "special_attack_1667", "two_handed": true, "gfx": {"cast": 1450}},
+    "dragon_warhammer": {"weapon": 13576, "clip": "a1378", "gfx": {"cast": 1292}},
+    "dragon_claws": {"weapon": 13652, "clip": "special_attack_7514", "two_handed": true, "gfx": {"cast": 1171}},
     "magic_shortbow_i": {"weapon": 12788, "clip": "special_attack_1074", "two_handed": true},
-    "armadyl_godsword": {"weapon": 11802, "clip": "special_attack_7644", "two_handed": true},
-    "bandos_godsword": {"weapon": 11804, "clip": "a7642", "two_handed": true},
-    "saradomin_godsword": {"weapon": 11806, "clip": "a7640", "two_handed": true},
-    "zamorak_godsword": {"weapon": 11808, "clip": "a7638", "two_handed": true},
+    "armadyl_godsword": {"weapon": 11802, "clip": "special_attack_7644", "two_handed": true, "gfx": {"cast": 1211}},
+    "bandos_godsword": {"weapon": 11804, "clip": "a7642", "two_handed": true, "gfx": {"cast": 1212}},
+    "saradomin_godsword": {"weapon": 11806, "clip": "a7640", "two_handed": true, "gfx": {"cast": 1209}},
+    "zamorak_godsword": {"weapon": 11808, "clip": "a7638", "two_handed": true, "gfx": {"cast": 1210}},
     "voidwaker": {"weapon": 27690, "clip": "sword_attack_slash_390"},
-    "armadyl_crossbow": {"weapon": 11785, "clip": "crossbow_attack_4230"},
+    "armadyl_crossbow": {"weapon": 11785, "clip": "crossbow_attack_4230", "gfx": {"travel": 301}},
     "toxic_staff_of_the_dead": {"weapon": 12904, "clip": "staff_attack_crush_414"},
     "volatile_nightmare_staff": {"weapon": 24424, "clip": "magic_cast_1167"},
     "dragon_axe": {"weapon": 6739, "clip": "a2846"}
@@ -157,5 +162,12 @@
     "dragonstone": [1615, 1631],
     "onyx": [6573, 6571],
     "zenyte": [19493, 19496]
+  },
+  "teleport": {
+    "_comment": "Home teleport: a sneaky look around, then the OSRS teleport (cast anim 714 with gfx 111), landing anim 715.",
+    "look_clip": "a10684",
+    "cast_clip": "a714",
+    "cast_gfx": 111,
+    "arrive_clip": "a715"
   }
 }

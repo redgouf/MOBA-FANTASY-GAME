@@ -58,6 +58,8 @@ static func sight_of(u: Unit) -> float:
 func set_team(t: int) -> void:
 	team = t
 	_timer = 0.0
+	if enabled and is_inside_tree():
+		update_vision()      # flip to the new team's view at once
 
 
 func set_enabled(on: bool) -> void:
@@ -114,6 +116,9 @@ func update_vision() -> void:
 		if u == null or u.is_dead:
 			continue
 		if u.team == team:
+			# Our own units are never fogged (after a spectator switches teams,
+			# the old enemies hidden a moment ago are now allies).
+			u.set_fog_hidden(false)
 			if sight_of(u) > 0.0:
 				sources.append(u)
 		else:

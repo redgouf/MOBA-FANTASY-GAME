@@ -1,10 +1,12 @@
 class_name MapLayout
 extends RefCounted
-## Coordinates for the Wilderness Rift: a 200 x 200 m three-lane map.
+## Coordinates for the Wilderness Rift: a 180 x 180 m three-lane map. The
+## edge walls run just outside the side lanes (lane centres at +-82, the
+## lanes' outer edges at +-87, the walls at +-90).
 ## Screen-up is -Z. Saradomin (Falador) holds the bottom-left, Zamorak (Lava Maze)
 ## the top-right, and the Wilderness Ditch runs diagonally along z = x.
 
-const MAP_SIZE := 200.0
+const MAP_SIZE := 180.0
 const LANE_WIDTH := 10.0
 const RIVER_WIDTH := 14.0
 const BASE_RADIUS := 18.0
@@ -64,6 +66,23 @@ static func point_along(path: PackedVector3Array, distance: float) -> Vector3:
 	return path[path.size() - 1]
 
 
+## How far side-lane towers sit from the lane's centre line, toward the map edge.
+const TOWER_EDGE_OFFSET := LANE_WIDTH * 0.5
+
+
+## The unit vector across a lane at `distance` along it, pointing away from
+## the map centre (toward the edge wall for the side lanes).
+static func outer_side(path: PackedVector3Array, distance: float) -> Vector3:
+	var a := point_along(path, distance)
+	var b := point_along(path, distance + 1.0)
+	if a.distance_to(b) < 0.01:
+		b = a
+		a = point_along(path, distance - 1.0)
+	var dir := (b - a).normalized()
+	var across := Vector3(dir.z, 0.0, -dir.x)
+	return across if across.dot(a) >= 0.0 else -across
+
+
 ## Where a lane bot waits when it has no minion wave to follow.
 static func hold_distance(lane: String) -> float:
 	return 70.0 if lane == "mid" else 110.0
@@ -76,7 +95,12 @@ static func structure_layout(team: int) -> Array[Dictionary]:
 		var path := lane_path(lane, team)
 		var table: Dictionary = MID_LANE_STRUCTURES if lane == "mid" else SIDE_LANE_STRUCTURES
 		for tier in ["outer", "inner", "altar_tower"]:
-			out.append({"kind": "tower", "lane": lane, "tier": tier, "pos": point_along(path, table[tier])})
+			var pos := point_along(path, table[tier])
+			if lane != "mid":
+				# Side-lane towers stand on the lane's outer edge, against the
+				# map wall, leaving the lane itself open.
+				pos += outer_side(path, table[tier]) * TOWER_EDGE_OFFSET
+			out.append({"kind": "tower", "lane": lane, "tier": tier, "pos": pos})
 		out.append({"kind": "altar", "lane": lane, "tier": "altar", "pos": point_along(path, table["altar"])})
 	var base := base_position(team)
 	var toward_center := (Vector3.ZERO - base).normalized()

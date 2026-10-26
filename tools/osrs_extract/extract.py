@@ -25,7 +25,7 @@ from osrsx.pack import Pack            # noqa: E402
 from osrsx.weapons import anims_for    # noqa: E402
 
 REPO = os.path.normpath(os.path.join(HERE, "..", ".."))
-STEPS = ["player", "npcs", "objects", "spotanims", "items", "textures", "maps", "rift"]
+STEPS = ["player", "npcs", "objects", "spotanims", "items", "textures", "maps", "rift", "ui"]
 EXTRA_STEPS = ["sprites"]          # only when asked for with --only
 
 
@@ -43,6 +43,8 @@ def models_json_needs():
     cfg = json.load(open(p))
     for k in ("default_cast_clip", "eat_clip", "death_clip", "pray_clip"):
         clips.add(trailing_id(cfg.get(k)))
+    for k in ("look_clip", "cast_clip", "arrive_clip"):
+        clips.add(trailing_id(cfg.get("teleport", {}).get(k)))
     for c in cfg.get("champions", {}).values():
         items.update(int(i) for i in c.get("gear", []))
         items.add(int(c.get("weapon", 0)))
@@ -236,6 +238,12 @@ def main():
         if os.path.exists(lp):
             build_rift(pack, lp)
             pack.save_manifest()
+
+    if "ui" in steps:
+        from osrsx.ui import export_fonts, export_hitsplats
+        export_fonts(pack)
+        export_hitsplats(pack)
+        pack.save_manifest()
 
     pack.log("done in %.0fs -> %s" % (time.time() - t0, args.out))
 

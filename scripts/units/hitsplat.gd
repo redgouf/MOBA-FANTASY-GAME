@@ -51,8 +51,13 @@ static func is_tinted(target: Node, info: DamageInfo) -> bool:
 static func texture(kind: String, tinted: bool) -> Texture2D:
 	var key := kind + ("_tinted" if tinted else "")
 	if not _textures.has(key):
+		# The real OSRS hitsplats from the private pack, else our drawn ones.
+		var osrs := "res://private_assets/osrs/ui/hitsplats/%s.png" % key
 		var path := "res://assets/hitsplats/%s.png" % key
-		_textures[key] = load(path) if ResourceLoader.exists(path) else null
+		if OsrsModels.available() and ResourceLoader.exists(osrs):
+			_textures[key] = load(osrs)
+		else:
+			_textures[key] = load(path) if ResourceLoader.exists(path) else null
 	return _textures[key]
 
 
@@ -69,12 +74,14 @@ func _build(amount: float, kind: String, tinted: bool) -> void:
 	var off := SLOTS[clampi(slot, 0, SLOTS.size() - 1)] * SIZE_PX * 0.92
 	_sprite = Sprite3D.new()
 	_sprite.texture = texture(kind, tinted)
-	_sprite.pixel_size = PIXEL
+	# Same size on screen whatever the sprite's resolution (OSRS sprites are ~24 px).
+	var px_scale := SIZE_PX * 0.62 / float(_sprite.texture.get_width()) if _sprite.texture != null and _sprite.texture.get_width() < 64 else 1.0
+	_sprite.pixel_size = PIXEL * px_scale
 	_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_sprite.no_depth_test = true
 	_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	_sprite.render_priority = 10
-	_sprite.offset = off
+	_sprite.offset = off / px_scale
 	add_child(_sprite)
 	_label = Label3D.new()
 	_label.text = str(int(round(amount)))
@@ -89,6 +96,13 @@ func _build(amount: float, kind: String, tinted: bool) -> void:
 	_label.outline_size = 8
 	_label.offset = off + Vector2(0, 2)
 	add_child(_label)
+	if OsrsFont.active:
+		# The OSRS pixel font has no outline: a black drop shadow, as in OSRS.
+		_shadow = _label.duplicate() as Label3D
+		_shadow.modulate = Color(0, 0, 0, 1)
+		_shadow.offset = _label.offset + Vector2(3, -3)
+		_shadow.render_priority = _label.render_priority - 1
+		add_child(_shadow)
 	# Your own hits stand out: bigger and fully bright; everyone else's are
 	# smaller, darker and slightly see-through.
 	scale = Vector3.ONE * (1.12 if not tinted else 0.82)
@@ -105,6 +119,7 @@ func _build(amount: float, kind: String, tinted: bool) -> void:
 
 
 var _alpha := 1.0
+var _shadow: Label3D
 
 
 func _process(delta: float) -> void:
@@ -119,3 +134,5 @@ func _process(delta: float) -> void:
 	_sprite.modulate.a = fade
 	_label.modulate.a = fade
 	_label.outline_modulate.a = fade
+	if _shadow != null:
+		_shadow.modulate.a = fade

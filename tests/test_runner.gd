@@ -48,6 +48,7 @@ func _ready() -> void:
 	await test_right_click_cancels_aim()
 	await test_v015_ui()
 	test_v016()
+	test_v021()
 	test_potions()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
@@ -406,16 +407,16 @@ func test_game_tick() -> void:
 	_ticks(1)
 	check(ate.size() == 1, "and happens on it")
 	pc.free()
-	# Recall: 4 s = 7 ticks.
+	# Recall: 8 s = 14 ticks.
 	a.spawn_point = Vector3(260, 0, 200)
 	GameTick.queue_input(func() -> void: a.start_recall())
 	start = GameTick.current_tick + 1
 	var home_at := -1
-	for k in 10:
+	for k in 18:
 		_ticks(1)
 		if home_at < 0 and a.global_position.distance_to(a.spawn_point) < 0.1:
 			home_at = GameTick.current_tick
-	check(home_at - start == 7, "recall takes 7 ticks (got %d)" % (home_at - start))
+	check(home_at - start == 14, "recall takes 14 ticks (got %d)" % (home_at - start))
 	a.global_position = Vector3(200, 0, 200)
 	a.spawn_point = Vector3(500, 0, 500)
 
@@ -1155,8 +1156,7 @@ func test_v05_ui() -> void:
 	check(c.chosen_prayer == "thick_skin", "the Skiller's prayer is Thick Skin (Prayer 1)")
 	check(c.toggle_chosen_prayer() and c.prayer_effect("damage_taken") < 0.0, "Thick Skin reduces damage taken")
 	check(PrayerBook.effect_text(dh.chosen_prayer_data()).begins_with("+"), "prayer effect text")
-	var chest := c.find_child("ChestTag", true, false) as Label3D
-	check(chest != null and chest.text == "SK" and c.find_child("BackTag", true, false) != null, "two-letter tag on chest and back")
+	check(c.find_child("ChestTag", true, false) == null, "no two-letter tags on champions any more")
 	var missing: Array[String] = []
 	for id in GameData.item_order:
 		if Icons.item(id) == null:
@@ -1250,7 +1250,6 @@ func test_osrs_models() -> void:
 	await get_tree().physics_frame
 	check(z.osrs != null and z.osrs.is_player and not z._model.visible, "champions wear their OSRS model instead of the whitebox capsule")
 	check(z.osrs.weapon_id == 6528 and z.osrs._shield == null, "the Zerker holds a Tzhaar-ket-om, no shield")
-	check(z.find_child("ChestTag", true, false) != null, "tags sit on the OSRS model's chest")
 	z.gold = 99999
 	z.buy_item("dragon_claws")
 	z.spec = 100.0
@@ -1556,7 +1555,8 @@ func test_v010() -> void:
 	var yaw0 := sk.rotation.y
 	await get_tree().create_timer(0.4).timeout
 	check(absf(sk.rotation.y - yaw0) > 0.3, "the champion looks to the side first")
-	await get_tree().create_timer(1.6).timeout
+	check(not fx._cast_started, "and keeps looking around for most of the 8 s channel")
+	await get_tree().create_timer(6.0).timeout
 	check(is_instance_valid(fx) and fx._cast_started and fx._arms.size() == 2 and fx._arms[0].visible, "then casts with its arms out")
 	await get_tree().create_timer(2.6).timeout
 	check(not sk.is_recalling() and sk.global_position.distance_to(sk.spawn_point) < 0.5, "and arrives home")
@@ -1815,11 +1815,10 @@ func test_v015_ui() -> void:
 func test_v016() -> void:
 	GameData.load_all()
 	# Names coloured by level like OSRS's right-click menu.
-	check(UnitBars.level_color(10, 10) == Color(1, 1, 0), "same level: yellow")
-	check(UnitBars.level_color(4, 10).g > 0.99 and UnitBars.level_color(4, 10).r < 0.01, "much lower: green")
-	check(UnitBars.level_color(16, 10).r > 0.99 and UnitBars.level_color(16, 10).g < 0.01, "much higher: red")
-	var orange := UnitBars.level_color(13, 10)
-	check(orange.r > 0.99 and orange.g > 0.3 and orange.g < 0.7, "a few higher: orange")
+	check(UnitBars.level_color(100, 100) == Color8(255, 255, 0), "same combat level: yellow")
+	check(UnitBars.level_color(80, 100) == Color8(0, 255, 0), "10+ lower: green")
+	check(UnitBars.level_color(120, 100) == Color8(255, 0, 0), "10+ higher: red")
+	check(UnitBars.level_color(105, 100) == Color8(255, 128, 0), "a few higher: orange (OSRS steps of 3)")
 	var me := _make("dharok", Combat.Team.SARADOMIN, Vector3(150, 0, -150))
 	var ally := _make("pure", Combat.Team.SARADOMIN, Vector3(152, 0, -150))
 	var foe := _make("pure", Combat.Team.ZAMORAK, Vector3(-150, 0, 150))
@@ -1874,3 +1873,32 @@ func test_v016() -> void:
 			check(Icons.ability(str(cid), slot) != null or Icons.ability(str(cid), slot, "ranged") != null, "%s %s has an ability icon" % [cid, slot])
 	for c in [me, ally, foe]:
 		c.queue_free()
+
+
+func test_v021() -> void:
+	GameData.load_all()
+	# Side-lane towers stand on the lane's outer edge, inside the map walls.
+	var half := MapLayout.MAP_SIZE * 0.5
+	for team in [Combat.Team.SARADOMIN, Combat.Team.ZAMORAK]:
+		for s in MapLayout.structure_layout(team):
+			if s["kind"] == "tower" and s["lane"] in ["top", "bot"]:
+				var p: Vector3 = s["pos"]
+				var edge := maxf(absf(p.x), absf(p.z))
+				check(edge > 86.0 and edge < half - 1.0, "%s %s tower sits at the lane's outer edge (%.1f, wall at %.0f)" % [s["lane"], s["tier"], edge, half])
+	check(half <= 90.0, "the map walls hug the side lanes")
+	# Spectator fog: switching to a champion on the other team flips the view at once.
+	var a := _make("pure", Combat.Team.SARADOMIN, Vector3(40, 0, 40))
+	var b := _make("dharok", Combat.Team.ZAMORAK, Vector3(-60, 0, -60))
+	var fog := FogOfWar.new()
+	add_child(fog)
+	fog.set_team(Combat.Team.SARADOMIN)
+	fog.update_vision()
+	check(b.fog_hidden and not a.fog_hidden, "fog: the far-off enemy is hidden")
+	fog.set_team(Combat.Team.ZAMORAK)
+	check(not b.fog_hidden and a.fog_hidden, "switching teams shows your new team and fogs the old one, without toggling F")
+	fog.queue_free()
+	a.queue_free()
+	b.queue_free()
+	# The 8 s recall and the OSRS teleport clips.
+	check(is_equal_approx(float(GameData.rule("recall_channel_sec", 0)), 8.0), "Teleport Home takes 8 s")
+	check(str(OsrsModels.config().get("teleport", {}).get("cast_clip", "")) == "a714", "it casts the normal OSRS teleport (714)")

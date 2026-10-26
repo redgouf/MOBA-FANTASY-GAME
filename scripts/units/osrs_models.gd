@@ -64,7 +64,7 @@ static func item(id: int) -> Dictionary:
 ## An item's inventory / ground model (items/<id>.glb), as a fresh node with
 ## the pack's materials, scaled so its longest side is `size` metres; null
 ## without the pack or the model.
-static func item_model(id: int, size: float) -> Node3D:
+static func item_model(id: int, size: float, hang := false) -> Node3D:
 	var ps := scene("items/%d.glb" % id)
 	if ps == null:
 		return null
@@ -81,7 +81,9 @@ static func item_model(id: int, size: float) -> Node3D:
 	var longest := maxf(box.size.x, maxf(box.size.y, box.size.z))
 	var holder := Node3D.new()
 	holder.add_child(root)
-	root.position = -box.get_center()
+	# Centred, or (hang) with the top of the model at the origin so it hangs
+	# from a hand by its top (the gem bag's cinch).
+	root.position = -box.get_center() if not hang else -Vector3(box.get_center().x, box.end.y, box.get_center().z)
 	holder.scale = Vector3.ONE * (size / maxf(longest, 0.001))
 	return holder
 
@@ -268,6 +270,8 @@ static func required_clips() -> Array[String]:
 	var cfg := config()
 	for k in ["default_cast_clip", "eat_clip", "death_clip", "pray_clip"]:
 		out.append(str(cfg.get(k, "")))
+	for k in ["look_clip", "cast_clip", "arrive_clip"]:
+		out.append(str(cfg.get("teleport", {}).get(k, "")))
 	var weapons: Array[int] = []
 	for id in cfg.get("champions", {}):
 		var c: Dictionary = cfg["champions"][id]

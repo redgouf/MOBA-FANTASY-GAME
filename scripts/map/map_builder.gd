@@ -81,6 +81,10 @@ func _build_environment() -> void:
 	sun.rotation_degrees = Vector3(-55.0, -35.0, 0.0)
 	sun.light_energy = 1.1
 	sun.shadow_enabled = true
+	# OSRS capes and flags are thin, two-faced models: with the default bias
+	# they shadow themselves in stripes ("shadow acne").
+	sun.shadow_bias = 0.35
+	sun.shadow_normal_bias = 2.6
 	add_child(sun)
 
 

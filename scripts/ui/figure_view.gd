@@ -10,6 +10,7 @@ var camera: Camera3D
 var figure: ChampionFigure
 var sway := true               # turn the figure slowly left and right
 var portrait := false          # frame head and shoulders instead of the full body
+var facing_deg := -12.0        # portrait: how far the figure turns (+ = looking to the screen's right)
 
 var _pivot: Node3D
 var _t := 0.0
@@ -84,7 +85,7 @@ func _frame() -> void:
 		var dist := h * 0.42 / tan(deg_to_rad(camera.fov * 0.5))
 		camera.position = look + Vector3(dist * 0.35, h * 0.04, dist)
 		camera.look_at(look)
-		_pivot.rotation.y = deg_to_rad(-12.0)
+		_pivot.rotation.y = deg_to_rad(facing_deg)
 	else:
 		var look := Vector3(0, h * 0.5, 0)
 		var fit := maxf(h * 1.12, h * 0.6 / aspect)

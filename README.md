@@ -6,7 +6,7 @@ A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School Run
 
 Built with **Godot 4.7.2** (GDScript, Forward+).
 
-## Status: whitebox prototype (v0.20)
+## Status: whitebox prototype (v0.21)
 
 ![Playing the Pure: stats and items bottom-left, abilities centre, minimap bottom-right, inspected target top-left](docs/screenshots/play.png)
 
@@ -39,7 +39,7 @@ Playable today, with primitive shapes standing in for art:
 - **Buffs and debuffs** show as icons with clock-wipe timers above the hotbar (and under the inspect panel for allies), with a short explanation on hover. Enemies' are never shown.
 - **Grand Exchange** shop with Weapons, Armour, Boots, Consumables, Skilling and Materials tabs. Items build up League style from materials (cowhide, wool, logs, feathers, ore) and base items (leather boots, gold ring, coif, wizard robe...): parts you own anywhere down the recipe lower the price. It has an item grid with prices (red when you can't afford it, dimmed when your levels are too low) and a detail panel with a Buy button.
 - **Tooltips** with solid backgrounds; ability tooltips show the damage they'd do right now: spell (by rank) + your stats + items = total ([screenshot](docs/screenshots/ability_tooltip.png)).
-- **OSRS item and prayer icons**, and a two-letter tag on every champion's chest and back.
+- **OSRS item and prayer icons**, and each champion's portrait beside their stats. With the private pack the interface uses the real OSRS fonts and hitsplats, and spells use their OSRS graphics.
 - **Ability tooltips** in colour: plain text white, your champion's stats light blue, scaling by style (melee red, magic blue, ranged green), items gold, cooldowns italic grey, plus what each rank adds. Every ability improves with rank (damage, durations, slows, ranges or amounts).
 - **Attack and ability effects**: melee swipes (slash, overhead crush, thrust), weapon-matched projectiles (arrows, bolts, darts, thrown rocks, cannonballs, spell orbs and fireballs with trails), and per-ability effects (ice barrage shards, blood and shadow bursts, slams, multi-hit claw slashes, heal and buff glows, freezes, chinchompa explosions, arrow volleys).
 - **Optional real OSRS models** from a private asset pack (personal builds only, never committed): fixed gear per champion, real OSRS animations, weapon swaps on item specs, TzTok-Jad and the Giant Mole. Without the pack the game uses its whitebox shapes. See [docs/OSRS_MODELS.md](docs/OSRS_MODELS.md).

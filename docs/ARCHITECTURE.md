@@ -29,7 +29,7 @@ Rules:
 
 - **Auto attacks**: the attack timer counts down 0.6 s per tick and swings land on ticks. A 4-tick whip hits on ticks 1, 5, 9. Attack-speed bonuses carry the leftover of a tick into the next swing, so +25% on a 4-tick weapon averages 3.2 ticks.
 - **Ranged/magic auto attacks**: the hit lands `projectile_hit_ticks()` ticks after the swing: the flight time rounded up, at least 1 tick. The projectile (`Projectile.arrive_in()`) is timed to arrive on that tick.
-- **Channels and respawns** count from the tick after they start: 1.2 s altar channel = 2 ticks, 4 s recall = 7, 45 s altar cooldown = 75.
+- **Channels and respawns** count from the tick after they start: 1.2 s altar channel = 2 ticks, 8 s recall = 14, 45 s altar cooldown = 75.
 - **Prayer**: switching on or off is instant. A prayer's first tick is free (the tick it came on, or the next one if it was clicked between ticks), so flicking every tick costs nothing. Drain is taken once per tick.
 - **Bots** decide once per tick (every 0.6 s).
 

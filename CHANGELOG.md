@@ -2,6 +2,21 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.21.0
+
+- The map walls now run right beside the top and bottom lanes all the way round (the map is 180 m across instead of 200 m). Top and bottom lane towers stand on the outer edge of their lane, against the wall, leaving the lane open.
+- Spectating: switching to a champion on the other team flips the fog of war to their team straight away. You no longer have to press F twice.
+- Teleport Home takes 8 seconds. The champion spends most of it looking around sneakily (an OSRS animation), then casts the normal OSRS teleport with its graphics.
+- The combat level now follows each champion's name ("Dharok (level-112)"), coloured like OSRS's right-click menu: green for lower than yours, yellow for the same, orange to red for higher. The game level (1–18) stays in the circle.
+- Your champion's portrait, looking right, is shown in the stats panel.
+- The two-letter tags on champions' chests and backs are gone.
+- Shadows are softer on thin models like capes and the team standards.
+- With the OSRS pack:
+  - The whole interface uses the real OSRS fonts, with OSRS-style drop shadows.
+  - Hitsplats use the real OSRS sprites: damage, blocked hits, max hits, poison, venom and burn, with darker ones for hits that don't involve you.
+  - Spells and specs show their OSRS graphics: Ice, Blood and Shadow Barrage, Ice Blitz, Tele Block, Vengeance Other and the black chinchompa, and the dragon dagger, dragon claws, dragon warhammer, granite maul, godsword, Armadyl crossbow and toxic blowpipe specs.
+  - The Skiller holds his gem bag by its drawstring, hanging straight down.
+
 ## 0.20.0
 
 - Abilities named for a weapon now show it in the champion's hand for the swing, then their own weapon comes back:

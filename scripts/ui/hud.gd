@@ -36,6 +36,8 @@ var _death_timer: Label
 # bottom-left
 var _portrait_style: StyleBoxFlat
 var _portrait_initial: Label
+var _portrait_view: FigureView     # the champion's head and shoulders, looking right
+var _portrait_id := ""
 var _level_badge: Label
 var _name: Label
 var _xp: StatBar
@@ -204,6 +206,10 @@ func _build_bottom_left(root: Control) -> void:
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(portrait)
 	_portrait_panel = portrait
+	# The champion's portrait (rendered once per champion), looking to the right.
+	_portrait_view = FigureView.create(portrait, Rect2(3, 3, 90, 90), true)
+	_portrait_view.sway = false
+	_portrait_view.facing_deg = 62.0
 	_portrait_initial = UiStyle.label(portrait, "", 44, Color.WHITE)
 	UiStyle.fill(_portrait_initial)
 	_portrait_initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -503,7 +509,12 @@ func _stat(key: String, fmt: String, value: float, base: float, base_fmt: String
 
 
 func _update_bottom_left() -> void:
-	_portrait_initial.text = str(champ.def.get("tag", champ.display_name.substr(0, 1)))
+	if _portrait_id != champ.champ_id:
+		_portrait_id = champ.champ_id
+		_portrait_view.show_champion(_portrait_id)
+		_portrait_view.viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	# The tag only shows if no portrait can be drawn.
+	_portrait_initial.text = "" if _portrait_view.figure != null else str(champ.def.get("tag", champ.display_name.substr(0, 1)))
 	_level_badge.text = str(champ.level)
 	_name.text = champ.display_name
 	var max_level := int(GameData.rule("max_level", 18))

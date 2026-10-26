@@ -147,7 +147,6 @@ func _ready() -> void:
 	var body_color := Unit.team_color(team).lerp(Color.WHITE, 0.15)
 	setup_visuals(body_color, 2.2, _label_text())
 	_setup_osrs_model()
-	_add_body_tags(str(def.get("tag", display_name.substr(0, 2).to_upper())), 2.2)
 	damaged.connect(_on_damaged)
 
 
@@ -176,7 +175,13 @@ func _osrs_form() -> void:
 
 ## Animation and effects for an ability or item spec as it goes off.
 func _cast_visuals(slot: String, target: Unit = null, point: Vector3 = Vector3.ZERO) -> void:
-	CombatFx.ability(self, get_action(slot), target, point)
+	var action := get_action(slot)
+	# With the OSRS pack, an ability's real OSRS graphics replace the drawn effects.
+	var gfx := ability_gfx(slot)
+	if osrs != null and not gfx.is_empty() and OsrsGfx.has(maxi(int(gfx.get("cast", 0)), maxi(int(gfx.get("travel", 0)), int(gfx.get("impact", 0))))):
+		OsrsGfx.ability(self, gfx, target, point, CombatFx._area_radius(action, 0.0))
+	else:
+		CombatFx.ability(self, action, target, point)
 	if osrs == null:
 		return
 	if slot.begins_with("item:"):
@@ -198,27 +203,20 @@ func _cast_visuals(slot: String, target: Unit = null, point: Vector3 = Vector3.Z
 		osrs.play_attack(0.8, attack_style)
 
 
-## The champion's two-letter tag ("DH", "SK") printed on its chest and back,
-## like a jersey, so builds are easy to tell apart. With an OSRS model they
-## sit smaller, just off its (slimmer) chest and back.
-func _add_body_tags(tag: String, height: float) -> void:
-	for back in [false, true]:
-		var l := Label3D.new()
-		l.name = "BackTag" if back else "ChestTag"
-		l.text = tag
-		l.font_size = 64
-		l.pixel_size = 0.011
-		l.outline_size = 16
-		l.modulate = Color(1, 1, 1)
-		l.outline_modulate = Color(0.05, 0.04, 0.03)
-		l.double_sided = false
-		l.position = Vector3(0.0, height * 0.6, (radius + 0.02) * (-1.0 if back else 1.0))
-		l.rotation.y = PI if back else 0.0
-		if osrs != null:
-			l.pixel_size = 0.0062
-			l.outline_size = 12
-			l.position = Vector3(0.0, 1.45, 0.3 * (-1.0 if back else 1.0))
-		add_child(l)
+## OSRS graphics for an ability or item spec (models.json "gfx"; per form for
+## the Hybrid), or {}.
+func ability_gfx(slot: String) -> Dictionary:
+	var cfg: Dictionary
+	if slot.begins_with("item:"):
+		cfg = OsrsModels.spec_config(slot.substr(5))
+	else:
+		cfg = OsrsModels.champion_config(champ_id).get("abilities", {}).get(slot, {})
+		if cfg.has("spec") and not cfg.has("gfx"):
+			cfg = OsrsModels.spec_config(str(cfg["spec"]))
+	var gfx: Dictionary = cfg.get("gfx", {})
+	if gfx.has(form_name()):
+		gfx = gfx[form_name()]
+	return gfx
 
 
 func _label_text() -> String:
