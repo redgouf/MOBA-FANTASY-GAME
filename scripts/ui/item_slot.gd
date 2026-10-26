@@ -98,6 +98,10 @@ func set_key_text(t: String) -> void:
 	_key.text = t
 
 
+func _make_custom_tooltip(for_text: String) -> Object:
+	return SkillIcons.make_tooltip(for_text)
+
+
 func _get_tooltip(_at_position: Vector2) -> String:
 	if sell_line == "" or tooltip_text == "":
 		return tooltip_text
@@ -113,7 +117,7 @@ func set_item(id: String, cooldown_left: float = 0.0, cooldown_total: float = 0.
 		_icon.texture = Icons.item(id)
 		# The OSRS icon when there is one; the (short) name otherwise.
 		_name.text = "" if _icon.texture != null else (UiStyle.short_name(item_name) if compact else item_name)
-		tooltip_text = UiStyle.wrap(_tooltip(it, champ)) if id != "" else ""
+		tooltip_text = _tooltip(it, champ) if id != "" else ""
 		if id == "":
 			add_theme_stylebox_override("panel", _empty_style)
 		elif it.has("spec_active"):
@@ -133,8 +137,14 @@ func set_item(id: String, cooldown_left: float = 0.0, cooldown_total: float = 0.
 static func _levels(d: Dictionary) -> String:
 	var parts: Array[String] = []
 	for s in d:
-		parts.append("%d %s" % [int(d[s]), str(s).capitalize()])
+		parts.append("%d {%s}" % [int(d[s]), str(s)])
 	return ", ".join(parts)
+
+
+## A combat style or skill in item text: Ranged and Magic are skills with
+## icons ("{ranged}"), melee isn't ("Melee").
+static func style_name(s: String) -> String:
+	return "{%s}" % s if s in SkillIcons.SKILLS else s.capitalize()
 
 
 static func stat_text(k: String, v: float) -> String:
@@ -154,7 +164,11 @@ static func stat_text(k: String, v: float) -> String:
 		"burn_on_hit":
 			return "Attacks burn: %d a second for 2s" % roundi(v)
 		"defence_all":
-			return "+%s defence (all styles)" % str(v).trim_suffix(".0")
+			return "+%s {defence} (all styles)" % str(v).trim_suffix(".0")
+		"magic_power":
+			return "+%s {magic} power" % str(v).trim_suffix(".0")
+		"prayer_bonus":
+			return "+%s {prayer} bonus" % str(v).trim_suffix(".0")
 	return "+%s %s" % [str(snappedf(v, 0.01)).trim_suffix(".0"), k.replace("_", " ")]
 
 
@@ -177,23 +191,23 @@ static func use_parts(use: Dictionary, mult: float = 1.0, champ: Champion = null
 	if use.has("heal_pct_max"):
 		parts.append("Heals %d%% of max health" % roundi(float(use["heal_pct_max"]) * 100.0 * mult))
 	if use.has("prayer"):
-		parts.append("Restores %d prayer" % roundi(float(use["prayer"]) * mult))
+		parts.append("Restores %d {prayer}" % roundi(float(use["prayer"]) * mult))
 	var levels: Array[String] = []
 	for st in use.get("statuses", []):
 		var kind := str(st["kind"])
 		if kind == "skill_boost":
 			# Flavour: the OSRS skill levels it boosts (the skills panel shows them).
-			var sk := str(st.get("skill", "")).capitalize()
+			var sk := str(st.get("skill", ""))
 			var lv := champ.potion_levels(st, mult) if champ != null else int(st.get("flat", 0))
-			levels.append("%s %s%d" % [sk, "+" if lv >= 0 else "", lv])
+			levels.append("%s %s%d" % [style_name(sk), "+" if lv >= 0 else "", lv])
 			continue
 		var raw := float(st.get("amount", 0.0))
 		var amt := raw * mult if raw > 0.0 else raw
-		var what: String = {"damage_mult": "damage", "attack_damage_mult": "Attack Damage", "magic_damage_mult": "Magic Damage",
-			"crit_chance": "crit chance", "crit_damage_mult": "Crit Damage", "armor_mult": "Defence", "haste": "move speed"}.get(kind, "")
+		var what: String = {"damage_mult": "damage", "attack_damage_mult": "{attack} Damage", "magic_damage_mult": "{magic} Damage",
+			"crit_chance": "crit chance", "crit_damage_mult": "Crit Damage", "armor_mult": "{defence}", "haste": "move speed"}.get(kind, "")
 		var only := str((st.get("data", {}) as Dictionary).get("style", ""))
 		if what != "" and only != "":
-			what = "%s %s" % [only.capitalize(), what if what != "Attack Damage" else "Damage"]
+			what = "%s %s" % [style_name(only), what if what != "{attack} Damage" else "Damage"]
 		if what != "":
 			parts.append("%s%d%% %s for %ds" % ["+" if amt >= 0.0 else "", roundi(amt * 100.0), what, int(st.get("duration", 0))])
 		elif kind == "antipoison":
@@ -228,7 +242,7 @@ static func _tooltip(it: Dictionary, champ: Champion = null) -> String:
 	if not reqs.is_empty():
 		var parts: Array[String] = []
 		for s in reqs:
-			parts.append("%d %s" % [int(reqs[s]), str(s).capitalize()])
+			parts.append("%d {%s}" % [int(reqs[s]), str(s)])
 		lines.append("Requires " + ", ".join(parts))
 	var art: Dictionary = it.get("artisan", {})
 	if not art.is_empty():
@@ -239,7 +253,7 @@ static func _tooltip(it: Dictionary, champ: Champion = null) -> String:
 			continue   # described by the item's text
 		if k == "defence":
 			for s in stats[k]:
-				lines.append("+%s %s defence" % [stats[k][s], s])
+				lines.append("+%s %s defence" % [stats[k][s], style_name(str(s))])
 		else:
 			lines.append(stat_text(str(k), float(stats[k])))
 	if it.has("spec_active"):

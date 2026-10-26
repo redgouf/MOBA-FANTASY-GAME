@@ -51,6 +51,7 @@ func _ready() -> void:
 	test_v021()
 	test_selling()
 	test_inventory_layout_and_hotkeys()
+	test_skill_icons_and_panel()
 	test_potions()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
@@ -1521,7 +1522,7 @@ func test_v010() -> void:
 	var hs := sk.status_sum("heal_over_time")
 	var hp := pu.status_sum("heal_over_time")
 	check(is_equal_approx(hs, hp * 1.15), "a Perfect shark heals 15%% more (%.1f vs %.1f a second)" % [hs, hp])
-	var tip := ItemSlot._tooltip(GameData.item("shark"), sk).split("\n")
+	var tip := SkillIcons.plain(ItemSlot._tooltip(GameData.item("shark"), sk)).split("\n")
 	var use_i := -1
 	for i in tip.size():
 		if tip[i].begins_with("Use: "):
@@ -1667,7 +1668,7 @@ func test_potions() -> void:
 	check(c.skill_boost("defence") > 0 and c.skill_boost("attack") < 0, "(its skill levels change too, as flavour)")
 	check(c.buy_item("super_restore") and c.use_consumable(0) and c.status_sum("attack_damage_mult") >= 0.0 and c.get_defence(0) > d0 * 1.19,
 		"a super restore undoes the brew's penalties and keeps its Defence")
-	var tip := ItemSlot._tooltip(GameData.item("super_strength"), c)
+	var tip := SkillIcons.plain(ItemSlot._tooltip(GameData.item("super_strength"), c))
 	check(tip.contains("Use: +10% Melee crit chance for 60s, +30% Melee Crit Damage for 60s (Strength +") and tip.contains("'perfect' (55 Herblore): +12% Melee crit chance"),
 		"potion tooltips say what they do to damage, levels as flavour (%s)" % tip)
 	check(str(GameData.item("super_strength").get("text", "")) != "", "potions have flavour text")
@@ -1888,7 +1889,7 @@ func test_v016() -> void:
 	ally.buy_item("ranging_potion")
 	ally.use_consumable(0)
 	check(ally.style_damage_bonus(Combat.Style.RANGED) > 0.07 and is_zero_approx(ally.style_damage_bonus(Combat.Style.MELEE)), "ranging potion: ranged damage only")
-	var txt := ", ".join(ItemSlot.use_parts(GameData.item("ranging_potion")["use"]))
+	var txt := SkillIcons.plain(", ".join(ItemSlot.use_parts(GameData.item("ranging_potion")["use"])))
 	check(txt.contains("Ranged Damage"), "the ranging potion says Ranged Damage (%s)" % txt)
 	# Ability icons: every champion has one for each slot.
 	for cid in GameData.champions.keys():
@@ -2047,3 +2048,24 @@ func test_inventory_layout_and_hotkeys() -> void:
 	check(Controls.key_text("item_2") == "2", "reset one key")
 	Controls.reset_all()
 	Controls.persist = true
+
+
+func test_skill_icons_and_panel() -> void:
+	print("-- skill icons / Skills panel --")
+	check(SkillIcons.plain("Needs 80 {cooking} and {ranged}") == "Needs 80 Cooking and Ranged", "skill markers read as plain names")
+	check(SkillIcons.SKILLS.size() == 24 and SkillIcons.SKILLS.has("sailing"), "all 24 skills have a marker")
+	var m := SkillIcons.markup("{strength} +5", false)
+	check(m.contains("{strength}") == false and (not SkillIcons.has_icon("strength") or m.contains("[img")), "markers become icons when the pack is there")
+	var ids_ok := true
+	for row in SkillsPanel.FULL_LAYOUT:
+		for sk in row:
+			ids_ok = ids_ok and SkillIcons.SKILLS.has(sk)
+	check(ids_ok and SkillsPanel.FULL_LAYOUT.size() == 8, "the Skills grid is the 8x3 OSRS layout")
+	var host := Control.new()
+	add_child(host)
+	var sp := SkillsPanel.create(host)
+	sp.show_build(GameData.champion("skiller"))
+	check(sp.size == SkillsPanel.panel_size(true), "the Skills panel matches its size")
+	check(sp._tiles.size() == 24, "24 skill tiles")
+	check(sp._tiles["woodcutting"].tooltip_text.contains("{woodcutting}") == SkillIcons.has_icon("woodcutting"), "tile tooltips lead with the skill's icon")
+	host.queue_free()

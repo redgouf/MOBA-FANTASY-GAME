@@ -7,9 +7,11 @@ extends Panel
 ## that level lets the build use, and which it's too low for.
 ## In a match, Hitpoints and Prayer show live values, like in OSRS.
 
-const TILE := Vector2(104, 46)
-const GAP := 4.0
-const PAD := 8.0
+const TILE := Vector2(112, 50)
+const GAP := 2.0
+const PAD := 6.0
+const HEADER := 26.0
+const FOOTER := 30.0
 const COLUMN_1: Array[String] = ["attack", "strength", "defence", "ranged", "prayer", "magic"]
 ## The OSRS Skills tab, row by row (3 columns, 8 rows, Sailing included).
 const FULL_LAYOUT := [["attack", "hitpoints", "mining"], ["strength", "agility", "smithing"],
@@ -30,6 +32,7 @@ var full := false
 var _tiles: Dictionary = {}
 var _title: Label
 var _combat: Label
+var _combat_head: Label
 var _total: Label
 var _parts: Array[Node] = []
 var _refresh := 0.0
@@ -43,9 +46,14 @@ static func create(parent: Control) -> SkillsPanel:
 
 
 static func panel_size(p_full: bool = false) -> Vector2:
-	if p_full:
-		return Vector2(PAD * 2 + TILE.x * 3 + GAP * 2, PAD * 2 + 26 + 8 * (TILE.y + GAP) + 30)
-	return Vector2(PAD * 2 + TILE.x * 2 + GAP, PAD * 2 + 26 + 6 * (TILE.y + GAP) + 30)
+	var rows := 8 if p_full else 6
+	var cols := 3 if p_full else 2
+	return Vector2(PAD * 2 + TILE.x * cols + GAP * (cols - 1), PAD * 2 + HEADER + rows * (TILE.y + GAP) + FOOTER)
+
+
+## True when the real OSRS skill icons, fonts and stone are available.
+static func osrs_look() -> bool:
+	return OsrsFont.active and SkillIcons.has_icon("attack")
 
 
 ## True if the build has skilling levels, so it gets the full OSRS grid.
@@ -57,10 +65,28 @@ static func wants_full(def: Dictionary) -> bool:
 
 
 func _build() -> void:
-	var sb := UiStyle.box(PANEL_BG, Color(0.07, 0.06, 0.05), 3, 4)
-	add_theme_stylebox_override("panel", sb)
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if OsrsSprites.available():
+		OsrsSprites.stone_panel(self)     # the Skills tab's stone, edged like the game's interface
+	else:
+		add_theme_stylebox_override("panel", UiStyle.box(PANEL_BG, Color(0.07, 0.06, 0.05), 3, 4))
 	_layout(true)
+
+
+## OSRS text: the interface font at 2x (24 px), bold for the heading.
+static func osrs_label(parent: Control, text: String, color: Color, bold: bool = false, px: int = 24) -> Label:
+	var l := UiStyle.label(parent, text, px, color)
+	var f := OsrsFont.get_font_any_size("b12_full" if bold else "p12_full") if OsrsFont.active else null
+	if f != null:
+		l.add_theme_font_override("font", f)
+		l.add_theme_font_size_override("font_size", px)
+		l.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		l.add_theme_constant_override("outline_size", 0)
+		l.add_theme_color_override("font_shadow_color", Color.BLACK)
+		l.add_theme_constant_override("shadow_offset_x", 2)
+		l.add_theme_constant_override("shadow_offset_y", 2)
+	return l
 
 
 func _layout(p_full: bool) -> void:
@@ -71,12 +97,32 @@ func _layout(p_full: bool) -> void:
 	_tiles.clear()
 	custom_minimum_size = panel_size(full)
 	size = panel_size(full)
-	_title = UiStyle.label(self, "Skills", 15, UiStyle.TITLE)
-	_title.position = Vector2(PAD, 4)
-	_title.size = Vector2(size.x - PAD * 2, 20)
-	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var osrs := osrs_look()
+	_title = osrs_label(self, "Skills", UiStyle.TITLE if not osrs else OsrsUi.ORANGE, true) if osrs else UiStyle.label(self, "Skills", 15, UiStyle.TITLE)
+	_title.position = Vector2(PAD + 2, 2 if osrs else 4)
+	_title.size = Vector2(size.x - PAD * 2 - 80, HEADER - 2)
+	_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_title.clip_text = true
 	_parts.append(_title)
-	var y0 := PAD + 22.0
+	# The combat level, top right, beside the OSRS combat icon.
+	var combat_icon := SkillIcons.has_icon("attack") and OsrsSprites.get_sprite("combat") != null
+	if combat_icon:
+		var ci := TextureRect.new()
+		ci.texture = OsrsSprites.get_sprite("combat")
+		ci.position = Vector2(size.x - PAD - 76, 3)
+		ci.size = Vector2(25, 25)
+		ci.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(ci)
+		_parts.append(ci)
+	_combat_head = osrs_label(self, "", YELLOW) if osrs else UiStyle.label(self, "", 14, YELLOW)
+	_combat_head.position = Vector2(size.x - PAD - 48, 2)
+	_combat_head.size = Vector2(46, HEADER - 2)
+	_combat_head.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_combat_head.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_combat_head.tooltip_text = "Combat level"
+	_combat_head.mouse_filter = Control.MOUSE_FILTER_STOP
+	_parts.append(_combat_head)
+	var y0 := PAD + HEADER
 	var rows := 6
 	if full:
 		rows = FULL_LAYOUT.size()
@@ -89,35 +135,53 @@ func _layout(p_full: bool) -> void:
 			_add_tile(COLUMN_1[i], Vector2(PAD, y0 + i * (TILE.y + GAP)))
 		_add_tile("hitpoints", Vector2(PAD + TILE.x + GAP, y0))
 		_build_combat_box(y0)
+	# Footer: the total level beside the OSRS stats icon.
 	var footer := Panel.new()
-	footer.add_theme_stylebox_override("panel", UiStyle.box(STONE_DARK, STONE_LIGHT.darkened(0.3), 1, 2))
-	footer.position = Vector2(PAD, y0 + rows * (TILE.y + GAP))
-	footer.size = Vector2(size.x - PAD * 2, 26)
+	footer.add_theme_stylebox_override("panel", UiStyle.box(Color(0, 0, 0, 0.28), Color(0.05, 0.04, 0.03, 0.9), 1, 2))
+	footer.position = Vector2(PAD, y0 + rows * (TILE.y + GAP) + 2)
+	footer.size = Vector2(size.x - PAD * 2, FOOTER - 4)
 	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(footer)
 	_parts.append(footer)
-	_total = UiStyle.label(footer, "", 14, YELLOW)
-	UiStyle.fill(_total)
-	_total.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var x_text := 8.0
+	if OsrsSprites.get_sprite("stats") != null:
+		var ti := TextureRect.new()
+		ti.texture = OsrsSprites.get_sprite("stats")
+		ti.position = Vector2(8, (footer.size.y - 25.0) * 0.5)
+		ti.size = Vector2(25, 25)
+		ti.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		footer.add_child(ti)
+		x_text = 40.0
+	_total = osrs_label(footer, "", YELLOW) if osrs else UiStyle.label(footer, "", 14, YELLOW)
+	_total.position = Vector2(x_text, 0)
+	_total.size = Vector2(footer.size.x - x_text - 6, footer.size.y)
 	_total.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
 
 func _build_combat_box(y0: float) -> void:
 	# Second column under Hitpoints: the build's combat level, OSRS-style.
 	var info := Panel.new()
-	info.add_theme_stylebox_override("panel", UiStyle.box(STONE_DARK, STONE_LIGHT.darkened(0.3), 1, 2))
+	info.add_theme_stylebox_override("panel", UiStyle.box(Color(0, 0, 0, 0.22), Color(0.05, 0.04, 0.03, 0.9), 1, 2))
 	info.position = Vector2(PAD + TILE.x + GAP, y0 + TILE.y + GAP)
 	info.size = Vector2(TILE.x, 5 * (TILE.y + GAP) - GAP)
 	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(info)
 	_parts.append(info)
-	var cl := UiStyle.label(info, "Combat\nlevel", 13, UiStyle.TITLE)
-	cl.position = Vector2(0, 40)
-	cl.size = Vector2(TILE.x, 40)
+	var osrs := osrs_look()
+	if OsrsSprites.get_sprite("combat") != null:
+		var ci := TextureRect.new()
+		ci.texture = OsrsSprites.get_sprite("combat")
+		ci.position = Vector2((TILE.x - 50.0) * 0.5, 14)
+		ci.size = Vector2(50, 50)
+		ci.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		info.add_child(ci)
+	var cl := osrs_label(info, "Combat\nlevel", OsrsUi.ORANGE) if osrs else UiStyle.label(info, "Combat\nlevel", 13, UiStyle.TITLE)
+	cl.position = Vector2(0, 74)
+	cl.size = Vector2(TILE.x, 60)
 	cl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_combat = UiStyle.label(info, "", 30, YELLOW)
-	_combat.position = Vector2(0, 84)
-	_combat.size = Vector2(TILE.x, 40)
+	_combat = osrs_label(info, "", YELLOW, false, 48) if osrs else UiStyle.label(info, "", 30, YELLOW)
+	_combat.position = Vector2(0, 140)
+	_combat.size = Vector2(TILE.x, 56)
 	_combat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 
@@ -141,14 +205,15 @@ func show_build(def: Dictionary, p_champ: Champion = null) -> void:
 	if wants_full(def) != full:
 		_layout(wants_full(def))
 	var skills: Dictionary = def.get("skills", {})
-	_title.text = "%s — Skills" % def.get("name", "")
+	_title.text = "%s" % def.get("name", "") if osrs_look() else "%s — Skills" % def.get("name", "")
 	var combat := Combat.osrs_combat_level(skills)
 	if _combat != null:
 		_combat.text = str(combat)
+	_combat_head.text = str(combat) if full else ""
 	var total := 0
 	for s in _tiles:
 		total += level_of(skills, s)
-	_total.text = "Total level: %d%s" % [total, "    ·    Combat level: %d" % combat if full else ""]
+	_total.text = "Total level: %d" % total
 	var lucky := GameData.lucky_skill(str(def.get("id", "")))
 	for s in _tiles:
 		var t: SkillTile = _tiles[s]
@@ -160,7 +225,7 @@ func show_build(def: Dictionary, p_champ: Champion = null) -> void:
 			var parts := tip.split("\n")
 			parts.insert(1, "Lucky roll! This game this skill could roll up to 99.")
 			tip = "\n".join(parts)
-		t.tooltip_text = UiStyle.wrap(tip)
+		t.tooltip_text = "{%s} %s" % [s, tip] if SkillIcons.has_icon(s) else UiStyle.wrap(tip)
 		t.queue_redraw()
 	_update_live()
 
@@ -255,17 +320,43 @@ static func skill_tooltip(def: Dictionary, skill: String) -> String:
 	return "\n".join(lines)
 
 
-## One stone tile: skill icon on the left, "current / base" on the right.
+## One skill: its OSRS icon on the left, "current" over "base" on the right
+## (drawn like the Skills tab; the vector icons and stone tile without the pack).
 class SkillTile extends Control:
 	var skill := ""
 	var base := 1
 	var current := 1
 	var lucky := false             # this game's lucky roll (up to 99): a gold star
+	var _hover := false
 
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		mouse_entered.connect(func() -> void:
+			_hover = true
+			queue_redraw())
+		mouse_exited.connect(func() -> void:
+			_hover = false
+			queue_redraw())
+
+	func _make_custom_tooltip(for_text: String) -> Object:
+		return SkillIcons.make_tooltip(for_text) if for_text.contains("{") else null
 
 	func _draw() -> void:
+		var tex := OsrsSprites.get_sprite(skill)
+		var font: Font = OsrsFont.get_font_any_size("p12_full") if OsrsFont.active else null
+		var col := Color(0.2, 1.0, 0.2) if current > base else (SkillsPanel.YELLOW if current == base else Color(1.0, 0.55, 0.1))
+		if tex != null and font != null:
+			# Faint recess behind each skill, lighter under the mouse.
+			draw_rect(Rect2(Vector2.ZERO, size), Color(1, 1, 1, 0.1) if _hover else Color(0, 0, 0, 0.14))
+			draw_texture_rect(tex, Rect2(Vector2(2, (size.y - 50.0) * 0.5), Vector2(50, 50)), false)
+			if lucky:
+				_star(Vector2(size.x - 9.0, 9.0), 6.0)
+			_shadow_text(font, Vector2(56, 22), str(current), 24, col, 2)
+			draw_line(Vector2(84, 40), Vector2(96, 14), Color(0.05, 0.05, 0.05), 3.0)
+			draw_line(Vector2(83, 39), Vector2(95, 13), SkillsPanel.YELLOW, 1.0)
+			_shadow_text(font, Vector2(80, 44), str(base), 24, SkillsPanel.YELLOW, 2)
+			return
 		var r := Rect2(Vector2.ZERO, size)
 		draw_rect(r, SkillsPanel.STONE)
 		# Bevel like the OSRS stone tiles.
@@ -276,12 +367,11 @@ class SkillTile extends Control:
 		SkillIcons.draw_icon(self, skill, Vector2(22, size.y * 0.5), 15.0)
 		if lucky:
 			_star(Vector2(size.x - 9.0, 9.0), 6.0)
-		var font := get_theme_default_font()
-		var col := Color(0.2, 1.0, 0.2) if current > base else (SkillsPanel.YELLOW if current == base else Color(1.0, 0.55, 0.1))
-		_shadow_text(font, Vector2(46, 22), str(current), 17, col)
+		var f := get_theme_default_font()
+		_shadow_text(f, Vector2(46, 22), str(current), 17, col, 1)
 		draw_line(Vector2(62, 34), Vector2(74, 14), Color(0.05, 0.05, 0.05), 3.0)
 		draw_line(Vector2(61, 33), Vector2(73, 13), SkillsPanel.YELLOW, 1.5)
-		_shadow_text(font, Vector2(70, 40), str(base), 17, SkillsPanel.YELLOW)
+		_shadow_text(f, Vector2(70, 40), str(base), 17, SkillsPanel.YELLOW, 1)
 
 	func _star(c: Vector2, r: float) -> void:
 		var pts := PackedVector2Array()
@@ -292,6 +382,6 @@ class SkillTile extends Control:
 		pts.append(pts[0])
 		draw_polyline(pts, Color(0.25, 0.15, 0.0), 1.0)
 
-	func _shadow_text(font: Font, pos: Vector2, text: String, fsize: int, col: Color) -> void:
-		draw_string(font, pos + Vector2(1, 1), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, Color.BLACK)
+	func _shadow_text(font: Font, pos: Vector2, text: String, fsize: int, col: Color, shadow: int) -> void:
+		draw_string(font, pos + Vector2(shadow, shadow), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, Color.BLACK)
 		draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, col)

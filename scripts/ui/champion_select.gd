@@ -262,10 +262,10 @@ func _build_side_panel(rect: Rect2) -> void:
 	_prayers.custom_minimum_size = Vector2(rect.size.x - 48, 0)
 	_prayers.prayer_picked.connect(func(_id: String) -> void: _update_lock())
 	var hint := OsrsUi.text(p, "Non-combat levels are rolled 20–75 every game, and the starred lucky skill up to 99 (the Skiller is 99), so which items you can buy changes. Hover a skill to see them.",
-		12, OsrsUi.MUTED, Rect2(16, 534, rect.size.x - 32, 60))
+		12, OsrsUi.MUTED, Rect2(16, 542, rect.size.x - 32, 56))
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.clip_text = false
-	hint.size = Vector2(rect.size.x - 32, 60)     # (it grew to one line before wrapping was on)
+	hint.size = Vector2(rect.size.x - 32, 56)     # (it grew to one line before wrapping was on)
 	_hints["skills"] = hint
 	show_tab("skills")
 

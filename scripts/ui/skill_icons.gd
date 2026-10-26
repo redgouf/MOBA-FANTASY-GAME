@@ -7,6 +7,57 @@ extends RefCounted
 const STEEL := Color(0.78, 0.8, 0.84)
 const OUTLINE := Color(0.05, 0.04, 0.03)
 
+## Every skill that has an OSRS icon (ui/sprites/<skill>.png).
+const SKILLS: Array[String] = [
+	"attack", "strength", "defence", "ranged", "prayer", "magic", "hitpoints", "agility", "herblore",
+	"thieving", "crafting", "fletching", "mining", "smithing", "fishing", "cooking", "firemaking",
+	"woodcutting", "runecraft", "slayer", "farming", "construction", "hunter", "sailing",
+]
+const TEXT_ICON_PX := 18
+
+
+## Item text names a skill as {strength}, {ranged}...: shown as the OSRS icon
+## where text can show pictures (tooltips, the shop), as the plain name where
+## it can't, and as the name when the model pack isn't installed.
+static func has_icon(skill: String) -> bool:
+	return OsrsSprites.get_sprite(skill) != null
+
+
+## BBCode for a skill: its icon, or its capitalised name without the pack.
+static func tag(skill: String, px: int = TEXT_ICON_PX) -> String:
+	if not has_icon(skill):
+		return skill.capitalize()
+	return "[img=%dx%d]%s%s.png[/img]" % [px, px, OsrsSprites.DIR, skill]
+
+
+## Turns {skill} markers into BBCode icons. `escape` first makes any "[" in
+## plain text literal (skip it when the text is already BBCode).
+static func markup(text: String, escape: bool = true, px: int = TEXT_ICON_PX) -> String:
+	if escape:
+		text = text.replace("[", "[lb]")
+	for skill in SKILLS:
+		text = text.replace("{%s}" % skill, tag(skill, px))
+	return text
+
+
+## The same text with the plain skill names ("{strength}" becomes "Strength").
+static func plain(text: String) -> String:
+	for skill in SKILLS:
+		text = text.replace("{%s}" % skill, skill.capitalize())
+	return text
+
+
+## The hover tooltip for item text: coloured, with skill icons. Controls that
+## show item text return this from _make_custom_tooltip.
+static func make_tooltip(for_text: String) -> Control:
+	var font := ThemeDB.fallback_font
+	var widest := 0.0
+	for line in plain(for_text).split("\n"):
+		widest = maxf(widest, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x)
+	var r := UiStyle.rich_tooltip(markup(for_text), clampf(widest + 26.0, 150.0, 400.0))
+	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	return r
+
 
 static func draw_icon(c: CanvasItem, skill: String, center: Vector2, s: float) -> void:
 	match skill:

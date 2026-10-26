@@ -2135,7 +2135,7 @@
       "potency": {
         "herblore": 63
       },
-      "text": "Restores 40 prayer and any lowered levels (Saradomin brew)."
+      "text": "Restores 40 {prayer} and any lowered levels (Saradomin brew)."
     },
     {
       "id": "prayer_potion",
@@ -2531,7 +2531,7 @@
       "potency": {
         "herblore": 36
       },
-      "text": "Attack and strength in one sip."
+      "text": "{attack} and {strength} in one sip."
     },
     {
       "id": "super_attack",

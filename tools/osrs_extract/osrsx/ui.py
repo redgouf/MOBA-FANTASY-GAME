@@ -142,6 +142,11 @@ UI_SPRITES = {
     1031: "side_background", 1036: "side_background_top", 1032: "side_background_bottom",
     170: "slot", 168: "combat", 197: "attack", 198: "strength", 199: "defence", 200: "ranged",
     201: "prayer", 202: "magic", 203: "hitpoints", 204: "agility", 222: "stats", 237: "pierce", 239: "range",
+    # The rest of the Skills tab's 25 x 25 icons (the game's "Skills" panel, and
+    # the skill names in item text, use them).
+    205: "herblore", 206: "thieving", 207: "crafting", 208: "fletching", 209: "mining", 210: "smithing",
+    211: "fishing", 212: "cooking", 213: "firemaking", 214: "woodcutting", 215: "runecraft", 216: "slayer",
+    217: "farming", 220: "hunter", 221: "construction", 228: "sailing",
 }
 
 

@@ -62,7 +62,7 @@ var _d_price: Label
 var _d_body: RichTextLabel
 var _d_buy: Button
 var _d_sell: Button
-var _d_status: Label
+var _d_status: RichTextLabel
 var _refresh := 0.0
 var _inv_key := ""
 
@@ -406,7 +406,7 @@ func _build_detail() -> void:
 	var step := 48.0
 	var x0 := (w - (INTO_SLOTS * step - 6)) * 0.5
 	for i in INTO_SLOTS:
-		var b := Button.new()
+		var b := TipButton.new()
 		b.position = Vector2(x0 + i * step, 36)
 		b.size = Vector2(42, 38)
 		style_item_box(b)
@@ -451,9 +451,16 @@ func _build_detail() -> void:
 	_d_body.add_theme_font_size_override("normal_font_size", 13)
 	_d_body.add_theme_color_override("default_color", Color.WHITE)
 	d.add_child(_d_body)
-	_d_status = OsrsUi.text(d, "", 13, OsrsUi.MUTED, Rect2(16, 552, w - 32, 30))
-	_d_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_d_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_d_status = RichTextLabel.new()
+	_d_status.bbcode_enabled = true
+	_d_status.scroll_active = false
+	_d_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_d_status.position = Vector2(16, 552)
+	_d_status.size = Vector2(w - 32, 30)
+	_d_status.add_theme_font_size_override("normal_font_size", 13)
+	_d_status.add_theme_color_override("default_color", OsrsUi.MUTED)
+	_d_status.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	d.add_child(_d_status)
 	_d_buy = Button.new()
 	_d_buy.text = "Buy"
 	_d_buy.position = Vector2(16, 582)
@@ -520,11 +527,11 @@ func _fill_grid() -> void:
 
 func _add_tile(id: String) -> void:
 	var it := GameData.item(id)
-	var b := Button.new()
+	var b := TipButton.new()
 	b.custom_minimum_size = TILE
 	b.toggle_mode = true
 	style_item_box(b)
-	b.tooltip_text = UiStyle.wrap(ItemSlot._tooltip(it, champ))
+	b.tooltip_text = ItemSlot._tooltip(it, champ)
 	var icon := Icons.rect(b, Icons.item(id), Vector2(40, 40))
 	icon.position = Vector2((TILE.x - 40) * 0.5, 5)
 	icon.size = Vector2(40, 40)
@@ -602,7 +609,7 @@ func details(it: Dictionary) -> String:
 		var parts: Array[String] = []
 		for s in reqs:
 			var ok := champ != null and (champ.skill(str(s)) >= int(reqs[s]) or (made and GameData.COMBAT_SKILLS.has(str(s))))
-			parts.append("[color=%s]%d %s[/color]" % ["#4fd65a" if ok else "#ff5a4a", int(reqs[s]), str(s).capitalize()])
+			parts.append("[color=%s]%d[/color] {%s}" % ["#4fd65a" if ok else "#ff5a4a", int(reqs[s]), str(s)])
 		lines.append("[color=#ff981f]Requires[/color] " + ", ".join(parts))
 	var art: Dictionary = it.get("artisan", {})
 	if not art.is_empty():
@@ -620,7 +627,7 @@ func details(it: Dictionary) -> String:
 		lines.append(tip[i])
 	if it.has("builds_from"):
 		lines.append("[color=#a8a39a]Parts of the recipe you own come off the price.[/color]")
-	return "\n".join(lines)
+	return SkillIcons.markup("\n".join(lines), false)
 
 
 func buy(id: String) -> void:
@@ -692,12 +699,17 @@ func refresh() -> void:
 	if not champ.in_shop_range():
 		status = "Return to your base to buy."
 	elif not champ.meets_requirements(selected):
-		status = "Your levels are too low: %s." % ", ".join(champ.missing_requirements(selected))
+		var need: Array[String] = []
+		for r in champ.missing_requirement_levels(selected):
+			need.append("%d {%s}" % [int(r[1]), str(r[0])])
+		status = "Your levels are too low: %s." % ", ".join(need)
 	elif champ.gold < cost:
 		status = "You need %s more gp." % _commas(cost - int(champ.gold))
 	elif not champ.can_buy(selected):
 		status = "Your inventory is full."
-	_d_status.text = status
+	var shown := "[center]%s[/center]" % SkillIcons.markup(status) if status != "" else ""
+	if _d_status.text != shown:
+		_d_status.text = shown
 	_d_buy.disabled = status != ""
 	_refresh_sell()
 
@@ -802,7 +814,7 @@ class RecipeTree extends Control:
 			cx = (xs[0] + xs[xs.size() - 1]) * 0.5
 		var top := row * _row_h
 		nodes[idx]["pos"] = Vector2(cx, top)
-		var b := Button.new()
+		var b := TipButton.new()
 		b.position = Vector2(cx - _box.x * 0.5, top)
 		b.size = _box
 		b.toggle_mode = true
@@ -815,7 +827,7 @@ class RecipeTree extends Control:
 			g.set_border_width_all(2)
 			g.set_corner_radius_all(3)
 			b.add_theme_stylebox_override("normal", g)
-		b.tooltip_text = UiStyle.wrap(ItemSlot._tooltip(GameData.item(id), ge.champ))
+		b.tooltip_text = ItemSlot._tooltip(GameData.item(id), ge.champ)
 		b.gui_input.connect(ge._right_click_buy.bind(func() -> String: return id))
 		if row > 0:
 			b.pressed.connect(ge.select.bind(id))

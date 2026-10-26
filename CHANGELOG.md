@@ -2,6 +2,13 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.27.0
+
+- Skill names in item text are now the real OSRS skill icons: requirements, level lines, potion boosts and the shop's details panel and tooltips show the icon instead of "Strength", "Herblore", "Fletching" and so on.
+- The Skills panel (the 24-skill grid on champion select, the portrait-hover popup and the target popup) is rebuilt in the OSRS interface style: stone background, the real skill icons at double size, OSRS-font levels (current over base, boosts green and drains orange), a combat icon and level in the corner and the stats icon beside the total level.
+- Hovering a skill shows its icon in the tooltip; tiles light up under the mouse.
+- The panels without the private OSRS pack keep the old drawn look.
+
 ## 0.26.0
 
 - Drag items between inventory slots: dropping one on another swaps them, and dropping on an empty slot moves it there (gaps are fine). The 1–6 keys follow the slot, so you choose which item sits on which key. New items fill the first empty slot, and a crafted item takes the place of its parts.

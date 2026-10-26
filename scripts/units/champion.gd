@@ -367,13 +367,21 @@ func meets_requirements(item_id: String) -> bool:
 
 func missing_requirements(item_id: String) -> Array[String]:
 	var out: Array[String] = []
+	for r in missing_requirement_levels(item_id):
+		out.append("%d %s" % [int(r[1]), str(r[0]).capitalize()])
+	return out
+
+
+## The skill levels still needed for an item: [[skill, level], ...].
+func missing_requirement_levels(item_id: String) -> Array:
+	var out: Array = []
 	var reqs: Dictionary = GameData.item(item_id).get("requirements", {})
 	var made := can_make(item_id)
 	for s in reqs:
 		if made and GameData.COMBAT_SKILLS.has(str(s)):
 			continue
 		if skill(str(s)) < int(reqs[s]):
-			out.append("%d %s" % [int(reqs[s]), str(s).capitalize()])
+			out.append([str(s), int(reqs[s])])
 	return out
 
 

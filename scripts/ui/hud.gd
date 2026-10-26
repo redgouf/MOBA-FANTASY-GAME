@@ -132,7 +132,7 @@ func _ready() -> void:
 	# OSRS Skills tab popups: hover your portrait, or the inspect panel's portrait.
 	var sz := SkillsPanel.panel_size(true)
 	_skills_popup = SkillsPanel.create(root)
-	UiStyle.place(_skills_popup, Control.PRESET_BOTTOM_LEFT, Vector2(8, -206 - sz.y), sz)
+	UiStyle.place(_skills_popup, Control.PRESET_BOTTOM_LEFT, Vector2(8, -166 - sz.y), sz)
 	_skills_popup.visible = false
 	_target_skills_popup = SkillsPanel.create(root)
 	UiStyle.place(_target_skills_popup, Control.PRESET_TOP_LEFT, Vector2(8, 182), sz)
@@ -631,7 +631,7 @@ func _update_bottom_left() -> void:
 		if key != "" and Engine.get_process_frames() % 15 == i:
 			# Spec weapons: add the live damage breakdown of their special attack.
 			var spec_tip := AbilityInfo.tooltip(champ, key)
-			_item_slots[i].tooltip_text = UiStyle.wrap(ItemSlot._tooltip(GameData.item(id), champ)) + "\n\nSpecial attack:\n" + spec_tip
+			_item_slots[i].tooltip_text = ItemSlot._tooltip(GameData.item(id), champ) + "\n\nSpecial attack:\n" + spec_tip
 	for i in 4:
 		_belt_slots[i].champ = champ
 		_belt_slots[i].set_item(champ.consumables[i] if i < champ.consumables.size() else "")
@@ -648,7 +648,7 @@ func _update_skills_popups() -> void:
 		_skills_shown_for = champ
 		_skills_popup.show_build(champ.def, champ)
 		var sz := SkillsPanel.panel_size(_skills_popup.full)
-		UiStyle.place(_skills_popup, Control.PRESET_BOTTOM_LEFT, Vector2(8, -206 - sz.y), sz)
+		UiStyle.place(_skills_popup, Control.PRESET_BOTTOM_LEFT, Vector2(8, -166 - sz.y), sz)
 	_skills_popup.visible = over_own
 	var t := target_frame.target
 	var over_target := target_frame.visible and t is Champion and (force_skills_popups \
