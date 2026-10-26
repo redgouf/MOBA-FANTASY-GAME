@@ -1159,7 +1159,12 @@ func ability_range(ab: Dictionary) -> float:
 	return float(ab.get("range", 0.0))
 
 
-func try_cast(slot: String, target: Unit, point: Vector3) -> bool:
+## `place_far`: for abilities that drop something at a spot (is_placed_ability),
+## a spot past the range isn't clamped to the range edge: the caster walks into
+## range and casts on that exact spot (any other command cancels the walk).
+## `fall_dir`: Timber! chops the yew so it falls this way (the caster walks to
+## the far side of it first); ZERO falls away from wherever the caster stands.
+func try_cast(slot: String, target: Unit, point: Vector3, place_far: bool = false, fall_dir: Vector3 = Vector3.ZERO) -> bool:
 	if is_dead or not can_act():
 		return false
 	var ab := get_action(slot)
@@ -1170,7 +1175,7 @@ func try_cast(slot: String, target: Unit, point: Vector3) -> bool:
 	if has_status("tele_block") and _has_effect(ab, "dash"):
 		return false
 	if ab.has("planter"):
-		return _try_planter(slot, ab, point)
+		return _try_planter(slot, ab, point, place_far, fall_dir)
 	var cast := str(ab.get("cast", "self"))
 	if cast == "target_unit":
 		var want_ally := bool(ab.get("target_ally", false))
@@ -1194,8 +1199,54 @@ func try_cast(slot: String, target: Unit, point: Vector3) -> bool:
 		d.y = 0.0
 		var max_range := ability_range(ab)
 		if d.length() > max_range:
+			if place_far and is_placed_ability(ab):
+				_queue_placed_cast(slot, point)
+				return true
 			point = global_position + d.normalized() * max_range
 	_execute_cast(slot, ab, target, point)
+	return true
+
+
+## An ability that drops its effect at a chosen spot (a circle at the point, a
+## line that starts there, a yew), so the spot matters more than the range.
+## Dashes and cones aimed from the caster only use the cursor for a direction.
+func is_placed_ability(ab: Dictionary) -> bool:
+	if ab.is_empty() or str(ab.get("cast", "self")) != "point" or _has_effect(ab, "dash"):
+		return false
+	if ab.has("planter"):
+		return true
+	for e in ab.get("effects", []):
+		var area: Dictionary = e.get("area", {})
+		if area.is_empty():
+			continue
+		var shape := str(area.get("shape", "circle"))
+		if shape == "circle" and str(area.get("center", "point")) == "point":
+			return true
+		if shape == "line" and str(area.get("origin", "self")) == "point":
+			return true
+	return false
+
+
+func _queue_placed_cast(slot: String, point: Vector3) -> void:
+	_cancel_recall()
+	_queued_cast = {"slot": slot, "point": Vector3(point.x, 0.0, point.z), "since": Time.get_ticks_msec()}
+
+
+## What the queued walk-and-cast is waiting to do ({} when none): {"slot",
+## "point"} for a spot, {"slot", "tree", "dir"?} for a chop. Drawn pinned.
+func pending_cast() -> Dictionary:
+	if _queued_cast.is_empty() or _queued_cast.has("target"):
+		return {}
+	return _queued_cast.duplicate()
+
+
+## Drops a queued placed cast or chop (any click cancels it). True if there was one.
+func cancel_pending_cast() -> bool:
+	if pending_cast().is_empty():
+		return false
+	_queued_cast = {}
+	_has_move_target = false
+	velocity = Vector3.ZERO
 	return true
 
 
@@ -1229,6 +1280,9 @@ func _process_queued_cast() -> void:
 	if _queued_cast.has("tree"):
 		_process_queued_chop(slot)
 		return
+	if _queued_cast.has("point"):
+		_process_queued_place(slot)
+		return
 	var t: Variant = _queued_cast.get("target")
 	if not is_instance_valid(t) or t.is_dead:
 		_queued_cast = {}
@@ -1244,6 +1298,24 @@ func _process_queued_cast() -> void:
 		_execute_cast(slot, ab, t, t.global_position)
 	else:
 		_chase(t.global_position)
+
+
+## Walks toward a spot cast past the range, then casts on it (a long walk gives up).
+func _process_queued_place(slot: String) -> void:
+	var ab := get_action(slot)
+	var spot: Vector3 = _queued_cast["point"]
+	var waited := float(Time.get_ticks_msec() - int(_queued_cast.get("since", 0))) / 1000.0
+	if ab.is_empty() or cooldowns.get(slot, 0.0) > 0.0 or spec < float(ab.get("spec_cost", 0.0)) \
+			or not can_act() or waited > 12.0:
+		_queued_cast = {}
+		return
+	if flat_distance(global_position, spot) <= ability_range(ab) - 0.2:
+		_queued_cast = {}
+		_has_move_target = false
+		velocity = Vector3.ZERO
+		try_cast(slot, null, spot)
+	else:
+		_chase(spot)
 
 
 # --- Planter abilities (Timber!) -----------------------------------------------
@@ -1288,11 +1360,11 @@ func tree_to_replace(cfg: Dictionary) -> PlantedTree:
 
 ## Where a yew aimed at `point` would actually be planted: within range, on
 ## walkable ground, and clear of towers and other structures.
-func plant_spot(point: Vector3, ab: Dictionary) -> Vector3:
+func plant_spot(point: Vector3, ab: Dictionary, clamp_to_range: bool = true) -> Vector3:
 	var cfg: Dictionary = ab.get("planter", {})
 	var d := point - global_position
 	d.y = 0.0
-	var p := global_position + (d.limit_length(ability_range(ab)))
+	var p := global_position + (d.limit_length(ability_range(ab)) if clamp_to_range else d)
 	p.y = 0.0
 	if is_inside_tree():
 		var nav_map := get_world_3d().navigation_map
@@ -1312,11 +1384,22 @@ func plant_spot(point: Vector3, ab: Dictionary) -> Vector3:
 	return p
 
 
-func _try_planter(slot: String, ab: Dictionary, point: Vector3) -> bool:
+func _try_planter(slot: String, ab: Dictionary, point: Vector3, place_far: bool = false, fall_dir: Vector3 = Vector3.ZERO) -> bool:
 	var cfg: Dictionary = ab.get("planter", {})
 	var tree := planter_tree_at(point, cfg)
 	if tree == null:
-		_execute_plant(slot, ab, plant_spot(point, ab))
+		if place_far and flat_distance(global_position, point) > ability_range(ab):
+			_queue_placed_cast(slot, point)
+		else:
+			_execute_plant(slot, ab, plant_spot(point, ab))
+	elif fall_dir.length() > 0.01:
+		# Chosen fall: stand on the far side of the yew, then chop.
+		var dir := Vector3(fall_dir.x, 0.0, fall_dir.z).normalized()
+		if _in_chop_position(tree, dir, cfg):
+			_execute_chop(slot, ab, tree, dir)
+		else:
+			_cancel_recall()
+			_queued_cast = {"slot": slot, "tree": tree, "dir": dir, "since": Time.get_ticks_msec()}
 	elif flat_distance_to(tree) <= chop_range(cfg):
 		_execute_chop(slot, ab, tree)
 	else:
@@ -1324,6 +1407,22 @@ func _try_planter(slot: String, ab: Dictionary, point: Vector3) -> bool:
 		_cancel_recall()
 		_queued_cast = {"slot": slot, "tree": tree}
 	return true
+
+
+## Where to stand to fell `tree` so it falls along `dir`: on the opposite side.
+func tree_stand_spot(tree: PlantedTree, dir: Vector3, cfg: Dictionary) -> Vector3:
+	var at := tree.global_position
+	return Vector3(at.x, 0.0, at.z) - dir * float(cfg.get("stand_distance", 2.2))
+
+
+## Already close enough, and on the right side, for the yew to fall along `dir`.
+func _in_chop_position(tree: PlantedTree, dir: Vector3, cfg: Dictionary) -> bool:
+	if flat_distance(global_position, tree_stand_spot(tree, dir, cfg)) <= 0.6:
+		return true
+	if flat_distance_to(tree) > chop_range(cfg):
+		return false
+	var now := PlantedTree.fall_direction(global_position, tree.global_position, forward())
+	return now.angle_to(dir) < deg_to_rad(10.0)
 
 
 func _execute_plant(slot: String, ab: Dictionary, point: Vector3) -> void:
@@ -1344,15 +1443,17 @@ func _execute_plant(slot: String, ab: Dictionary, point: Vector3) -> void:
 	command_issued.emit(self, "cast", point, slot.to_upper())
 
 
-func _execute_chop(slot: String, ab: Dictionary, tree: PlantedTree) -> void:
+func _execute_chop(slot: String, ab: Dictionary, tree: PlantedTree, dir: Vector3 = Vector3.ZERO) -> void:
 	_cancel_recall()
 	cooldowns[slot] = ability_cooldown(slot, ab)
 	var at := tree.global_position
 	face_toward(at)
-	tree.fall(PlantedTree.fall_direction(global_position, at, forward()))
+	if dir.length() < 0.01:
+		dir = PlantedTree.fall_direction(global_position, at, forward())
+	tree.fall(dir)
 	# The ability's line starts at the tree ("origin": "point") and runs along
-	# the chopper -> tree direction, locked now.
-	AbilityRunner.execute(self, ab, null, at, ability_rank(slot))
+	# the fall direction (chopper -> tree unless one was chosen), locked now.
+	AbilityRunner.execute(self, ab, null, at, ability_rank(slot), dir)
 	_cast_visuals(slot, null, at)
 	ability_cast.emit(self, slot)
 	_on_ability_used(slot)
@@ -1368,7 +1469,22 @@ func _process_queued_chop(slot: String) -> void:
 		_queued_cast = {}
 		return
 	var t := tree as PlantedTree
-	if flat_distance_to(t) <= chop_range(ab.get("planter", {})):
+	var cfg: Dictionary = ab.get("planter", {})
+	if _queued_cast.has("dir"):
+		var dir: Vector3 = _queued_cast["dir"]
+		var stand := tree_stand_spot(t, dir, cfg)
+		var waited := float(Time.get_ticks_msec() - int(_queued_cast.get("since", 0))) / 1000.0
+		if _in_chop_position(t, dir, cfg) or (waited > 3.0 and flat_distance_to(t) <= chop_range(cfg)):
+			_queued_cast = {}
+			_has_move_target = false
+			velocity = Vector3.ZERO
+			_execute_chop(slot, ab, t, dir)
+		elif waited > 12.0:
+			_queued_cast = {}
+		else:
+			_chase(stand)
+		return
+	if flat_distance_to(t) <= chop_range(cfg):
 		_queued_cast = {}
 		_has_move_target = false
 		velocity = Vector3.ZERO

@@ -2650,10 +2650,11 @@
             "cooldown": 1.5,
             "block_radius": 0.8,
             "chop_range": 3.5,
-            "hover_radius": 1.8,
+            "hover_radius": 2.4,
+            "stand_distance": 2.2,
             "lifetime": 60
           },
-          "text": "Press Q to plant a yew at the cursor. Yews are solid: nothing walks or dashes through them. Up to 3 at once (a 4th replaces your oldest); each lasts 60s. Press Q with the cursor on one of your yews to chop it (you walk over if needed): it falls straight away from where you stand, hitting everything along its length and slowing them 30% for 1.5s. Planting has a 1.5s cooldown; chopping uses the full cooldown.",
+          "text": "Press Q to plant a yew at the cursor (past your range you walk into range first; any click cancels). Yews are solid: nothing walks or dashes through them. Up to 3 at once (a 4th replaces your oldest); each lasts 60s. Press Q with the cursor round one of your yews to chop it: it falls toward the cursor's side of the trunk (the line follows your cursor) and you walk to the far side first. It hits everything along its length and slows them 30% for 1.5s. Planting has a 1.5s cooldown; chopping uses the full cooldown.",
           "effects": [
             {
               "type": "damage",

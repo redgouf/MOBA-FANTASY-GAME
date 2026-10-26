@@ -2,6 +2,14 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.28.0
+
+- Timber! (Skiller): hover one of your yews and move the cursor round the trunk. The fall line follows the cursor, so the yew falls toward whichever side you point at, and a green marker shows where you'll stand. Click and he walks to the far side of the trunk, then chops it so it falls that way. With the cursor on the trunk itself it still falls away from you.
+- Abilities that drop something at a spot (Timber! planting, Bonfire, Anvil Drop, Ice/Blood/Shadow Barrage, Black chinchompa, Zulrah's Scales) can be aimed past their range. The range ring still shows, with a line from its edge to the real spot. Confirm and you walk into range and cast on that exact spot instead of it stopping at the ring.
+  - While you walk, the target stays drawn on the ground. Any left or right click cancels it.
+  - Dashes, and cones and lines aimed from you, are unchanged: they still only use the cursor for a direction.
+- The hover radius for Timber! yews is a little larger (2.4) to make circling them easier.
+
 ## 0.27.0
 
 - Skill names in item text are now the real OSRS skill icons: requirements, level lines, potion boosts and the shop's details panel and tooltips show the icon instead of "Strength", "Herblore", "Fletching" and so on.

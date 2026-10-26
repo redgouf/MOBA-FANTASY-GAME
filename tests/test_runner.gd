@@ -52,6 +52,7 @@ func _ready() -> void:
 	test_selling()
 	test_inventory_layout_and_hotkeys()
 	test_skill_icons_and_panel()
+	await test_timber_aimed_fall_and_far_placement()
 	test_potions()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
@@ -2069,3 +2070,90 @@ func test_skill_icons_and_panel() -> void:
 	check(sp._tiles.size() == 24, "24 skill tiles")
 	check(sp._tiles["woodcutting"].tooltip_text.contains("{woodcutting}") == SkillIcons.has_icon("woodcutting"), "tile tooltips lead with the skill's icon")
 	host.queue_free()
+
+
+## Timber! falls toward a chosen side (the Skiller walks to the far side), and
+## spot abilities aimed past their range walk into range instead of clamping.
+func test_timber_aimed_fall_and_far_placement() -> void:
+	print("-- aimed fall / far placement --")
+	var p := Vector3(40, 0, 40)
+	var c := _make("skiller", Combat.Team.SARADOMIN, p)
+	var east := _make("dharok", Combat.Team.ZAMORAK, p + Vector3(7, 0, 4))
+	var west := _make("dharok", Combat.Team.ZAMORAK, p + Vector3(-9, 0, 4))
+	for u in [east, west]:
+		u.spawn_point = MapLayout.ZAMORAK_BASE
+	await get_tree().physics_frame
+	c.ranks["q"] = 1
+	var cfg: Dictionary = c.get_ability("q")["planter"]
+	c.try_cast("q", null, p + Vector3(0, 0, 4))
+	var tree: PlantedTree = c.standing_trees()[0]
+	c.cooldowns["q"] = 0.0
+	var east_hp := east.health
+	var west_hp := west.health
+	# Chosen fall: toward +x, so the Skiller has to stand west of the trunk.
+	var dir := Vector3(1, 0, 0)
+	check(c.try_cast("q", null, tree.global_position, true, dir) and c._queued_cast.has("dir"), "a chosen fall walks to the far side first")
+	var stand := c.tree_stand_spot(tree, dir, cfg)
+	check(Unit.flat_distance(stand, tree.global_position + Vector3(-2.2, 0, 0)) < 0.01, "he stands opposite the way it falls")
+	check(c.pending_cast().has("tree"), "the walk is a pending cast (drawn on the ground)")
+	for i in 150:
+		await get_tree().physics_frame
+		if not tree.is_standing():
+			break
+	check(not tree.is_standing(), "the yew falls once he is in place")
+	check(c.flat_distance_to(tree) < 3.4 and c.global_position.x < tree.global_position.x - 0.8, "he ended up west of the trunk")
+	await get_tree().create_timer(0.8).timeout
+	check(east.health < east_hp, "it fell toward the chosen side, onto the foe east of it")
+	check(is_equal_approx(west.health, west_hp), "and not toward the default (away from him) or the other side")
+
+	# Already standing on the right side: it falls at once.
+	c.global_position = p + Vector3(20, 0, 0)
+	c.cooldowns["q"] = 0.0
+	c.try_cast("q", null, c.global_position + Vector3(0, 0, 3))
+	var near: PlantedTree = c.standing_trees()[0]
+	c.cooldowns["q"] = 0.0
+	check(c.try_cast("q", null, near.global_position, true, Vector3(0, 0, 1)) and c._queued_cast.is_empty() and not near.is_standing(),
+		"already on the right side: no walk, it falls at once")
+	await get_tree().physics_frame
+
+	# Indicator: the chosen direction and the spot he will stand on.
+	var ind := AbilityIndicator.new()
+	add_child(ind)
+	c.cooldowns["q"] = 0.0
+	c.try_cast("q", null, c.global_position + Vector3(0, 0, 3))
+	var t2: PlantedTree = c.standing_trees()[0]
+	ind.update_for(c, "q", t2.global_position, null, t2, Vector3(0, 0, -1))
+	check(ind.mode == "chop" and ind.fall_dir.distance_to(Vector3(0, 0, -1)) < 0.01, "the indicator follows the chosen fall direction")
+	ind.clear()
+
+	# Spots past the range: walk into range, then cast on the exact spot.
+	var mage := _make("ancient_mage", Combat.Team.SARADOMIN, Vector3(-40, 0, -40))
+	var target := _make("dharok", Combat.Team.ZAMORAK, Vector3(-20, 0, -40))
+	target.spawn_point = MapLayout.ZAMORAK_BASE
+	await get_tree().physics_frame
+	mage.ranks["q"] = 1
+	var q := mage.get_ability("q")
+	check(mage.is_placed_ability(q) and not mage.is_placed_ability(mage.get_ability("e")) == false, "circle spells at a point are placed abilities")
+	var zerker := _make("zerker", Combat.Team.SARADOMIN, Vector3(-60, 0, -60))
+	check(not zerker.is_placed_ability(zerker.get_ability("e")) and not zerker.is_placed_ability(zerker.get_ability("q")),
+		"dashes and cones aimed from the caster stay clamped")
+	var hp := target.health
+	check(mage.try_cast("q", null, target.global_position) and target.health == hp and mage.cooldowns.get("q", 0.0) > 0.0,
+		"without place_far the cast clamps to the range and misses")
+	mage.cooldowns["q"] = 0.0
+	check(mage.try_cast("q", null, target.global_position, true) and mage._queued_cast.has("point") and mage.cooldowns.get("q", 0.0) <= 0.0,
+		"place_far queues a walk instead of casting")
+	check(mage.cancel_pending_cast() and mage._queued_cast.is_empty() and mage.pending_cast().is_empty(), "a click cancels the walk")
+	mage.try_cast("q", null, target.global_position, true)
+	for i in 240:
+		await get_tree().physics_frame
+		if mage.cooldowns.get("q", 0.0) > 0.0:
+			break
+	check(mage.cooldowns.get("q", 0.0) > 0.0 and mage._queued_cast.is_empty(), "he casts once in range")
+	var gap := Unit.flat_distance(mage.global_position, target.global_position)
+	check(gap <= float(q.get("range", 8)) + 0.05 and gap > float(q.get("range", 8)) - 1.5, "stopping near the edge of the range (%.1f m)" % gap)
+	await get_tree().create_timer(0.6).timeout
+	check(target.health < hp, "the spell landed on the exact spot, not the range edge")
+	for n in [c, east, west, mage, target, zerker, ind]:
+		n.queue_free()
+	await get_tree().create_timer(0.3).timeout

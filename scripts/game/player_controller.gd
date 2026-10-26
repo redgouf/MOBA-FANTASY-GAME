@@ -14,12 +14,15 @@ extends Node
 ## eating and drinking wait for the next game tick (order_on_tick).
 
 const PICK_RADIUS_PX := 36.0
+const FALL_DEAD_ZONE := 0.5       # cursor this close to a trunk: default fall
+const FALL_MAX_REACH := 7.0
 
 var main: Node
 var champion: Champion
 var rig: CameraRig
 var hovered: Unit
 var hovered_tree: PlantedTree
+var fall_dir := Vector3.ZERO      # the way the aimed yew would fall (cursor side of the trunk)
 var indicator: AbilityIndicator
 
 ## The action being aimed ("q".."r" or "item:<id>"), "" when not aiming.
@@ -44,6 +47,7 @@ func _process(_delta: float) -> void:
 	if rig != null:
 		hovered = pick_unit(get_viewport().get_mouse_position())
 	_update_aim()
+	_update_pending()
 	_update_cursor()
 
 
@@ -130,6 +134,7 @@ func cancel_aim() -> bool:
 	aiming = ""
 	_aim_input = ""
 	hovered_tree = null
+	fall_dir = Vector3.ZERO
 	if indicator != null:
 		indicator.clear()
 	return was
@@ -148,7 +153,44 @@ func _update_aim() -> void:
 		return
 	var t := _cursor_target()
 	hovered_tree = tree_under_cursor(aiming)
-	indicator.update_for(champion, aiming, t["point"], t["unit"], hovered_tree)
+	fall_dir = fall_direction_at_cursor(hovered_tree)
+	indicator.update_for(champion, aiming, t["point"], t["unit"], hovered_tree, fall_dir)
+
+
+## While a walk-and-cast is under way (a spot cast past its range, or a chop
+## on the way to its far side), its target stays drawn on the ground until the
+## cast goes off. Any click cancels it.
+func _update_pending() -> void:
+	if aiming != "" or champion == null:
+		return
+	var pend := champion.pending_cast()
+	if pend.is_empty():
+		if indicator.visible:
+			indicator.clear()
+		return
+	var slot := str(pend["slot"])
+	if pend.has("tree"):
+		var tree: PlantedTree = pend["tree"]
+		if is_instance_valid(tree):
+			indicator.update_for(champion, slot, tree.global_position, null, tree, pend.get("dir", Vector3.ZERO))
+	else:
+		indicator.update_for(champion, slot, pend["point"], null, null)
+
+
+## Chop direction from the cursor: the yew falls toward the cursor's side of
+## its trunk, so circling the cursor round it turns the fall line. On the trunk
+## itself (or far off) it falls away from you as before (ZERO).
+func fall_direction_at_cursor(tree: PlantedTree) -> Vector3:
+	if tree == null or rig == null:
+		return Vector3.ZERO
+	var ground: Variant = ground_point(get_viewport().get_mouse_position())
+	if ground == null:
+		return Vector3.ZERO
+	var d: Vector3 = (ground as Vector3) - tree.global_position
+	d.y = 0.0
+	if d.length() < FALL_DEAD_ZONE or d.length() > FALL_MAX_REACH:
+		return Vector3.ZERO
+	return d.normalized()
 
 
 ## Casts `key` at the cursor. A planter ability (Timber!) aimed at one of your
@@ -157,10 +199,12 @@ func cast_at_cursor(key: String) -> bool:
 	var t := _cursor_target()
 	var point: Vector3 = t["point"]
 	var tree := tree_under_cursor(key)
+	var dir := Vector3.ZERO
 	if tree != null:
 		point = tree.global_position
+		dir = fall_direction_at_cursor(tree)
 	var target: Unit = t["unit"]
-	order(func() -> void: champion.try_cast(key, target, point))
+	order(func() -> void: champion.try_cast(key, target, point, true, dir))
 	return true
 
 
@@ -214,6 +258,11 @@ func tree_under_cursor(key: String) -> PlantedTree:
 func _unhandled_input(event: InputEvent) -> void:
 	if champion == null or rig == null:
 		return
+	# Any left or right click cancels a walk-and-cast that is under way
+	# (a confirming left click below replaces it with the new cast).
+	if event is InputEventMouseButton and event.pressed and aiming == "" \
+			and (event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT):
+		champion.cancel_pending_cast()
 	if aiming != "" and event is InputEventMouseButton and event.pressed:
 		if event.is_action_pressed("select"):
 			confirm_aim()

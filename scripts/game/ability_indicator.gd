@@ -3,7 +3,10 @@ extends MeshInstance3D
 ## League-style ground indicators for the ability being aimed: the range ring,
 ## then the ability's shape (line, cone, circle, dash arrow or target ring).
 ## Timber! shows where the yew will be planted, or, while the cursor is on one
-## of your yews, the path it will fall along from where you stand.
+## of your yews, the path it will fall along: toward the cursor's side of the
+## trunk, with the spot you will walk to.
+## Abilities that drop something at a spot are drawn on the cursor even past
+## their range (the range ring stays): you walk into range, then it goes off.
 ## Redrawn every frame by PlayerController while aiming.
 
 const Y := 0.12
@@ -19,6 +22,7 @@ const WARN := Color(1.0, 0.35, 0.25, 0.9)
 const ENEMY := Color(1.0, 0.3, 0.25, 0.95)
 const ALLY := Color(0.35, 1.0, 0.45, 0.95)
 const MAX_DRAW_LENGTH := 30.0
+const STAND := Color(0.55, 1.0, 0.6, 0.95)
 
 ## What is shown right now: "", "plant", "chop", "point", "target" (for tests and the HUD).
 var mode := ""
@@ -56,7 +60,8 @@ func clear() -> void:
 
 ## Draws the indicator for `key` ("q".."r" or "item:<id>") with the cursor at
 ## `cursor`, `hovered` the unit under it and `tree` the caster's yew under it.
-func update_for(c: Champion, key: String, cursor: Vector3, hovered: Unit, tree: PlantedTree) -> void:
+## `fall` is the direction chosen for a chop (ZERO: away from the caster).
+func update_for(c: Champion, key: String, cursor: Vector3, hovered: Unit, tree: PlantedTree, fall: Vector3 = Vector3.ZERO) -> void:
 	_verts.clear()
 	_colors.clear()
 	mode = ""
@@ -64,7 +69,7 @@ func update_for(c: Champion, key: String, cursor: Vector3, hovered: Unit, tree: 
 	var ab := c.get_action(key)
 	if not ab.is_empty():
 		if ab.has("planter"):
-			_planter(c, ab, cursor, tree)
+			_planter(c, ab, cursor, tree, fall)
 		else:
 			match str(ab.get("cast", "self")):
 				"target_unit":
@@ -74,7 +79,7 @@ func update_for(c: Champion, key: String, cursor: Vector3, hovered: Unit, tree: 
 	_flush()
 
 
-func _planter(c: Champion, ab: Dictionary, cursor: Vector3, tree: PlantedTree) -> void:
+func _planter(c: Champion, ab: Dictionary, cursor: Vector3, tree: PlantedTree, fall: Vector3 = Vector3.ZERO) -> void:
 	var cfg: Dictionary = ab.get("planter", {})
 	var size := c.planter_fall_size(ab)
 	var replace: PlantedTree = null
@@ -82,17 +87,25 @@ func _planter(c: Champion, ab: Dictionary, cursor: Vector3, tree: PlantedTree) -
 		mode = "chop"
 		chop_tree = tree
 		var at := tree.global_position
-		fall_dir = PlantedTree.fall_direction(c.global_position, at, c.forward())
+		var chosen := fall.length() > 0.01
+		fall_dir = fall.normalized() if chosen else PlantedTree.fall_direction(c.global_position, at, c.forward())
 		rect(at, fall_dir, size.x, size.y, FALL_FILL, FALL_EDGE)
 		arrow(at + fall_dir * (tree.block_radius + 0.4), at + fall_dir * (size.x - 0.3), 0.35, FALL_EDGE)
 		ring(at, tree.block_radius + 0.3, 0.14, FALL_EDGE)
-		if c.flat_distance_to(tree) > c.chop_range(cfg):
+		if chosen:
+			# You walk to the far side of the trunk, so it falls this way.
+			var stand := c.tree_stand_spot(tree, fall_dir, cfg)
+			disc(stand, 0.45, STAND)
+			ring(stand, 0.7, 0.1, STAND)
+			arrow(stand, at - fall_dir * (tree.block_radius + 0.1), 0.3, STAND)
+		elif c.flat_distance_to(tree) > c.chop_range(cfg):
 			# Out of reach: you'll walk to this ring first, then chop.
 			ring(at, c.chop_range(cfg), 0.06, RANGE)
 	else:
 		mode = "plant"
 		ring(c.global_position, c.ability_range(ab), 0.08, RANGE)
-		var spot := c.plant_spot(cursor, ab)
+		var spot := c.plant_spot(cursor, ab, false)
+		_reach_line(c, ab, spot)
 		var r := float(cfg.get("block_radius", 0.8))
 		disc(spot, r, PLANT_FILL)
 		ring(spot, r + 0.15, 0.1, PLANT_EDGE)
@@ -124,7 +137,10 @@ func _point(c: Champion, ab: Dictionary, cursor: Vector3, hovered: Unit) -> void
 		ring(origin, max_range, 0.08, RANGE)
 	var d := cursor - origin
 	d.y = 0.0
-	var p := origin + (d.limit_length(max_range) if max_range > 0.0 else d)
+	var placed := c.is_placed_ability(ab)
+	var p := origin + (d.limit_length(max_range) if max_range > 0.0 and not placed else d)
+	if placed:
+		_reach_line(c, ab, p)
 	var dir := d.normalized() if d.length() > 0.01 else c.forward()
 	var drawn := {}
 	for e in ab.get("effects", []):
@@ -157,6 +173,21 @@ func _point(c: Champion, ab: Dictionary, cursor: Vector3, hovered: Unit) -> void
 				ring(center, r, 0.1, EDGE)
 	if drawn.is_empty():
 		ring(p, 0.6, 0.1, EDGE)
+
+
+## Past the range: a thin line from the range edge to the spot, a marker at the
+## edge where you will stop to cast (shown only when the spot is out of reach).
+func _reach_line(c: Champion, ab: Dictionary, spot: Vector3) -> void:
+	var from := c.global_position
+	var d := spot - from
+	d.y = 0.0
+	var reach := c.ability_range(ab)
+	if d.length() <= reach + 0.05:
+		return
+	var dir := d.normalized()
+	var edge := from + dir * reach
+	rect(edge, dir, d.length() - reach, 0.12, RANGE, RANGE)
+	disc(edge, 0.3, STAND)
 
 
 # --- Primitives (flat on the ground) ----------------------------------------

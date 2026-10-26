@@ -9,7 +9,8 @@ extends RefCounted
 ## "repeat_interval": s runs it n times (ground zones like Bonfire).
 ## Spells run in real time, not on the game tick: they hit the moment
 ## they're cast, and delays are exact seconds.
-static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vector3, rank: int = 1) -> void:
+static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vector3, rank: int = 1,
+		dir_override: Vector3 = Vector3.ZERO) -> void:
 	ab = ranked(ab, rank)
 	# The aim direction is locked at cast time, so delayed lines and cones
 	# (Timber!'s falling yew) don't swing around if the caster moves.
@@ -17,6 +18,8 @@ static func execute(caster: Champion, ab: Dictionary, target: Unit, point: Vecto
 	aim.y = 0.0
 	var ctx := {"self_cost": 0.0, "rank": maxi(rank, 1),
 		"dir": aim.normalized() if aim.length() > 0.01 else caster.forward()}
+	if dir_override.length() > 0.01:
+		ctx["dir"] = Vector3(dir_override.x, 0.0, dir_override.z).normalized()     # a chosen direction (Timber!'s fall)
 	for effect in ab.get("effects", []):
 		var delay := float(effect.get("delay", 0.0))
 		var repeats := maxi(1, int(effect.get("repeat", 1)))

@@ -15,7 +15,7 @@ Champion abilities (`data/champions.json`) and item spec actives (`data/items.js
 | `bot_use` | Bot hint: `combat` (default), `low_health`, `high_health`, `never` |
 | `forms` | Per-form overrides (used by the Hybrid's Q) |
 | `effects` | List of effects, applied in order. Any effect may add `delay` (seconds). |
-| `planter` | Plant-and-chop ability (Timber!): `max`, `cooldown` (plant cooldown), `block_radius`, `chop_range`, `hover_radius`, `lifetime` (0 = permanent). Q on open ground plants a solid yew; Q on your own yew chops it and runs `effects` with the point at the yew, aimed from the caster through it. |
+| `planter` | Plant-and-chop ability (Timber!): `max`, `cooldown` (plant cooldown), `block_radius`, `chop_range`, `hover_radius`, `stand_distance` (how far from the trunk the caster stands to chop), `lifetime` (0 = permanent). Q on open ground plants a solid yew; Q on your own yew chops it and runs `effects` with the point at the yew. The yew falls away from the caster, or, when the player circles the cursor round it, toward the cursor's side (the caster walks to the far side first). |
 
 ## Effect types
 
@@ -99,3 +99,6 @@ Skills: any of the 24 OSRS skills. Combat skills (`attack`, `hitpoints`, `streng
 Potion statuses of kind `skill_boost` (`skill`, `flat`, `pct`, `duration`) boost a skill by flat + pct of the base level, as in OSRS (negative values lower it, like the Saradomin brew); `use.restore_skills` (super restore) removes lowered levels. The levels are flavour (the skills panel shows them); a potion's real effects are its other statuses: `attack_damage_mult` (Attack Damage: melee and ranged hits), `magic_damage_mult` (Magic Damage), `crit_chance` (hits crit for `rules.crit_mult`, 150%), `crit_damage_mult` (Crit Damage: crits hit harder, abilities' own crits too) and `armor_mult` (Defence).
 
 Item stats beyond the basics: `prayer_bonus` (OSRS prayer bonus), `monster_damage` (vs camps and epics), `gold_bonus` (last-hit gold), `burn_on_hit` (true damage a second for 2s on basic attacks), `structure_damage` (vs towers and other buildings), `consumable_bonus` (food and potions stronger), `skill_power` (also adds `rules.skill_power_attack_ratio` of itself to basic attacks for every build but the Skiller, whose passive does it at a higher ratio), `elysian`. Consumable `use`: `heal`, `heal_over_time` + `duration`, `heal_pct_max`, `prayer`, `spec`, `statuses` (each may carry `data`), `cleanse` (status kinds to remove; an `antipoison` status with `data.blocks` keeps them off).
+
+
+**Placed abilities.** A `"cast": "point"` ability whose effects drop an area at the point (a circle with `"center": "point"`, a line with `"origin": "point"`, or a `planter`) is a *placed* ability (`Champion.is_placed_ability`). The player controller aims it unclamped: past `range` the caster walks into range and casts on the exact spot (any click cancels), while bots and other callers of `try_cast` still clamp to `range`. Dashes and cones/lines from the caster are never placed.

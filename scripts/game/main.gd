@@ -13,7 +13,7 @@ extends Node3D
 ##   --smoke-seconds=N   game seconds to simulate in smoke-test mode (default 150)
 ##   --screenshot=PATH   save a PNG of the game at --screenshot-at=SECONDS, then quit
 ##   --no-osrs           ignore the private OSRS model pack (whitebox shapes)
-##   --shot-ui=NAME      before the screenshot: target | menu | settings | controls | hotkeys | shop | kit | skills | aim-chop | aim-plant | scoreboard | tooltip | teleport (--shot-tele-at=S) | look (--shot-pos=X,Z)
+##   --shot-ui=NAME      before the screenshot: target | menu | settings | controls | hotkeys | shop | kit | skills | aim-chop | aim-plant | aim-far (--shot-circle=DEG) | scoreboard | tooltip | teleport (--shot-tele-at=S) | look (--shot-pos=X,Z)
 ##   --shot-tab / --shot-item / --shot-search=TEXT / --shot-own=a,b   shop screenshots (tab, selected item, search, items owned)
 ##   --demo-level=N      raise the viewed champion to level N with items (for screenshots)
 
@@ -679,7 +679,7 @@ func _take_screenshot() -> void:
 				focused.cooldowns["q"] = 0.0
 				focused.try_cast("q", null, focused.standing_trees()[0].global_position)
 			hud.force_skills_popups = true
-		"aim-chop", "aim-plant":
+		"aim-chop", "aim-plant", "aim-far":
 			# Timber!'s indicator: three yews planted, the cursor on one (chop:
 			# its fall path) or on open ground (plant: the oldest will be replaced).
 			focused.global_position = Vector3(-37.0, 0.0, 37.0)     # mid lane, in the open
@@ -692,9 +692,20 @@ func _take_screenshot() -> void:
 				focused.try_cast("q", null, p + off)
 			focused.cooldowns["q"] = 0.0
 			var aim_at := focused.standing_trees()[0].global_position if _args["shot-ui"] == "aim-chop" else p + Vector3(-1.0, 0, -5.5)
-			get_viewport().warp_mouse(camera_rig.camera.unproject_position(aim_at + Vector3.UP * (2.0 if _args["shot-ui"] == "aim-chop" else 0.0)))
+			var lift := 2.0 if _args["shot-ui"] == "aim-chop" else 0.0
+			var key := "q"
+			if _args.has("shot-circle"):
+				# Circling the trunk: the cursor on the ground at this angle (degrees) round it.
+				var ang := deg_to_rad(float(_args["shot-circle"]))
+				aim_at += Vector3(cos(ang), 0.0, sin(ang)) * 1.6
+				lift = 0.0
+			if _args["shot-ui"] == "aim-far":
+				focused.ranks["w"] = maxi(1, int(focused.ranks["w"]))
+				key = "w"
+				aim_at = p + Vector3(13.0, 0.0, -3.0)
+			get_viewport().warp_mouse(camera_rig.camera.unproject_position(aim_at + Vector3.UP * lift))
 			await get_tree().process_frame
-			controller.begin_action("q", "ability_q")
+			controller.begin_action(key, "ability_" + key)
 			await get_tree().process_frame
 		"splats":
 			# Hitsplats: yours bright (dealt by you / taken by you), everyone else's tinted.
