@@ -1556,9 +1556,10 @@ func test_v010() -> void:
 	await get_tree().create_timer(0.4).timeout
 	check(absf(sk.rotation.y - yaw0) > 0.3, "the champion looks to the side first")
 	check(not fx._cast_started, "and keeps looking around for most of the 8 s channel")
-	await get_tree().create_timer(6.0).timeout
+	await get_tree().create_timer(6.6).timeout
 	check(is_instance_valid(fx) and fx._cast_started and fx._arms.size() == 2 and fx._arms[0].visible, "then casts with its arms out")
-	await get_tree().create_timer(2.6).timeout
+	check(absf(fx.look_end + TeleportFx.CAST_TIME - 8.4) < 0.7, "the cast ends as the teleport lands (%.2f s)" % (fx.look_end + TeleportFx.CAST_TIME))
+	await get_tree().create_timer(2.0).timeout
 	check(not sk.is_recalling() and sk.global_position.distance_to(sk.spawn_point) < 0.5, "and arrives home")
 	check(sk.get_node_or_null("TeleportFx") == null, "the animation cleans up")
 	pu.start_recall()

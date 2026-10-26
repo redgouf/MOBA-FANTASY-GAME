@@ -107,6 +107,23 @@ func _ready() -> void:
 	updater.failed.connect(_on_failed)
 	updater.progress.connect(_on_progress)
 	updater.downloaded.connect(_on_downloaded)
+	_boldify(_root)
+
+
+## Every text on the splash screen in the bold OSRS font (big titles keep
+## the quill font). Without the OSRS pack nothing changes.
+func _boldify(n: Node) -> void:
+	if not OsrsFont.active:
+		return
+	var bold := OsrsFont.get_font("b12_full")
+	for c in n.get_children():
+		if c is Label or c is Button or c is RichTextLabel:
+			var big := c is Label and (c as Label).get_theme_font_size("font_size") >= 30
+			if not big:
+				(c as Control).add_theme_font_override("normal_font" if c is RichTextLabel else "font", bold)
+				if c is RichTextLabel:
+					(c as Control).add_theme_font_override("bold_font", bold)
+		_boldify(c)
 	if auto_check and Settings.auto_update:
 		check_for_updates(false)
 

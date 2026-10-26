@@ -19,6 +19,9 @@ var _cast_clip := ""
 var _weapons: Dictionary = {} # item id -> MeshInstance3D (cached, hidden when not held)
 var _shield: MeshInstance3D
 var _oneshot_left := 0.0
+## Keep the last frame of the current clip until released (the teleport's
+## shrunk-away pose holds until the champion actually lands at home).
+var hold_end := false
 var _restore_after := false
 var _dead := false
 var _loco := ""
@@ -202,6 +205,21 @@ func play(clip: String, max_duration: float = 0.0) -> bool:
 	return true
 
 
+## Plays a clip up to `stop_at` seconds and freezes there until hold_end is
+## cleared (the teleport freezes at its smallest, shrunk-away pose).
+func play_and_hold(clip: String, stop_at: float) -> bool:
+	if not play(clip):
+		return false
+	_oneshot_left = minf(_oneshot_left, maxf(0.05, stop_at))
+	hold_end = true
+	return true
+
+
+## A clip's length in seconds (0 when the pack doesn't have it).
+func clip_length(clip: String) -> float:
+	return anim.get_animation(_full(clip)).length if has_clip(clip) else 0.0
+
+
 func is_busy() -> bool:
 	return _oneshot_left > 0.0
 
@@ -298,6 +316,12 @@ func _process(delta: float) -> void:
 	if _oneshot_left > 0.0:
 		_oneshot_left -= delta
 		if _oneshot_left > 0.0:
+			return
+		if hold_end:
+			# Freeze on this frame (the teleport's smallest pose) until released.
+			if anim.is_playing():
+				anim.pause()
+			_oneshot_left = 0.0001
 			return
 		if _restore_after:
 			_restore_weapon()

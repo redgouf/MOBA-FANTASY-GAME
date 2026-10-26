@@ -2,6 +2,12 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.22.1
+
+- Teleport Home: the champion now teleports at the moment the OSRS teleport animation has shrunk them away. It no longer grows back to full size first. The cast is timed to the teleport, holds the smallest pose until the champion lands, and the landing animation grows them back at home.
+- The "Teleporting home" and "Praying at the altar" text is bigger and bold, and the stray symbol after "home" is gone.
+- The splash screen text is bold (with the OSRS pack).
+
 ## 0.22.0
 
 - Fixed: faces and ears no longer poke through helmets (Dharok's helm, berserker helm and others), and the tree logo shows on the back of the Skiller's woodcutting cape. OSRS draws an item's parts in a set order instead of by depth; the extracted models now make up for that.

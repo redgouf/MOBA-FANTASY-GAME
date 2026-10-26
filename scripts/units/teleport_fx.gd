@@ -67,7 +67,16 @@ static func finish(c: Champion, from: Vector3) -> void:
 
 func _ready() -> void:
 	_base_yaw = champ.rotation.y
-	look_end = maxf(0.5, champ.recall_timer - CAST_TIME) if champ.recall_timer > 0.0 else 1.5
+	# The teleport happens on a game tick: time the cast so its animation
+	# ends (the champion shrunk away) exactly as it lands at home.
+	var land_in := 1.5 + CAST_TIME
+	if champ.recall_timer > 0.0:
+		var n := int(ceil((champ.recall_timer - 0.001) / GameTick.length()))
+		land_in = GameTick.seconds_until_tick(n)
+	var cast_len := CAST_TIME
+	if champ.osrs != null and champ.osrs.clip_length(_clip("cast_clip", CAST_CLIP)) > 0.0:
+		cast_len = _hold_time()
+	look_end = maxf(0.5, land_in - cast_len)
 	if champ.osrs == null:
 		_build_arms()
 
@@ -107,8 +116,9 @@ func _process(delta: float) -> void:
 func _start_cast() -> void:
 	_cast_started = true
 	if champ.osrs != null:
-		var left := maxf(0.6, champ.recall_timer)
-		champ.osrs.play(_clip("cast_clip", CAST_CLIP), minf(1.58, left))
+		# Play the cast to its smallest, shrunk-away pose and freeze there
+		# until the teleport lands (the clip itself grows back afterwards).
+		champ.osrs.play_and_hold(_clip("cast_clip", CAST_CLIP), _hold_time())
 	for a in _arms:
 		a.visible = true
 	# The OSRS teleport graphic, when the pack has it.
@@ -191,6 +201,8 @@ func _build_arms() -> void:
 
 
 func _restore() -> void:
+	if is_instance_valid(champ) and champ.osrs != null:
+		champ.osrs.hold_end = false
 	if is_instance_valid(champ) and elapsed < look_end:
 		champ.rotation.y = _base_yaw
 	for a in _arms:
@@ -198,6 +210,12 @@ func _restore() -> void:
 			a.visible = false
 	if _swirl != null:
 		_swirl.emitting = false
+
+
+## Seconds into the cast clip where the champion is smallest (models.json
+## teleport.cast_hold; OSRS 714 shrinks to 16% at 1.32 s).
+static func _hold_time() -> float:
+	return float(OsrsModels.config().get("teleport", {}).get("cast_hold", 1.32))
 
 
 static func _clip(key: String, fallback: String) -> String:

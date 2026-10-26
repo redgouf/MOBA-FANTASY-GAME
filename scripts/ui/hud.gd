@@ -380,7 +380,9 @@ func _build_bottom_center(root: Control) -> void:
 	_hint = UiStyle.label(root, "", 15, UiStyle.GOLD)
 	UiStyle.place(_hint, Control.PRESET_CENTER_BOTTOM, Vector2(-310, -228), Vector2(620, 20))
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_channel = UiStyle.label(root, "", 20, UiStyle.TEXT)
+	_channel = UiStyle.label(root, "", 24, UiStyle.TEXT)
+	if OsrsFont.active:
+		_channel.add_theme_font_override("font", OsrsFont.get_font("b12_full"))
 	UiStyle.place(_channel, Control.PRESET_CENTER_BOTTOM, Vector2(-310, -256), Vector2(620, 26))
 	_channel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	# Buffs and debuffs, just above the hotbar (icons with clock-wipe timers).
@@ -686,9 +688,9 @@ func _update_bottom_center() -> void:
 	if champ.is_dead:
 		_channel.text = ""
 	elif champ.is_recalling():
-		_channel.text = "Teleporting home… %.1f" % champ.recall_timer
+		_channel.text = "Teleporting home... %.1f" % champ.recall_timer
 	elif champ.is_praying_at_altar():
-		_channel.text = "Praying at the altar… %.1f" % champ.pray_timer
+		_channel.text = "Praying at the altar... %.1f" % champ.pray_timer
 	else:
 		_channel.text = ""
 	_buffs.unit = champ

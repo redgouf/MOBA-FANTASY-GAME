@@ -167,7 +167,7 @@
     "_comment": "Home teleport: a sneaky look around, then the OSRS teleport (cast anim 714 with gfx 111), landing anim 715.",
     "look_clip": "a10684",
     "cast_clip": "a714",
-    "cast_gfx": 111,
+    "cast_gfx": 111, "cast_hold": 1.32,
     "arrive_clip": "a715"
   }
 }
