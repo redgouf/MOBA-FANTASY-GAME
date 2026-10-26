@@ -6,7 +6,7 @@ A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School Run
 
 Built with **Godot 4.7.2** (GDScript, Forward+).
 
-## Status: whitebox prototype (v0.21)
+## Status: whitebox prototype (v0.22)
 
 ![Playing the Pure: stats and items bottom-left, abilities centre, minimap bottom-right, inspected target top-left](docs/screenshots/play.png)
 

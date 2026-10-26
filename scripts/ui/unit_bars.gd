@@ -188,7 +188,7 @@ static func level_color(level: int, mine: int) -> Color:
 
 ## "Name  (level-115)": the name in white, the level in its colour, centred.
 func _name_with_level(center_bottom: Vector2, n: String, combat: int, color: Color) -> void:
-	var font := get_theme_default_font()
+	var font: Font = OsrsFont.get_font("b12_full") if OsrsFont.active else get_theme_default_font()
 	var size := 13
 	var lvl := "  (level-%d)" % combat
 	var w1 := font.get_string_size(n, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x

@@ -68,6 +68,11 @@ static func label(parent: Node, text: String, font_size: int = 14, color: Color 
 	l.add_theme_color_override("font_color", color)
 	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	l.add_theme_constant_override("outline_size", 4)
+	# The OSRS pixel font can't be outlined: it gets OSRS's black drop shadow.
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1))
+	l.add_theme_constant_override("shadow_offset_x", 1)
+	l.add_theme_constant_override("shadow_offset_y", 1)
+	l.add_theme_constant_override("shadow_outline_size", 0)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(l)
 	return l

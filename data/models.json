@@ -98,7 +98,7 @@
       "weapon": 0,
       "attack": "crush",
       "props": [
-        {"bone": "L28", "item": 12020, "offset": [0, -0.03, 0.0], "rotation": [0, 0, 0], "size": 0.26, "hang": true},
+        {"bone": "L28", "item": 12020, "offset": [0, 0.035, 0.0], "rotation": [0, 0, 0], "size": 0.26, "hang": true},
         {"bone": "L27", "gem": true, "offset": [0, -0.03, 0.03], "rotation": [0, 0, 0], "size": 0.14}
       ],
       "abilities": {"q": {"weapon": 6739, "clip": "a2846"}, "w": {"clip": "a733"}, "e": {"weapon": 21028, "clip": "a618"}, "r": {"weapon": 25644, "clip": "a898"}},

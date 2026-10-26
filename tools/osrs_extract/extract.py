@@ -240,9 +240,10 @@ def main():
             pack.save_manifest()
 
     if "ui" in steps:
-        from osrsx.ui import export_fonts, export_hitsplats
+        from osrsx.ui import export_fonts, export_hitsplats, export_ui_sprites
         export_fonts(pack)
         export_hitsplats(pack)
+        export_ui_sprites(pack)
         pack.save_manifest()
 
     pack.log("done in %.0fs -> %s" % (time.time() - t0, args.out))

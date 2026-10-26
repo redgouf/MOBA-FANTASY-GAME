@@ -11,6 +11,8 @@ var figure: ChampionFigure
 var sway := true               # turn the figure slowly left and right
 var portrait := false          # frame head and shoulders instead of the full body
 var facing_deg := -12.0        # portrait: how far the figure turns (+ = looking to the screen's right)
+var portrait_span := 0.42      # portrait: how much of the figure's height fills the frame (smaller = closer)
+var portrait_look := 0.84      # portrait: the height (share of the figure) the camera aims at
 
 var _pivot: Node3D
 var _t := 0.0
@@ -81,8 +83,8 @@ func _frame() -> void:
 	var aspect := float(viewport.size.x) / maxf(1.0, float(viewport.size.y))
 	if portrait:
 		# Head and shoulders, from slightly to the side like an OSRS chathead.
-		var look := Vector3(0, h * 0.84, 0)
-		var dist := h * 0.42 / tan(deg_to_rad(camera.fov * 0.5))
+		var look := Vector3(0, h * portrait_look, 0)
+		var dist := h * portrait_span / tan(deg_to_rad(camera.fov * 0.5))
 		camera.position = look + Vector3(dist * 0.35, h * 0.04, dist)
 		camera.look_at(look)
 		_pivot.rotation.y = deg_to_rad(facing_deg)

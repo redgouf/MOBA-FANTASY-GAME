@@ -858,6 +858,9 @@ func _take_screenshot() -> void:
 			camera_rig._apply_zoom()
 			# --shot-at-champ=N centres on the Nth champion of the row (close-ups).
 			var focus_i := int(_args.get("shot-at-champ", -1))
+			for k in champions.size():
+				if champions[k].champ_id == str(_args.get("shot-champ", "")):
+					focus_i = k
 			camera_rig.center_on(origin + Vector3(1.0, 0.0, 0.0) * (float(focus_i) - 4.5) * 1.6 if focus_i >= 0 else origin)
 			await get_tree().create_timer(0.3).timeout
 		"fx":

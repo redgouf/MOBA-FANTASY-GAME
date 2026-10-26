@@ -178,7 +178,7 @@ class Pack:
             m.translate(0, o.male_offset, 0)
         skel, _ = self.player_skeleton()
         rel = "player/items/%d.glb" % item_id
-        write_skinned(self._path(rel), [("gear_%d" % item_id, m)], skel, [], self.textures)
+        write_skinned(self._path(rel), [("gear_%d" % item_id, m)], skel, [], self.textures, priority_lift=True)
         hides = sorted({SLOT_HIDES_PART[s] for s in o.wear_pos if s in SLOT_HIDES_PART})
         self.manifest["items"][str(item_id)] = {
             "name": o.name, "file": rel, "node": "gear_%d" % item_id,

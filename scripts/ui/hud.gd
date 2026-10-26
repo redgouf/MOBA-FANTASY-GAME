@@ -38,6 +38,13 @@ var _portrait_style: StyleBoxFlat
 var _portrait_initial: Label
 var _portrait_view: FigureView     # the champion's head and shoulders, looking right
 var _portrait_id := ""
+var _stat_icons: Dictionary = {}
+const STAT_NAMES := {"damage": "Damage", "magic": "Magic power", "attack_speed": "Time between attacks", "range": "Attack range",
+	"move": "Move speed", "melee_def": "Melee defence", "ranged_def": "Ranged defence", "magic_def": "Magic defence",
+	"armor_pen": "Armour penetration (Skill power for the Skiller)", "combat": "Combat level"}
+## OSRS icons for the stats panel (private pack): skill icons and the combat tab's swords.
+const STAT_ICONS := {"damage": "strength", "magic": "magic", "attack_speed": "attack", "range": "range", "move": "agility",
+	"melee_def": "defence", "ranged_def": "defence", "magic_def": "defence", "armor_pen": "pierce", "combat": "combat"}
 var _level_badge: Label
 var _name: Label
 var _xp: StatBar
@@ -210,6 +217,8 @@ func _build_bottom_left(root: Control) -> void:
 	_portrait_view = FigureView.create(portrait, Rect2(3, 3, 90, 90), true)
 	_portrait_view.sway = false
 	_portrait_view.facing_deg = 62.0
+	_portrait_view.portrait_span = 0.22     # head and chest fill the frame
+	_portrait_view.portrait_look = 0.8
 	_portrait_initial = UiStyle.label(portrait, "", 44, Color.WHITE)
 	UiStyle.fill(_portrait_initial)
 	_portrait_initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -239,9 +248,31 @@ func _build_bottom_left(root: Control) -> void:
 	grid.position = Vector2(118, 10)
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(grid)
+	var osrs_ui := OsrsSprites.available()
+	if osrs_ui:
+		# The OSRS stone panel, and a skill icon in front of each stat.
+		OsrsSprites.stone_panel(p)
+		grid.add_theme_constant_override("v_separation", 1)
 	for key in ["damage", "magic", "attack_speed", "range", "move", "melee_def", "ranged_def", "magic_def", "armor_pen", "combat"]:
-		var l := UiStyle.label(grid, "", 13)
-		l.custom_minimum_size = Vector2(80, 0)
+		var holder: Control = grid
+		if osrs_ui:
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 3)
+			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			grid.add_child(row)
+			var icon := TextureRect.new()
+			icon.texture = OsrsSprites.get_sprite(STAT_ICONS.get(key, "stats"))
+			icon.custom_minimum_size = Vector2(17, 17)
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			icon.mouse_filter = Control.MOUSE_FILTER_STOP
+			icon.tooltip_text = STAT_NAMES.get(key, key)
+			row.add_child(icon)
+			_stat_icons[key] = icon
+			holder = row
+		var l := UiStyle.label(holder, "", 13)
+		l.custom_minimum_size = Vector2(80 if not osrs_ui else 64, 0)
 		l.mouse_filter = Control.MOUSE_FILTER_PASS   # hover: the base value
 		_stats[key] = l
 
@@ -496,6 +527,11 @@ func _process(delta: float) -> void:
 ## base, red when debuffs lower it (for attack time, lower is better).
 func _stat(key: String, fmt: String, value: float, base: float, base_fmt: String, lower_is_better: bool = false) -> void:
 	var l: Label = _stats[key]
+	if _stat_icons.has(key):
+		# With the OSRS icons the stat's name is the icon (and its tooltip):
+		# "Dmg 12" becomes [fist] 12; the three defences keep a short tag.
+		fmt = fmt.replace("Dmg ", "").replace("Magic def ", "Mag ").replace("Melee def ", "Mel ").replace("Range def ", "Rng ") \
+			.replace("Magic ", "").replace("Atk ", "").replace("Range ", "").replace("Move ", "").replace("Skill ", "")
 	l.text = fmt % value
 	var col := UiStyle.TEXT
 	var diff := value - base
@@ -533,10 +569,12 @@ func _update_bottom_left() -> void:
 	_stat("magic_def", "Magic def %d", champ.get_defence(2), champ.base_defence[2], "%d")
 	if champ.get_skill_power() > 0.0:
 		_stat("armor_pen", "Skill %d", champ.get_skill_power(), champ.skill_power, "%d")
+		if _stat_icons.has("armor_pen"):
+			(_stat_icons["armor_pen"] as TextureRect).texture = OsrsSprites.get_sprite("stats")
 	else:
-		_stats["armor_pen"].text = "Pen %d%%" % int(champ.armor_pen * 100.0)
+		_stats["armor_pen"].text = ("%d%%" if _stat_icons.has("armor_pen") else "Pen %d%%") % int(champ.armor_pen * 100.0)
 		_stats["armor_pen"].add_theme_color_override("font_color", UiStyle.TEXT)
-	_stats["combat"].text = "Combat %d" % champ.combat_level()
+	_stats["combat"].text = ("%d" if _stat_icons.has("combat") else "Combat %d") % champ.combat_level()
 	for i in 6:
 		var id := champ.inventory[i] if i < champ.inventory.size() else ""
 		var key := champ.item_action_key(i)

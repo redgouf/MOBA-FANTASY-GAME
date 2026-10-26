@@ -34,6 +34,9 @@ func _build(color: Color, font_size: int) -> void:
 	_bar.add_theme_stylebox_override("background", bg)
 	add_child(_bar)
 	_text = UiStyle.label(self, "", font_size, Color.WHITE)
+	if OsrsFont.active:
+		# The OSRS bold font, centred on the whole bar.
+		_text.add_theme_font_override("font", OsrsFont.get_font("b12_full"))
 	UiStyle.fill(_text)
 	_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

@@ -74,10 +74,31 @@ def _quat(r):
 
 # ---------------------------------------------------------------- meshes
 class MeshOptions:
-    def __init__(self, textures=None, joint_of_label=None, name="mesh"):
+    def __init__(self, textures=None, joint_of_label=None, name="mesh", priority_lift=False):
         self.textures = textures
         self.joint_of_label = joint_of_label
         self.name = name
+        self.priority_lift = priority_lift
+
+
+PRIORITY_LIFT = 0.004   # metres per priority step (worn items)
+
+
+def _priority_ranks(model):
+    """OSRS paints a model's faces lowest priority first, so higher-priority
+    faces cover lower ones even where they cross: a helmet's shell over the
+    face inside it, the tree on the back of a woodcutting cape. A depth buffer
+    shows whichever is nearer, so the face pokes through and the logo hides.
+    Worn items lift each priority level a few millimetres outward (along the
+    smooth vertex normals, so faces of one level stay joined). {face: rank}"""
+    pr = model.priorities
+    if pr is None:
+        return {}
+    levels = sorted(set(pr))
+    if len(levels) < 2:
+        return {}
+    rank = {p: i for i, p in enumerate(levels)}
+    return {f: rank[pr[f]] for f in range(model.face_count) if rank[pr[f]] > 0}
 
 
 def _vertex_normals(model, wpos):
@@ -145,11 +166,72 @@ def _decal_offsets(model, wpos, fnorm):
     return out
 
 
+def _ray_tri(o, d, a, b, c):
+    """Distance along ray o + t*d to triangle abc (Moller-Trumbore), or None."""
+    e1 = (b[0] - a[0], b[1] - a[1], b[2] - a[2])
+    e2 = (c[0] - a[0], c[1] - a[1], c[2] - a[2])
+    px = d[1] * e2[2] - d[2] * e2[1]
+    py = d[2] * e2[0] - d[0] * e2[2]
+    pz = d[0] * e2[1] - d[1] * e2[0]
+    det = e1[0] * px + e1[1] * py + e1[2] * pz
+    if abs(det) < 1e-12:
+        return None
+    inv = 1.0 / det
+    tx, ty, tz = o[0] - a[0], o[1] - a[1], o[2] - a[2]
+    u = (tx * px + ty * py + tz * pz) * inv
+    if u < 0.0 or u > 1.0:
+        return None
+    qx = ty * e1[2] - tz * e1[1]
+    qy = tz * e1[0] - tx * e1[2]
+    qz = tx * e1[1] - ty * e1[0]
+    v = (d[0] * qx + d[1] * qy + d[2] * qz) * inv
+    if v < 0.0 or u + v > 1.0:
+        return None
+    return (e2[0] * qx + e2[1] * qy + e2[2] * qz) * inv
+
+
+PUSH_MAX = 0.15         # metres a covered high-priority face may move out
+
+
+def _priority_push(model, wpos, fnorm, ranks):
+    """A high-priority face that sits behind lower-priority ones (the tree on
+    a woodcutting cape is modelled inside the cape's back and painted over it
+    by priority) is moved out along its normal to just in front of them, so a
+    depth buffer shows it too. {face: distance}"""
+    out = {}
+    if not ranks:
+        return out
+    lows = {}
+    for f in range(model.face_count):
+        lows.setdefault(ranks.get(f, 0), []).append(f)
+    tri = [(wpos[model.i1[f]], wpos[model.i2[f]], wpos[model.i3[f]]) for f in range(model.face_count)]
+    for f, rk in ranks.items():
+        a, b, c = tri[f]
+        o = ((a[0] + b[0] + c[0]) / 3.0, (a[1] + b[1] + c[1]) / 3.0, (a[2] + b[2] + c[2]) / 3.0)
+        n = fnorm[f]
+        best = 0.0
+        for lr, fs in lows.items():
+            if lr >= rk:
+                continue
+            for g in fs:
+                ng = fnorm[g]
+                if ng[0] * n[0] + ng[1] * n[1] + ng[2] * n[2] < 0.5:
+                    continue        # only a surface facing the same way can cover it
+                t = _ray_tri(o, n, *tri[g])
+                if t is not None and 0.0005 < t < PUSH_MAX and t > best:
+                    best = t
+        if best > 0.0:
+            out[f] = best + PRIORITY_LIFT
+    return out
+
+
 def build_primitives(g: Gltf, model, opts: MeshOptions, flip=False):
     """glTF primitives for one model, split by texture and transparency."""
     wpos = [to_world(x, y, z) for x, y, z in zip(model.vx, model.vy, model.vz)]
     vnorm, fnorm = _vertex_normals(model, wpos)
-    lift = _decal_offsets(model, wpos, fnorm)
+    lift = _decal_offsets(model, wpos, fnorm) if not opts.priority_lift else {}
+    ranks = _priority_ranks(model) if opts.priority_lift else {}
+    push = _priority_push(model, wpos, fnorm, ranks)
     groups = {}
     for f in range(model.face_count):
         if not face_visible(model, f):
@@ -182,9 +264,16 @@ def build_primitives(g: Gltf, model, opts: MeshOptions, flip=False):
                 r, gg, b = hsl_to_linear(model.colors[f])
                 c = (r, gg, b, a)
             off = lift.get(f)
+            rk = ranks.get(f, 0)
             for k, vi in enumerate(idx):
                 n = fnorm[f] if flat else vnorm[vi]
                 u = uvs[k] if uvs else None
+                if f in push:
+                    fn_ = fnorm[f]
+                    off = (fn_[0] * push[f], fn_[1] * push[f], fn_[2] * push[f])
+                elif rk:
+                    vn_ = vnorm[vi]
+                    off = (vn_[0] * PRIORITY_LIFT * rk, vn_[1] * PRIORITY_LIFT * rk, vn_[2] * PRIORITY_LIFT * rk)
                 key = (vi, n, c, u, off)
                 at = seen.get(key)
                 if at is None:
@@ -319,7 +408,7 @@ def animation_channels(skel: Skeleton, joint_nodes, rig: LabelRig, frames, inter
     return chans, t
 
 
-def write_skinned(path, meshes, skel: Skeleton, clips, textures=None, extra_nodes=None):
+def write_skinned(path, meshes, skel: Skeleton, clips, textures=None, extra_nodes=None, priority_lift=False):
     """meshes: [(node_name, ModelData)]. clips: [(name, rig, frames, loop)]."""
     g = Gltf()
     arm, jnodes = skel.add_to(g)
@@ -328,7 +417,7 @@ def write_skinned(path, meshes, skel: Skeleton, clips, textures=None, extra_node
     jm = skel.joint_map()
     root_children = [arm]
     for name, model in meshes:
-        prims = build_primitives(g, model, MeshOptions(textures, jm, name))
+        prims = build_primitives(g, model, MeshOptions(textures, jm, name, priority_lift))
         if not prims:
             continue
         mesh = g.mesh(name, prims)

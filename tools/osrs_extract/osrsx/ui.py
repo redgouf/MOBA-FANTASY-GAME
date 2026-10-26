@@ -133,3 +133,27 @@ def export_fonts(pack):
         done.append(name)
     pack.manifest["ui"] = dict(pack.manifest.get("ui", {}), fonts=done)
     pack.log("fonts: %s" % ", ".join(done))
+
+
+# Interface sprites the HUD uses (ids in the sprite index): the stone side
+# panel background and its top / bottom edges, the equipment slot frame, the
+# combat tab's crossed swords, skill icons, attack-style icons.
+UI_SPRITES = {
+    1031: "side_background", 1036: "side_background_top", 1032: "side_background_bottom",
+    170: "slot", 168: "combat", 197: "attack", 198: "strength", 199: "defence", 200: "ranged",
+    201: "prayer", 202: "magic", 203: "hitpoints", 204: "agility", 222: "stats", 237: "pierce", 239: "range",
+}
+
+
+def export_ui_sprites(pack):
+    n = 0
+    for sid, name in UI_SPRITES.items():
+        try:
+            png = _sprite_png(pack.cache, sid)
+        except Exception:
+            continue
+        with open(pack._path("ui", "sprites", "%s.png" % name), "wb") as f:
+            f.write(png)
+        n += 1
+    pack.manifest["ui"] = dict(pack.manifest.get("ui", {}), sprites=sorted(UI_SPRITES.values()))
+    pack.log("ui sprites: %d" % n)

@@ -2,6 +2,14 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.22.0
+
+- Fixed: faces and ears no longer poke through helmets (Dharok's helm, berserker helm and others), and the tree logo shows on the back of the Skiller's woodcutting cape. OSRS draws an item's parts in a set order instead of by depth; the extracted models now make up for that.
+- The Skiller grips his gem bag by its drawstring.
+- With the OSRS pack, the stats panel uses OSRS parts: the stone interface background and OSRS skill icons for each stat (hover an icon for its name).
+- The text on the health, prayer and special attack bars, and the names over champions, use the bold OSRS font, centred on the whole bar.
+- The portrait in the stats panel is closer: head and chest fill the frame.
+
 ## 0.21.0
 
 - The map walls now run right beside the top and bottom lanes all the way round (the map is 180 m across instead of 200 m). Top and bottom lane towers stand on the outer edge of their lane, against the wall, leaving the lane open.
