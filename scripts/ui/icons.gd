@@ -33,6 +33,12 @@ static func ability(champ_id: String, slot: String, form: String = "") -> Textur
 	return _load("res://assets/icons/abilities/%s_%s.png" % [champ_id, slot])
 
 
+## A Grand Exchange tab icon ("weapons", "defence", "consumables", "boots",
+## "skilling", "materials"; built by tools/make_shop_icons.py).
+static func shop_tab(tab_name: String) -> Texture2D:
+	return _load("res://assets/icons/shop/%s.png" % tab_name)
+
+
 static func prayer(prayer_name: String) -> Texture2D:
 	return _load("res://assets/icons/prayers/%s.png" % prayer_name.to_lower().replace(" ", "_"))
 

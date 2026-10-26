@@ -2,6 +2,15 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.24.0
+
+- New shop, styled after the OSRS Grand Exchange and laid out like League's shop:
+  - A search bar across the top in the GE's chatbox style, "What would you like to buy? *". Click it and type to search every tab by name; Enter picks the first match.
+  - Category tabs are now OSRS icons: crossed swords (Weapons), a rune kiteshield (Defence, which was Armour), a lobster with a prayer potion (Consumables), leather boots (Boots), a pickaxe and axe (Skilling), and logs with iron ore (Materials). Hover a tab for its name.
+  - Clicking an item opens it in a separate window on the right: "Builds into" along the top (click one to jump to it), then the item's recipe tree with the item at the top and its parts below, joined by lines. Parts you own are green and marked "Owned", and come off the price. Then its stats, effects and the Buy button.
+  - Double-click an item to buy it, as before.
+- With the OSRS pack, the shop uses the Grand Exchange's own interface art: the riveted steel border and dark trade backing, item boxes that glow when picked, GE buttons, the chatbox parchment and search icon, and the big bevelled button for Buy.
+
 ## 0.23.1
 
 - Siege minion: the ballista now points the way the minion travels (the cart was turned the wrong way round).

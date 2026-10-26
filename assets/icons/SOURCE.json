@@ -368,5 +368,14 @@
     "skiller_w": "tinderbox",
     "skiller_e": "dragonHarpoon",
     "skiller_r": "anvilIcon"
+  },
+  "shop_tabs": {
+    "weapons": "combatIcon",
+    "defence": "runeKiteshield",
+    "consumables": "prayerPotion4 + lobster",
+    "boots": "leatherBoots",
+    "skilling": "runePickaxe + runeAxe",
+    "materials": "logs + ironOre",
+    "built_by": "tools/make_shop_icons.py"
   }
 }

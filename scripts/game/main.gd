@@ -14,6 +14,7 @@ extends Node3D
 ##   --screenshot=PATH   save a PNG of the game at --screenshot-at=SECONDS, then quit
 ##   --no-osrs           ignore the private OSRS model pack (whitebox shapes)
 ##   --shot-ui=NAME      before the screenshot: target | menu | settings | controls | shop | kit | skills | aim-chop | aim-plant | scoreboard | tooltip | teleport (--shot-tele-at=S) | look (--shot-pos=X,Z)
+##   --shot-tab / --shot-item / --shot-search=TEXT / --shot-own=a,b   shop screenshots (tab, selected item, search, items owned)
 ##   --demo-level=N      raise the viewed champion to level N with items (for screenshots)
 
 const ASSIST_WINDOW_SEC := 10.0
@@ -802,6 +803,10 @@ func _take_screenshot() -> void:
 			hud.toggle_shop()
 			if _args.has("shot-tab"):
 				hud._shop.show_tab(str(_args["shot-tab"]))
+			for own in str(_args.get("shot-own", "")).split(",", false):
+				focused.inventory.append(own)      # parts you own show green in the recipe
+			if _args.has("shot-search"):
+				hud._shop.set_query(str(_args["shot-search"]))
 			if _args.has("shot-item"):
 				hud._shop.select(str(_args["shot-item"]))
 			await get_tree().process_frame

@@ -707,7 +707,27 @@ func test_v09() -> void:
 		cats[GrandExchange.category(GameData.item(id))] = true
 	check(cats.size() == 6 and cats.has("Consumables") and cats.has("Skilling") and cats.has("Materials"), "the Grand Exchange sorts items into 6 tabs (%s)" % str(cats.keys()))
 	check(GrandExchange.category(GameData.item("shark")) == "Consumables" and GrandExchange.category(GameData.item("dragon_boots")) == "Boots"
-		and GrandExchange.category(GameData.item("abyssal_whip")) == "Weapons" and GrandExchange.category(GameData.item("bandos_chestplate")) == "Armour", "items land in the right tab")
+		and GrandExchange.category(GameData.item("abyssal_whip")) == "Weapons" and GrandExchange.category(GameData.item("bandos_chestplate")) == "Defence", "items land in the right tab")
+	check(GrandExchange.matches(GameData.item("dragon_boots"), "drag BOOTS") and not GrandExchange.matches(GameData.item("dragon_boots"), "rune"),
+		"the shop search matches every word of an item's name")
+	check("dragon_boots" in GrandExchange.builds_into("rune_boots") and GrandExchange.builds_into("primordial_boots").is_empty(), "the shop knows what an item builds into")
+	for t in GrandExchange.TABS:
+		check(Icons.shop_tab(GrandExchange.TAB_ICONS[t]) != null, "the %s tab has an icon" % t)
+	var ge_holder := Control.new()
+	add_child(ge_holder)
+	var shopper := _make("slayer", Combat.Team.SARADOMIN, Vector3(150, 0, -150))
+	shopper.inventory.append("leather_boots")
+	var ge := GrandExchange.create(ge_holder, shopper)
+	ge.set_query("rune boots")
+	check(ge._tiles.size() == 1 and ge._tiles.has("rune_boots"), "searching 'rune boots' finds only rune boots")
+	ge.select("dragon_boots")
+	ge.refresh()
+	var owned_nodes := ge._tree.nodes.filter(func(n: Dictionary) -> bool: return n["owned"])
+	check(ge._tree.nodes[0]["id"] == "dragon_boots" and owned_nodes.size() == 1 and owned_nodes[0]["id"] == "leather_boots",
+		"the recipe tree puts the item at the top and marks the leather boots you own")
+	check(ge._into[0]["id"] == "primordial_boots", "dragon boots build into primordial boots")
+	ge_holder.queue_free()
+	shopper.queue_free()
 	# Buff icons.
 	check(BuffBar.describe({"kind": "root", "amount": 0.0})["debuff"] and not BuffBar.describe({"kind": "haste", "amount": 0.2})["debuff"], "roots are debuffs, haste a buff")
 	check(BuffBar.describe({"kind": "tele_block"})["title"] == "Teleblocked", "teleblock has its own icon and name")
