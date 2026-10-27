@@ -2219,6 +2219,8 @@ func test_timber_aimed_fall_and_far_placement() -> void:
 	c.cooldowns["q"] = 0.0
 	var east_hp := east.health
 	var west_hp := west.health
+	check(c.planter_tree_at(tree.global_position + Vector3(3.6, 0, 0), cfg) == tree and c.planter_tree_at(tree.global_position + Vector3(4.5, 0, 0), cfg) == null,
+		"a yew is picked from a generous 4 m around its trunk")
 	# Chosen fall: toward +x, so the Skiller has to stand west of the trunk.
 	var dir := Vector3(1, 0, 0)
 	check(c.try_cast("q", null, tree.global_position, true, dir) and c._queued_cast.has("dir"), "a chosen fall walks to the far side first")

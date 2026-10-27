@@ -2,6 +2,10 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.31.0
+
+- Timber!: the area that counts as "on a yew" is much bigger (4 m round the trunk, and a wider pick on screen), so Q chops the yew you mean instead of planting another beside it. While aiming, each yew shows a faint ring marking its chop zone. Plant at least that far from your other yews.
+
 ## 0.30.0
 
 - **The map is now League of Legends' Classic Summoner's Rift.** Lanes, jungle walls, river, brush, towers, altars (inhibitors), the standard (nexus), camps and the Dragon and Baron pits sit where they do in League. The layout comes from `data/map.json` (traced from Classic's navigation grid) and is built from OSRS terrain, rocks, trees and buildings.

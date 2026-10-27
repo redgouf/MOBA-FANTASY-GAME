@@ -18,6 +18,7 @@ const FALL_EDGE := Color(1.0, 0.85, 0.35, 0.95)
 const PLANT_FILL := Color(0.35, 0.9, 0.35, 0.3)
 const PLANT_EDGE := Color(0.45, 1.0, 0.45, 0.9)
 const TREE_MARK := Color(1.0, 0.85, 0.35, 0.45)
+const TREE_ZONE := Color(1.0, 0.85, 0.35, 0.3)
 const WARN := Color(1.0, 0.35, 0.25, 0.9)
 const ENEMY := Color(1.0, 0.3, 0.25, 0.95)
 const ALLY := Color(0.35, 1.0, 0.45, 0.95)
@@ -116,6 +117,8 @@ func _planter(c: Champion, ab: Dictionary, cursor: Vector3, tree: PlantedTree, f
 	for t in c.standing_trees():
 		if t != tree and t != replace:
 			ring(t.global_position, t.block_radius + 0.3, 0.07, TREE_MARK)
+			# Cursor inside this faint ring: Q chops the yew instead of planting.
+			ring(t.global_position, float(cfg.get("hover_radius", 1.8)), 0.05, TREE_ZONE)
 
 
 func _target_unit(c: Champion, ab: Dictionary, hovered: Unit) -> void:

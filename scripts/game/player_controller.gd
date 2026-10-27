@@ -14,6 +14,7 @@ extends Node
 ## eating and drinking wait for the next game tick (order_on_tick).
 
 const PICK_RADIUS_PX := 36.0
+const TREE_PICK_RADIUS_PX := 70.0     # generous: Timber! yews are easy to mean to chop
 const FALL_DEAD_ZONE := 0.5       # cursor this close to a trunk: default fall
 const FALL_MAX_REACH := 7.0
 
@@ -247,8 +248,8 @@ func tree_under_cursor(key: String) -> PlantedTree:
 			var w: Vector3 = tree.global_position + Vector3.UP * float(h)
 			if not cam.is_position_behind(w):
 				var sd := cam.unproject_position(w).distance_to(mouse)
-				if sd <= PICK_RADIUS_PX:
-					score = minf(score, sd / PICK_RADIUS_PX)
+				if sd <= TREE_PICK_RADIUS_PX:
+					score = minf(score, sd / TREE_PICK_RADIUS_PX)
 		if score < best_score:
 			best_score = score
 			best = tree
