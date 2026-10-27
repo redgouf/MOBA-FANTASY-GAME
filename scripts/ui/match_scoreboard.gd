@@ -4,6 +4,7 @@ extends PanelContainer
 ## special (offensive) prayer and items. Enemy items are the last ones your
 ## team saw them with: they update only while an enemy is within vision of one
 ## of your units (champions, minions, towers), like League's scoreboard.
+## Hover an item for its full description, or a special prayer for its effect.
 
 const VISION := 16.0
 const ITEM_SLOTS := 6
@@ -95,16 +96,13 @@ func _make_row(c: Champion) -> Dictionary:
 	r.add_child(pray)
 	row["prayer_icon"] = Icons.rect(pray, null, Vector2(30, 30))
 	row["prayer"] = _cell(pray, "", 128, UiStyle.PRAYER.lightened(0.3), 13)
-	var items: Array[TextureRect] = []
+	(row["prayer"] as Label).mouse_filter = Control.MOUSE_FILTER_STOP     # hover: the prayer's effect
+	# Inventory slots, so hovering one shows the item's tooltip.
+	var items: Array[ItemSlot] = []
 	for i in ITEM_SLOTS:
-		var slot := Panel.new()
-		slot.custom_minimum_size = Vector2(34, 34)
-		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		slot.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.BG_DARK, UiStyle.BORDER.darkened(0.3), 1, 2))
-		r.add_child(slot)
-		var icon := Icons.rect(slot, null, Vector2.ZERO)
-		UiStyle.fill(icon, 2, 2, 2, 2)
-		items.append(icon)
+		var slot := ItemSlot.create(r, ROW_H, "", true)
+		slot.champ = c
+		items.append(slot)
 	row["items"] = items
 	row["seen"] = _cell(r, "", 80, UiStyle.MUTED, 12)
 	return row
@@ -185,7 +183,7 @@ func refresh() -> void:
 		var items := shown_items(ch)
 		var icons: Array = row["items"]
 		for i in ITEM_SLOTS:
-			(icons[i] as TextureRect).texture = Icons.item(str(items[i])) if i < items.size() else null
+			(icons[i] as ItemSlot).set_item(str(items[i]) if i < items.size() else "")
 		var seen_text := ""
 		if viewer_team >= 0 and ch.team != viewer_team and _seen.has(ch):
 			var ago := Combat.clock - float(_seen[ch]["time"])

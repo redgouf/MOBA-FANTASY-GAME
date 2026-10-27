@@ -18,6 +18,22 @@ const PRAYER := Color(0.3, 0.72, 0.95)
 const SPEC := Color(0.95, 0.78, 0.15)
 const XP := Color(0.62, 0.42, 0.95)
 
+## Windows that own the mouse while open (the shop): the camera and the
+## player's clicks ignore any mouse press or scroll over them.
+const MOUSE_BLOCKERS := "mouse_blockers"
+
+
+## Is `pos` (viewport coordinates, as in an input event) over an open
+## window in the MOUSE_BLOCKERS group?
+static func mouse_blocked(tree: SceneTree, pos: Vector2) -> bool:
+	if tree == null:
+		return false
+	for n in tree.get_nodes_in_group(MOUSE_BLOCKERS):
+		var c := n as Control
+		if c != null and c.is_visible_in_tree() and (c.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, c.size)).has_point(pos):
+			return true
+	return false
+
 
 static func box(bg: Color, border: Color = BORDER, width: int = 2, radius: int = 4) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()

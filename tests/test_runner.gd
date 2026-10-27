@@ -745,6 +745,33 @@ func test_v09() -> void:
 	ev.pressed = true
 	slot._gui_input(ev)
 	check(clicks[0] == 1, "a left click on an inventory slot reports a primary press")
+	# Moving the shop: it always stays on screen, and it owns the mouse.
+	var screen := ge.get_viewport_rect()
+	ge.move_to(Vector2(9000, 9000))
+	check(screen.encloses(ge.get_global_rect()), "dragging the shop past the bottom-right keeps it on screen")
+	ge.move_to(Vector2(-9000, -9000))
+	check(screen.encloses(ge.get_global_rect()) and ge.get_global_rect().position.is_equal_approx(screen.position), "...and past the top-left")
+	ge.centre()
+	check(ge.get_global_rect().get_center().distance_to(screen.get_center()) < 1.0, "the shop can be centred again")
+	var mid := ge.get_global_rect().get_center()
+	check(UiStyle.mouse_blocked(get_tree(), mid) and not UiStyle.mouse_blocked(get_tree(), ge.get_global_rect().position - Vector2(5, 5)),
+		"clicks over the open shop never reach the camera or the map (and clicks beside it do)")
+	ge.visible = false
+	check(not UiStyle.mouse_blocked(get_tree(), mid), "a closed shop doesn't block the mouse")
+	ge.visible = true
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	wheel.pressed = true
+	ge._gui_input(wheel)
+	check(get_viewport().is_input_handled(), "the scroll wheel stops at the shop")
+	# Item tooltips everywhere in the shop.
+	ge.go_to("rune_boots")
+	var into_tip: String = (ge._into[0]["button"] as TipButton).item_tooltip()
+	check(into_tip.begins_with(str(GameData.item(ge._into[0]["id"]).get("name", ""))) and into_tip.contains("Price:") and into_tip.contains("damage"),
+		"'Builds into' items show their full tooltip and price (%s)" % into_tip.replace("\n", " | "))
+	check(ge._d_frame.item_tooltip().begins_with("Rune boots"), "the selected item's picture has its tooltip")
+	check((ge._tiles["rune_boots"]["button"] as TipButton).item_tooltip().begins_with("Rune boots") and
+		(ge._tree.nodes[1]["button"] as TipButton).item_tooltip() != "", "shop tiles and recipe parts have item tooltips")
 	ge_holder.queue_free()
 	shopper.queue_free()
 	# Buff icons.

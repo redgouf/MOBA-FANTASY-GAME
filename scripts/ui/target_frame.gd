@@ -117,6 +117,9 @@ func show_unit(u: Unit, viewer_team: int, caption: String = "") -> void:
 		_sub.text = "%s · %s · combat %d" % [team_name, c.def.get("role", ""), c.combat_level()]
 		_prayer.set_values(c.prayer, c.prayer_max, "Prayer %d / %d" % [int(c.prayer), int(c.prayer_max)])
 		for i in 6:
+			if _items[i].champ != c:
+				_items[i].champ = c          # tooltips show that champion's 'perfect' food and make-your-own
+				_items[i].item_id = "~"      # (rebuild the tooltip for them)
 			_items[i].set_item(c.inventory[i] if i < c.inventory.size() else "")
 		if c.get_protected_style() >= 0:
 			info.append("Protect from %s" % Combat.style_name(c.get_protected_style()).capitalize())

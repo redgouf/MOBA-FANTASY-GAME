@@ -13,6 +13,11 @@ extends Panel
 ## sell_back_pct of the price back (all of it in the first few seconds), from
 ## the Sell button or by right-clicking the item in your inventory.
 ##
+## Drag the title bar to move the window (it always stays fully on screen);
+## double-click the title bar to centre it again. The window owns the mouse:
+## clicks and the scroll wheel over it never reach the camera or the map.
+## Hover any item anywhere in it for its full description.
+##
 ## With the private model pack the frames are the real GE sprites (steel
 ## border, trade backing, item boxes, buttons, chatbox parchment; see
 ## tools/osrs_extract/osrsx/ui.py). Without it the same layout is drawn in
@@ -65,6 +70,10 @@ var _d_sell: Button
 var _d_status: RichTextLabel
 var _refresh := 0.0
 var _inv_key := ""
+var _d_frame: TipButton
+var _drag_bar: Control
+var _dragging := false
+var _drag_grab := Vector2.ZERO      # cursor minus the window's position, at the grab
 
 
 static func create(parent: Control, p_champ: Champion) -> GrandExchange:
@@ -248,15 +257,93 @@ func _ready() -> void:
 	title.position.y = 10
 	big_font(title, true)
 	divider(self, 42, 8, SIZE.x - 16)
+	_build_drag_bar()
 	_build_close()
 	_build_search()
 	_build_tabs()
 	_build_grid()
 	_build_detail()
 	visibility_changed.connect(func() -> void:
-		if not visible and _search != null:
+		_dragging = false
+		if visible:
+			clamp_to_screen.call_deferred()
+		elif _search != null:
 			_search.release_focus())
+	get_viewport().size_changed.connect(func() -> void: clamp_to_screen.call_deferred())
+	add_to_group(UiStyle.MOUSE_BLOCKERS)
 	show_tab(tab)
+
+
+# --- Moving the window -----------------------------------------------------------
+
+## The title bar: drag it to move the window, double-click it to centre it.
+func _build_drag_bar() -> void:
+	_drag_bar = Control.new()
+	_drag_bar.position = Vector2(8, 4)
+	_drag_bar.size = Vector2(SIZE.x - 60, 38)
+	_drag_bar.mouse_filter = Control.MOUSE_FILTER_STOP
+	_drag_bar.mouse_default_cursor_shape = Control.CURSOR_MOVE
+	_drag_bar.gui_input.connect(_drag_input)
+	add_child(_drag_bar)
+
+
+## What moves: the plain Control holding the window (the HUD's holder
+## carries its scale), else the window itself.
+func _mover() -> Control:
+	var holder := get_parent() as Control
+	return holder if holder != null and holder.get_class() == "Control" else self
+
+
+func _drag_input(e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
+		if e.pressed and e.double_click:
+			_dragging = false
+			centre()
+		elif e.pressed:
+			_dragging = true
+			_drag_grab = get_global_mouse_position() - _mover().global_position
+		else:
+			_dragging = false
+		_drag_bar.accept_event()
+	elif e is InputEventMouseMotion and _dragging:
+		move_to(get_global_mouse_position() - _drag_grab)
+		_drag_bar.accept_event()
+
+
+## Moves the window (its mover's top-left) to `global_pos`, kept on screen.
+func move_to(global_pos: Vector2) -> void:
+	_mover().global_position = global_pos
+	clamp_to_screen()
+
+
+## Centres the window on the screen.
+func centre() -> void:
+	var r := get_global_rect()
+	_mover().global_position += get_viewport_rect().get_center() - r.get_center()
+	clamp_to_screen()
+
+
+## Nudges the window back so all of it is on screen (after a drag, when it
+## opens, and when the game window is resized). A window bigger than the
+## screen keeps its top-left corner on screen, so the title bar stays reachable.
+func clamp_to_screen() -> void:
+	if not is_inside_tree():
+		return
+	var screen := get_viewport_rect()
+	var r := get_global_rect()
+	var to := Vector2(
+		clampf(r.position.x, screen.position.x, maxf(screen.position.x, screen.end.x - r.size.x)),
+		clampf(r.position.y, screen.position.y, maxf(screen.position.y, screen.end.y - r.size.y)))
+	if not to.is_equal_approx(r.position):
+		_mover().global_position += to - r.position
+
+
+## Every mouse button that reaches the window stops here. Godot passes the
+## scroll wheel on through panels on purpose (so a scroll area inside a panel
+## works); without this the wheel over the shop would also zoom the camera.
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		accept_event()
 
 
 func _build_close() -> void:
@@ -432,11 +519,13 @@ func _build_detail() -> void:
 	_tree_scroll.add_child(_tree)
 	divider(d, 376, 8, w - 16)
 	# Stats and effects.
-	var frame := Panel.new()
-	frame.add_theme_stylebox_override("panel", skin("ge_item_box", OsrsUi.slot_box(Color(0.08, 0.065, 0.05))))
+	var frame := TipButton.new()
+	style_item_box(frame)
+	frame.disabled = true          # just a picture: hover it for the item's tooltip
 	frame.position = Vector2(16, 388)
 	frame.size = Vector2(52, 48)
 	d.add_child(frame)
+	_d_frame = frame
 	_d_icon = Icons.rect(frame, null, Vector2(40, 40))
 	_d_icon.position = Vector2(6, 4)
 	_d_icon.size = Vector2(40, 40)
@@ -531,7 +620,7 @@ func _add_tile(id: String) -> void:
 	b.custom_minimum_size = TILE
 	b.toggle_mode = true
 	style_item_box(b)
-	b.tooltip_text = ItemSlot._tooltip(it, champ)
+	b.show_item(id, champ, "Click to view, double-click or right-click to buy.")
 	var icon := Icons.rect(b, Icons.item(id), Vector2(40, 40))
 	icon.position = Vector2((TILE.x - 40) * 0.5, 5)
 	icon.size = Vector2(40, 40)
@@ -545,6 +634,7 @@ func _add_tile(id: String) -> void:
 	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.gui_input.connect(func(e: InputEvent) -> void:
 		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and e.double_click:
+			get_viewport().set_input_as_handled()
 			buy(id))
 	b.gui_input.connect(_right_click_buy.bind(func() -> String: return id))
 	b.pressed.connect(select.bind(id))
@@ -595,19 +685,23 @@ func select(id: String) -> void:
 		var b := slot["button"] as Button
 		b.disabled = other == ""
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if other != "" else Control.CURSOR_ARROW
-		b.tooltip_text = "" if other == "" else "%s (%s gp)" % [GameData.item(other).get("name", other), _commas(_price_for(other))]
-	if into.size() > INTO_SLOTS:
-		(_into[INTO_SLOTS - 1]["button"] as Button).tooltip_text += "\n…and %d more" % (into.size() - INTO_SLOTS + 1)
+		var more := ""
+		if i == INTO_SLOTS - 1 and into.size() > INTO_SLOTS:
+			more = "\n…and %d more" % (into.size() - INTO_SLOTS)
+		(b as TipButton).show_item(other, champ, "" if other == "" else
+			"Price: %s gp. Click to view, right-click to buy.%s" % [_commas(_price_for(other)), more])
 	_inv_key = ""
 	if id == "":
 		_d_name.text = ""
 		_d_body.text = ""
 		_d_price.text = ""
 		_d_icon.texture = null
+		_d_frame.show_item("")
 		_tree.show_item("")
 		return
 	var it := GameData.item(id)
 	_d_icon.texture = Icons.item(id)
+	_d_frame.show_item(id, champ)
 	_d_name.text = str(it.get("name", id))
 	_d_body.text = details(it)
 	refresh()
@@ -656,8 +750,13 @@ func buy(id: String) -> void:
 
 
 ## Right-click on an item anywhere in the shop buys it (like League).
+##
+## The click is marked handled first: buying rebuilds the recipe tree, which
+## frees the very button being clicked, and Godot then lets the click carry on
+## to the game (the champion walked to wherever you right-clicked).
 func _right_click_buy(e: InputEvent, id_of: Callable) -> void:
 	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_RIGHT:
+		get_viewport().set_input_as_handled()
 		var id: String = id_of.call()
 		if id != "":
 			if id != selected:
@@ -845,7 +944,7 @@ class RecipeTree extends Control:
 			g.set_border_width_all(2)
 			g.set_corner_radius_all(3)
 			b.add_theme_stylebox_override("normal", g)
-		b.tooltip_text = ItemSlot._tooltip(GameData.item(id), ge.champ)
+		b.show_item(id, ge.champ, "Owned: it comes off the price." if is_owned else "Right-click to buy." if row == 0 else "Click to view, right-click to buy.")
 		b.gui_input.connect(ge._right_click_buy.bind(func() -> String: return id))
 		if row > 0:
 			b.pressed.connect(ge.select.bind(id))

@@ -2,6 +2,16 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.33.0
+
+- **Move the shop:** drag its title bar to put the window anywhere. It always stays fully on screen (also when the game window is resized), so it can't get lost. Double-click the title bar to centre it again.
+- **The shop owns the mouse:** clicks and the scroll wheel over it no longer reach the game. The wheel used to zoom the camera, and right-clicking a part in the recipe tree to buy it also walked your champion to that spot. The camera also stops edge-panning while the cursor is on the shop.
+- **Item tooltips everywhere:** hover an item for its full description (requirements, stats, effects, the 'perfect' version) in:
+  - the shop's "Builds into" row (it only showed the name and price before; now it also says click to view, right-click to buy)
+  - the selected item's picture in the shop
+  - the scoreboard (Tab), where hovering a special prayer now also shows its effect
+  - the target frame, which now works out food and make-your-own lines for the champion you're inspecting
+
 ## 0.32.0
 
 - **Video settings** (ESC > Settings > Video settings...):

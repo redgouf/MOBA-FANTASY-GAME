@@ -108,10 +108,16 @@ func _process(delta: float) -> void:
 
 
 func _edge_pan_allowed() -> bool:
-	return Settings.edge_pan and DisplayServer.get_name() != "headless" and DisplayServer.window_is_focused()
+	# Not while the cursor is on a window pushed against the screen edge (the shop).
+	return Settings.edge_pan and DisplayServer.get_name() != "headless" and DisplayServer.window_is_focused() \
+		and not UiStyle.mouse_blocked(get_tree(), get_viewport().get_mouse_position())
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# No zooming or grabbing the map through an open window (the shop).
+	# Releases still count, so a drag that began on the map always ends.
+	if event is InputEventMouseButton and event.pressed and UiStyle.mouse_blocked(get_tree(), event.position):
+		return
 	if event is InputEventMouseButton and event.is_action("camera_drag"):
 		if event.pressed:
 			var p: Variant = ground_point(event.position)

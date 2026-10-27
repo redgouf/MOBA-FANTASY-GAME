@@ -259,6 +259,9 @@ func tree_under_cursor(key: String) -> PlantedTree:
 func _unhandled_input(event: InputEvent) -> void:
 	if champion == null or rig == null:
 		return
+	# A click over an open window (the shop) is never an order.
+	if event is InputEventMouseButton and event.pressed and UiStyle.mouse_blocked(get_tree(), event.position):
+		return
 	# Any left or right click cancels a walk-and-cast that is under way
 	# (a confirming left click below replaces it with the new cast).
 	if event is InputEventMouseButton and event.pressed and aiming == "" \
