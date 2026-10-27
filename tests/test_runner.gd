@@ -49,6 +49,7 @@ func _ready() -> void:
 	await test_v015_ui()
 	test_v016()
 	test_v021()
+	await test_rift_map()
 	test_selling()
 	test_inventory_layout_and_hotkeys()
 	test_skill_icons_and_panel()
@@ -973,11 +974,24 @@ func test_lol_monsters() -> void:
 	var timings := {}
 	for c in MapLayout.all_camps():
 		timings[c["id"]] = c
-	check(timings["sara_blue"]["first"] == 55 and timings["sara_blue"]["respawn"] == 300, "blue/red: 0:55, every 5:00")
-	check(timings["dragon"]["first"] == 300, "first drake at 5:00")
-	check(timings["grubs"]["first"] == 480 and timings["mole"]["first"] == 900 and timings["jad"]["first"] == 1200,
-		"Voidgrubs 8:00, Herald 15:00, Baron 20:00")
-	check(timings["sara_chickens"]["members"].size() == 6, "the chicken camp is 1 big + 5 small, like Raptors")
+	check(timings["sara_blue"]["first"] == 115 and timings["sara_blue"]["respawn"] == 300, "Classic buffs: 1:55, every 5:00")
+	check(timings["sara_red"]["first"] == 115 and timings["zam_red"]["respawn"] == 300, "...both teams, both buffs")
+	for id in ["sara_wolves", "sara_chickens", "sara_ogres", "sara_moss", "zam_wolves"]:
+		check(timings[id]["first"] == 125 and timings[id]["respawn"] == 50, "%s: 2:05, every 0:50" % id)
+	check(timings["dragon"]["first"] == 150 and timings["dragon"]["respawn"] == 360, "the dragon: 2:30, every 6:00")
+	check(timings["jad"]["first"] == 900 and timings["jad"]["respawn"] == 420, "TzTok-Jad (Baron): 15:00, every 7:00")
+	for id in timings:
+		check(not (id.contains("crab") or id.contains("grub") or id.contains("mole")), "no river or Herald creeps (%s)" % id)
+	check(timings.size() == 14, "12 jungle camps and the two pits (%d)" % timings.size())
+	check(timings["sara_chickens"]["members"].size() == 4, "the chicken camp is a rooster and three chickens, like Classic's Wraiths")
+	var blue_members: Array = []
+	for m in timings["sara_blue"]["members"]:
+		blue_members.append(m[0])
+	var red_members: Array = []
+	for m in timings["zam_red"]["members"]:
+		red_members.append(m[0])
+	check(blue_members == ["abyssal_demon", "abyssal_leech", "abyssal_leech"], "the blue buff comes with two Abyssal leeches")
+	check(red_members == ["fire_giant", "imp", "imp"], "the red buff comes with two Imps")
 
 
 func test_skiller() -> void:
@@ -1915,15 +1929,16 @@ func test_v016() -> void:
 
 func test_v021() -> void:
 	GameData.load_all()
-	# Side-lane towers stand on the lane's outer edge, inside the map walls.
+	# Structures stand where League's Summoner's Rift has them, inside the map.
 	var half := MapLayout.MAP_SIZE * 0.5
 	for team in [Combat.Team.SARADOMIN, Combat.Team.ZAMORAK]:
+		var count := 0
 		for s in MapLayout.structure_layout(team):
-			if s["kind"] == "tower" and s["lane"] in ["top", "bot"]:
-				var p: Vector3 = s["pos"]
-				var edge := maxf(absf(p.x), absf(p.z))
-				check(edge > 86.0 and edge < half - 1.0, "%s %s tower sits at the lane's outer edge (%.1f, wall at %.0f)" % [s["lane"], s["tier"], edge, half])
-	check(half <= 90.0, "the map walls hug the side lanes")
+			var p: Vector3 = s["pos"]
+			check(absf(p.x) < half and absf(p.z) < half, "%s %s is inside the map" % [s["lane"], s["tier"]])
+			if s["kind"] == "tower":
+				count += 1
+		check(count == 11, "eleven turrets per team (%d)" % count)
 	# Spectator fog: switching to a champion on the other team flips the view at once.
 	var a := _make("pure", Combat.Team.SARADOMIN, Vector3(40, 0, 40))
 	var b := _make("dharok", Combat.Team.ZAMORAK, Vector3(-60, 0, -60))
@@ -1950,7 +1965,11 @@ func test_v021() -> void:
 	check(is_equal_approx(tw.rotation.y, 0.3) and not tw._dashing, "towers don't turn to face targets or get knocked around")
 	tw.queue_free()
 	var walker := _make("pure", Combat.Team.SARADOMIN, Vector3(30, 0, 30))
-	check(is_equal_approx(walker.get_move_speed(), walker.base_move_speed * 0.5), "units move at half their listed speed (rules.move_speed_scale)")
+	check(is_equal_approx(walker.get_move_speed(), walker.base_move_speed * 0.7), "champions move at 70% of their listed speed (rules.move_speed_scale)")
+	var lol_minion := Minion.new()
+	lol_minion.init_minion("goblin", GameData.unit_def("minions", "goblin"), Combat.Team.SARADOMIN, "mid", MapLayout.lane_path("mid", 0), 1)
+	check(is_equal_approx(lol_minion.get_move_speed(), 350.0 / 75.0), "minions walk at League's real 350 units per second (4.67 m/s)")
+	lol_minion.free()
 	walker.queue_free()
 	var rig := CameraRig.new()
 	add_child(rig)
@@ -1970,6 +1989,103 @@ func test_v021() -> void:
 	check((cloth_mesh.material_override as BaseMaterial3D).disable_receive_shadows, "a flag's cloth doesn't receive shadows")
 	check(cloth_mesh.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_ON, "...but still casts them")
 	cloth.free()
+
+
+# --- The Summoner's Rift replica -------------------------------------------------
+
+func test_rift_map() -> void:
+	print("-- rift map --")
+	var d := MapLayout.data()
+	check(d.has("walls") and d["walls"].size() > 150, "map.json holds the traced rock walls (%d outlines)" % d["walls"].size())
+	# The map is point-symmetric: Zamorak's "top" lane holds the mirror of Saradomin's "bot" lane.
+	for lane in MapLayout.LANES:
+		var sara := MapLayout.lane_structures(Combat.Team.SARADOMIN, MapLayout.opposite_lane(lane))
+		var zam := MapLayout.lane_structures(Combat.Team.ZAMORAK, lane)
+		for k in ["outer", "inner", "base", "inhibitor"]:
+			check(MapLayout.mirror(sara[k]).distance_to(zam[k]) < 0.01, "Zamorak's %s %s mirrors Saradomin's" % [lane, k])
+	# Exact League coordinates (Bayes esports tower positions, in metres from the centre).
+	var want := {"top_outer": Vector3(-85.7, 0, -39.7), "top_inner": Vector3(-78.6, 0, 10.2), "mid_outer": Vector3(-20.9, 0, 14.3),
+		"mid_inner": Vector3(-31.5, 0, 35.4), "bot_outer": Vector3(41.3, 0, 85.8), "bot_inner": Vector3(-6.5, 0, 79.8)}
+	for key in want:
+		var parts: PackedStringArray = key.split("_")
+		var got: Vector3 = MapLayout.lane_structures(Combat.Team.SARADOMIN, parts[0])[parts[1]]
+		check(got.distance_to(want[key]) < 0.8, "%s tower at League's spot (%.1f, %.1f)" % [key, got.x, got.z])
+	check(MapLayout.nexus_position(Combat.Team.SARADOMIN).distance_to(Vector3(-78.2, 0, 77.4)) < 0.8, "the Saradomin nexus is at League's spot")
+	for lane in MapLayout.LANES:
+		for team in [Combat.Team.SARADOMIN, Combat.Team.ZAMORAK]:
+			var path := MapLayout.lane_path(lane, team)
+			check(path[0].distance_to(MapLayout.nexus_position(team)) < 0.01, "%s lane starts at the team's nexus" % lane)
+			check(path[path.size() - 1].distance_to(MapLayout.nexus_position(1 - team)) < 0.01, "...and ends at the enemy nexus")
+			var len := MapLayout.path_length(path)
+			check(len > 180.0 and len < 420.0, "%s lane is a sensible length (%.0f m)" % [lane, len])
+			check(MapLayout.hold_distance(lane, team) > MapLayout.spawn_distance(lane, team), "%s lane: bots hold beyond the spawn" % lane)
+	# Terrain grids.
+	var brush := 0
+	var river := 0
+	var pit := 0
+	for b in MapLayout.grid_bytes("brush_rle"):
+		brush += b
+	for b in MapLayout.grid_bytes("river_rle"):
+		river += b
+	for b in MapLayout.grid_bytes("pit_rle"):
+		pit += b
+	check(brush > 1000 and river > 2000 and pit > 400, "brush, river and pit grids are filled (%d / %d / %d cells)" % [brush, river, pit])
+	check(MapLayout.is_pit(MapLayout.jad_pit()) and MapLayout.is_pit(MapLayout.dragon_pit()), "both epic monsters sit in their pits")
+	check(not MapLayout.is_brush(Vector3(-300, 0, 300)) and not MapLayout.is_river(Vector3(300, 0, 300)), "outside the grid is open ground")
+	# Build the real map and walk it.
+	var mb := MapBuilder.new()
+	add_child(mb)
+	mb.build()
+	await mb.navigation_ready
+	check(mb.wall_polygons_skipped == 0, "every rock outline was cut into colliders (%d skipped)" % mb.wall_polygons_skipped)
+	check(mb.wall_shapes > 300, "the rock walls are %d convex colliders" % mb.wall_shapes)
+	var nav_map := mb.get_world_3d().navigation_map
+	var waited := 0
+	while NavigationServer3D.map_get_closest_point_owner(nav_map, Vector3.ZERO) == RID() and waited < 300:
+		await get_tree().physics_frame
+		waited += 1
+	var sara_layers := MapBuilder.NAV_LAYER_ALL | MapBuilder.NAV_LAYER_SARADOMIN
+	var zam_layers := MapBuilder.NAV_LAYER_ALL | MapBuilder.NAV_LAYER_ZAMORAK
+	var a := NavigationServer3D.map_get_path(nav_map, MapLayout.SARADOMIN_BASE, MapLayout.ZAMORAK_BASE, true, sara_layers)
+	check(a.size() > 2, "there is a walkable route from fountain to fountain")
+	var route_len := MapLayout.path_length(a)
+	check(route_len > 250.0 and route_len < 420.0, "...of a sensible length (%.0f m)" % route_len)
+	for c in MapLayout.all_camps():
+		var near := NavigationServer3D.map_get_closest_point(nav_map, c["pos"])
+		check(Vector2(near.x - c["pos"].x, near.z - c["pos"].z).length() < 2.5, "camp %s stands on walkable ground" % c["id"])
+		var path := NavigationServer3D.map_get_path(nav_map, MapLayout.SARADOMIN_BASE if c["pos"].x < 0 else MapLayout.ZAMORAK_BASE, c["pos"], true, sara_layers | zam_layers)
+		check(path.size() > 1 and path[path.size() - 1].distance_to(near) < 2.5, "camp %s can be reached from a base" % c["id"])
+	for team in [Combat.Team.SARADOMIN, Combat.Team.ZAMORAK]:
+		for s in MapLayout.structure_layout(team):
+			var near := NavigationServer3D.map_get_closest_point(nav_map, s["pos"])
+			check(Vector2(near.x - s["pos"].x, near.z - s["pos"].z).length() < 4.5, "%s %s is next to walkable ground" % [s["lane"], s["tier"]])
+	for lane in MapLayout.LANES:
+		var lp := MapLayout.lane_path(lane, Combat.Team.SARADOMIN)
+		var route := NavigationServer3D.map_get_path(nav_map, MapLayout.point_along(lp, MapLayout.spawn_distance(lane, 0)), MapLayout.point_along(lp, MapLayout.path_length(lp) - MapLayout.spawn_distance(lane, 1)), true, sara_layers)
+		check(route.size() > 1 and MapLayout.path_length(route) < MapLayout.path_length(lp) * 1.25, "the %s lane can be walked end to end (%.0f of %.0f m)" % [lane, MapLayout.path_length(route), MapLayout.path_length(lp)])
+	# Team-only gates: their own team walks through, the other team is blocked.
+	var tested := 0
+	for g in MapLayout.gates():
+		var team: int = g["team"]
+		var axis := MapLayout.gate_axis(g["size"])
+		var reach: float = minf(g["size"].x, g["size"].y) * 0.5 + 2.0
+		var from: Vector3 = g["pos"] - axis * reach
+		var to: Vector3 = g["pos"] + axis * reach
+		var own := _make("pure", team, from)
+		var other := _make("pure", 1 - team, from)
+		var step := to - from
+		check(not own.test_move(own.global_transform, step), "a %s gate lets its own team walk through" % ("Saradomin" if team == 0 else "Zamorak"))
+		check(other.test_move(other.global_transform, step), "...and blocks the other team")
+		var through := NavigationServer3D.map_get_path(nav_map, from, to, true, sara_layers if team == Combat.Team.SARADOMIN else zam_layers)
+		var around := NavigationServer3D.map_get_path(nav_map, from, to, true, zam_layers if team == Combat.Team.SARADOMIN else sara_layers)
+		var direct := from.distance_to(to)
+		check(MapLayout.path_length(through) < direct * 1.3, "its own team's route goes straight through (%.1f of %.1f m)" % [MapLayout.path_length(through), direct])
+		check(around.size() < 2 or MapLayout.path_length(around) > direct * 1.5, "the other team's route has to go around (%.1f m)" % MapLayout.path_length(around))
+		own.queue_free()
+		other.queue_free()
+		tested += 1
+	check(tested == 4, "four base gates (%d)" % tested)
+	mb.queue_free()
 
 
 func test_selling() -> void:

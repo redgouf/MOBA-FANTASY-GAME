@@ -71,9 +71,11 @@ Then carry on from step 2 below. `extract.py` replaces `manifest.json`; back up 
 
 With a pack built by osrs_extract (v0.18.0), the match itself is dressed in OSRS models; without one, everything keeps its whitebox shape.
 
-- **The Rift:** `rift/rift.glb` is built by the extractor's `rift` step from `tools/osrs_extract/rift_layout.json` (written from `MapLayout` by `tools/export_rift_layout.gd`; re-run both after changing the layout). It is an OSRS tile terrain at the champions' scale (1.4 m per tile) with real Wilderness ground colours and clutter, dirt lanes, the Ditch as water, cobbles in the Saradomin base, obsidian and lava in the Zamorak base and the pits, and boulders and dead trees on the jungle walls. `MapBuilder._build_osrs_dressing()` places it and hides the whitebox ground, walls, lanes and labels. Colliders and navigation don't change.
+- **The Rift:** `rift/rift.glb` is built by the extractor's `rift` step from `tools/osrs_extract/rift_layout.json` (written from `MapLayout`, i.e. `data/map.json`, by `tools/export_rift_layout.gd`; re-run both after changing the layout). It is an OSRS tile terrain at the champions' scale (1.4 m per tile) with real Wilderness ground colours and clutter, dirt lanes, the Ditch as water, cobbles in the Saradomin base, obsidian and lava in the Zamorak base and the pits, brush plants, team gate mats, and boulders, cliffs and dead trees on the jungle walls. `MapBuilder._build_osrs_dressing()` places it and hides the whitebox ground, walls, lanes and labels. Colliders and navigation don't change.
 - **Buildings:** `models.json` `structures` lists, per structure and team, the objects that make its look (`object`, and `height` or `width` in metres, optional `offset`, `rotation`, `stack` and `tint`). `OsrsProps.structure()` builds it; `Structure` uses it when it exists.
 - **Minions:** `models.json` `minions` names each minion's NPC model (`by_team` for a model per team).
 - **Props:** `models.json` `props` names the objects used for the dwarf multicannon (`cannon_yaw` turns it if its barrel doesn't point down -Z), the prayer altars and the Skiller's yews.
 - `tools/pack_osrs_models.gd` packs only the objects and NPCs these name, plus `rift/`.
 
+
+**Regenerating `data/map.json`:** `python3 -I tools/rift_classic/extract_navgrid.py <aipath.aimesh_ngrid> --out data/map.json`. The raw League file stays private (never commit it); only the derived `map.json` is in the repo.

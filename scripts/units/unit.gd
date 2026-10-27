@@ -9,6 +9,9 @@ signal damaged(unit: Unit, amount: float, source: Unit)
 const LAYER_WALLS := 1
 const LAYER_UNITS := 2
 const LAYER_GROUND := 4
+## Team-only base gates: solid to every team but their own (see MapBuilder).
+const LAYER_GATE_SARADOMIN := 8
+const LAYER_GATE_ZAMORAK := 16
 const MAX_WALL_COLLISION_RADIUS := 0.45
 
 var team: int = Combat.Team.NEUTRAL
@@ -32,6 +35,7 @@ static var hits_dealt := 0
 static var hits_over_255 := 0
 var bonus_attack_speed := 0.0
 var base_move_speed := 5.0
+var speed_scaled := true       # false when the speed is a real League value (move_speed_lol): rules.move_speed_scale skips it
 var armor_pen := 0.0
 var radius := 0.5
 var gold_value := 0
@@ -63,6 +67,7 @@ var custom_model: Node3D                         # built model replacing the whi
 var crowd_push := Vector3.ZERO                   # this frame's spacing push (Crowd.solve)
 ## Hidden by the viewer's fog of war (FogOfWar): drawn on a layer the camera skips.
 var fog_hidden := false
+var revealed_until := -1.0     # Combat.clock time until which an attack keeps this unit visible in brush
 var _splats: Array = [null, null, null, null]   # Hitsplat per slot
 var _health_bar: HealthBar3D
 var _name_label: Label3D
@@ -81,10 +86,36 @@ var _detour_time := 0.0
 
 func _ready() -> void:
 	collision_layer = LAYER_UNITS
-	collision_mask = LAYER_WALLS
+	collision_mask = LAYER_WALLS | blocked_gate_layers(team)
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING
 	add_to_group("units")
 	add_to_group("team_%d" % team)
+
+
+## Collision layer of a team's own base gates.
+static func gate_layer(for_team: int) -> int:
+	return LAYER_GATE_SARADOMIN if for_team == Combat.Team.SARADOMIN else LAYER_GATE_ZAMORAK
+
+
+## The gate layers a unit of this team can't walk through: every team's but its own.
+static func blocked_gate_layers(for_team: int) -> int:
+	match for_team:
+		Combat.Team.SARADOMIN:
+			return LAYER_GATE_ZAMORAK
+		Combat.Team.ZAMORAK:
+			return LAYER_GATE_SARADOMIN
+	return LAYER_GATE_SARADOMIN | LAYER_GATE_ZAMORAK
+
+
+## Navigation layers this unit's pathfinding may use: the open navmesh plus
+## its own team's gate links.
+func nav_layers() -> int:
+	match team:
+		Combat.Team.SARADOMIN:
+			return MapBuilder.NAV_LAYER_ALL | MapBuilder.NAV_LAYER_SARADOMIN
+		Combat.Team.ZAMORAK:
+			return MapBuilder.NAV_LAYER_ALL | MapBuilder.NAV_LAYER_ZAMORAK
+	return MapBuilder.NAV_LAYER_ALL
 
 
 # --- Setup -------------------------------------------------------------------
@@ -133,6 +164,7 @@ func configure_from_def(def: Dictionary) -> void:
 	basic_hit_scale = Combat.basic_attack_dps_scale * new_interval / old_interval if old_interval > 0.0 else 1.0
 	if def.has("move_speed_lol"):
 		base_move_speed = lol_to_meters(float(def["move_speed_lol"]))
+		speed_scaled = false
 	else:
 		base_move_speed = float(def.get("move_speed", 5.0))
 	radius = float(def.get("radius", 0.5))
@@ -291,8 +323,10 @@ func get_move_speed() -> float:
 	if not can_move():
 		return 0.0
 	var slow := minf(status_sum("slow"), 0.9)
-	# rules.move_speed_scale scales every unit's speed to the map's size.
-	return base_move_speed * float(GameData.rule("move_speed_scale", 1.0)) * maxf(0.1, 1.0 + status_sum("haste") - slow)
+	# rules.move_speed_scale turns our own speed numbers (champions, monsters) into
+	# League's real ones; speeds given in League units (minions) already are.
+	var scale := float(GameData.rule("move_speed_scale", 1.0)) if speed_scaled else 1.0
+	return base_move_speed * scale * maxf(0.1, 1.0 + status_sum("haste") - slow)
 
 
 func can_act() -> bool:
@@ -460,6 +494,7 @@ func take_damage(info: DamageInfo) -> float:
 		Unit.hits_over_255 += 1
 	if src:
 		recent_attackers[src.get_instance_id()] = {"unit": src, "time": Combat.clock}
+		src.reveal(BrushVision.REVEAL_SEC)       # hitting from the brush gives you away for a moment
 		src.on_damage_dealt(self, amt, info)
 
 	var veng := find_status_id("vengeance")
@@ -839,7 +874,7 @@ func _start_detour(point: Vector3) -> void:
 			along = -along
 		start = global_position + (along + n.normalized() * 0.3).normalized() * 1.2
 		lead.append(start)
-	_detour = lead + NavigationServer3D.map_get_path(nav_map, start, point, true)
+	_detour = lead + NavigationServer3D.map_get_path(nav_map, start, point, true, nav_layers())
 	_detour_index = 0
 	_detour_time = 4.0
 
@@ -913,6 +948,15 @@ func snap_to_navmesh() -> void:
 		global_position = Vector3(p.x, 0.0, p.z)
 
 
+## Attacking from brush shows you to the other team for a moment.
+func reveal(seconds: float) -> void:
+	revealed_until = maxf(revealed_until, Combat.clock + seconds)
+
+
+func is_revealed() -> bool:
+	return Combat.clock < revealed_until
+
+
 # --- Queries -------------------------------------------------------------------
 
 func find_nearest_enemy(max_range: float, include_structures: bool = true, include_neutral: bool = false) -> Unit:
@@ -927,7 +971,7 @@ func find_nearest_enemy(max_range: float, include_structures: bool = true, inclu
 		if u.is_structure() and not include_structures:
 			continue
 		var d := flat_distance_to(u) - u.radius
-		if d < best_d:
+		if d < best_d and BrushVision.can_see(team, u):
 			best_d = d
 			best = u
 	return best

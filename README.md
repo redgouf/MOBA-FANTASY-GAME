@@ -1,6 +1,6 @@
 # Gielinor Legends
 
-A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School RuneScape gear build**: Full Dharok's, the 1 Defence Pure, Ahrim's + Ancients, the Range/Mage Hybrid, and more. Items are real OSRS gear with their real skill requirements, every ultimate is a special attack, and the map is a Saradomin-vs-Zamorak battlefield split by the Wilderness Ditch.
+A free, fan-made 5v5 three-lane MOBA where every champion is an **Old School RuneScape gear build**: Full Dharok's, the 1 Defence Pure, Ahrim's + Ancients, the Range/Mage Hybrid, and more. Items are real OSRS gear with their real skill requirements, every ultimate is a special attack, and the map is a Saradomin-vs-Zamorak replica of League of Legends Classic's Summoner's Rift (layout, structures, camps and timers), built from OSRS terrain and objects.
 
 > **Fan project.** Gielinor Legends is 100% free and non-commercial, made to celebrate Jagex's work. Old School RuneScape and RuneScape are trademarks of Jagex Ltd. This project is not affiliated with or endorsed by Jagex, and it will never be sold or monetized.
 
@@ -25,7 +25,7 @@ Playable today, with primitive shapes standing in for art:
 - **Home teleport animation**: recalling looks left, then right, then casts the OSRS teleport (arms out, the white-blue swirl and rune circle) and lands with the arrival animation. Eating and drinking animate too, and every level-up sets off fireworks.
 - **League-style leveling**: start with nothing learned and one point; one point per level; basic abilities rank up to 5 (rank n at level 2n−1), R unlocks at 6/11/16.
 
-- **The Wilderness Rift**: three lanes, the Ditch (visual only), four jungle quadrants, Jad and dragon pits, towers, altars and team flags with LoL-style destruction order, and a runtime-baked navmesh.
+- **The Wilderness Rift**: a 1:1 Summoner's Rift (Classic) layout from `data/map.json`: three lanes, the river, jungle walls and brush (units inside brush are hidden from the other team), team-only base gates, Jad and dragon pits, towers, altars and team flags with LoL-style destruction order, and a runtime-baked navmesh.
 - **11 champions** with full data-driven kits (passive + Q/W/E/R), OSRS skill levels, and lane bots, including the **level-3 Skiller** ([in action](docs/screenshots/skiller_kit.png)), who never swings a weapon: Timber! plants up to three solid yews that block movement, then chops one so it falls away from where the Skiller stands ([fall-path indicator](docs/screenshots/timber_chop.png)); Bonfire, Harpoon and Anvil Drop do the rest, and every 4th ability sets off level-up fireworks.
 - **League-style casting**: hold an ability key to see its indicator (range, line, cone, circle, dash), release to cast. Normal cast and quick cast are in Settings.
 - **Tab scoreboard** ([screenshot](docs/screenshots/scoreboard.png)): every champion's level, K/D/A, CS, prayer (and whether it's on) and items (enemies' as your team last saw them).
@@ -149,7 +149,7 @@ scripts/
   core/          Combat math, DamageInfo
   units/         Unit base class, Champion, Minion, Structure, Monster, visuals
   abilities/     AbilityRunner: executes data-driven ability effects
-  map/           MapLayout (coordinates), MapBuilder (geometry + navmesh)
+  map/           MapLayout (reads data/map.json), MapPaint (terrain image), MapBuilder (geometry + navmesh)
   game/          Main (match flow), WaveSpawner, CameraRig, PlayerController
   ui/            Hud, ChampionSelect
 tests/           Headless test runner

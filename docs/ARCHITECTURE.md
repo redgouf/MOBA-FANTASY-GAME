@@ -37,6 +37,7 @@ Rules:
 
 ## Navigation and obstacles
 
+- The Rift layout is data: `data/map.json` (written by `tools/rift_classic/extract_navgrid.py` from a Classic navigation grid) holds wall polygons, rasterised brush/river/pit/base grids, lanes, structure and camp positions and the team gates. `MapLayout` reads it; `MapBuilder` extrudes the walls into colliders, adds team-only gates (collision layers + navigation layers) and `BrushVision` hides units in brush.
 - `MapBuilder` bakes the navmesh on a worker thread from static colliders (walls + ground) under its `NavigationRegion3D`.
 - Timber! yews (`PlantedTree`) are `StaticBody3D`s on the walls layer, parented to that region; planting or felling one calls `MapBuilder.request_rebake()` (requests during a bake are merged into one follow-up bake, ~50–100 ms off-thread).
 - Champions re-query their path whenever the navigation map's iteration changes (a rebake), and when pressed against something for 0.75 s.

@@ -133,6 +133,8 @@
     "white_wolf": {"model": "white_wolf"},
     "rooster": {"model": "rooster"},
     "chicken": {"model": "chicken"},
+    "abyssal_leech": {"model": "abyssal_leech"},
+    "imp": {"model": "imp"},
     "ogre_chieftain": {"model": "ogre_chieftain"},
     "ogre": {"model": "ogre"},
     "rock_crab": {"model": "rock_crab"}

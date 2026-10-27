@@ -145,6 +145,7 @@ func _ready() -> void:
 	_nav.target_desired_distance = 0.4
 	_nav.radius = radius
 	_nav.height = 2.0
+	_nav.navigation_layers = nav_layers()
 	add_child(_nav)
 	var body_color := Unit.team_color(team).lerp(Color.WHITE, 0.15)
 	setup_visuals(body_color, 2.2, _label_text())
@@ -1904,7 +1905,7 @@ func _bot_update(_dt: float) -> void:
 		if flat_distance(global_position, behind) > 2.0:
 			command_move(behind)
 	else:
-		var hold := MapLayout.point_along(path, MapLayout.hold_distance(bot_lane))
+		var hold := MapLayout.point_along(path, MapLayout.hold_distance(bot_lane, team))
 		if flat_distance(global_position, hold) > 3.0:
 			command_move(hold)
 

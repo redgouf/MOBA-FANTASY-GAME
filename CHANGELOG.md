@@ -2,6 +2,16 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.30.0
+
+- **The map is now League of Legends' Classic Summoner's Rift.** Lanes, jungle walls, river, brush, towers, altars (inhibitors), the standard (nexus), camps and the Dragon and Baron pits sit where they do in League. The layout comes from `data/map.json` (traced from Classic's navigation grid) and is built from OSRS terrain, rocks, trees and buildings.
+- Each base has a fountain and a gate only its own team can walk through.
+- **Brush:** units standing in brush are hidden from the other team unless an enemy is in the same patch or they attacked in the last second.
+- Classic jungle: Blue and Red every 5:00 (first at 1:55), small camps every 0:50 (first at 2:05), Dragon 2:30 / 6:00, Baron (TzTok-Jad) 15:00 / 7:00. Nothing spawns in the river, only the two pits. The abyssal demon comes with 2 abyssal leeches and the fire giant with 2 imps.
+- League's scale: 75 units = 1 m, champion speeds are scaled by 0.7 to match League's movement speeds, and minions walk the new lanes at 350 units/s. Waves still start at 0:30.
+- The minimap draws the terrain instead of lane lines.
+- Tests cover the new map data, walls, gates, brush, navigation and timers.
+
 ## 0.29.0
 
 - With the shop open, left-click an item in your inventory to jump the shop to it: its tab, its recipe tree and the items it builds into. Dragging still moves items between slots, and right-click still sells.

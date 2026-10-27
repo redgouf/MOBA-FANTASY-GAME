@@ -129,5 +129,7 @@ func _spawn(entry: Dictionary) -> void:
 	var m := Minion.new()
 	m.init_minion(id, GameData.unit_def("minions", id), team, lane, path, int(entry["upgrades"]))
 	units_root.add_child(m)
-	m.global_position = MapLayout.point_along(path, 12.0) + m.offset
+	var start := MapLayout.spawn_distance(lane, team)
+	m.global_position = MapLayout.point_along(path, start) + m.offset
+	m.waypoint = MapLayout.index_after(path, start)
 	minion_spawned.emit(m)

@@ -2,8 +2,8 @@ class_name Minimap
 extends Control
 ## Bottom-right overview of the Wilderness Rift.
 ## Left-click or drag: move the camera there. Right-click: walk there.
-## Shows lanes, the Ditch, walls, structures, minions, camps, champions
-## and the camera's current view. (No fog of war yet: everything is visible.)
+## Shows the terrain (walls, brush, river, pits), structures, minions, camps,
+## champions and the camera's current view.
 
 const GROUND := Color(0.2, 0.22, 0.13)
 const LANE := Color(0.45, 0.39, 0.27)
@@ -17,6 +17,7 @@ var rig: CameraRig
 var controllable := true      # false in spectator mode: right-click doesn't move anyone
 
 var _dragging := false
+var _terrain: ImageTexture
 var _redraw := 0.0
 
 
@@ -48,27 +49,23 @@ func _scale() -> float:
 	return size.x / MapLayout.MAP_SIZE
 
 
+func _terrain_texture() -> ImageTexture:
+	if _terrain == null:
+		_terrain = ImageTexture.create_from_image(MapPaint.image(GROUND, WALL, Color(0.14, 0.27, 0.1), RIVER, Color(0.4, 0.18, 0.08)))
+	return _terrain
+
+
 func _draw() -> void:
 	var k := _scale()
-	draw_rect(Rect2(Vector2.ZERO, size), GROUND)
-	# Wilderness Ditch (visual only, like in the game world)
-	draw_line(Vector2.ZERO, size, RIVER, MapLayout.RIVER_WIDTH * k)
-	# Lanes
-	for lane in MapLayout.LANES:
-		var path := MapLayout.lane_path(lane, Combat.Team.SARADOMIN)
-		for i in range(1, path.size()):
-			draw_line(to_map(path[i - 1]), to_map(path[i]), LANE, MapLayout.LANE_WIDTH * k * 0.8)
-	# Rock walls
-	for w in MapLayout.all_walls():
-		var sz: Vector3 = w["size"]
-		var center := to_map(w["pos"])
-		var r := Vector2(sz.x, sz.z) * k
-		draw_rect(Rect2(center - r * 0.5, r), WALL)
-	# Bases and pits
-	draw_circle(to_map(MapLayout.SARADOMIN_BASE), MapLayout.BASE_RADIUS * k, Unit.team_color(Combat.Team.SARADOMIN).darkened(0.55))
-	draw_circle(to_map(MapLayout.ZAMORAK_BASE), MapLayout.BASE_RADIUS * k, Unit.team_color(Combat.Team.ZAMORAK).darkened(0.55))
-	draw_circle(to_map(MapLayout.JAD_PIT), 7.0 * k, Color(0.4, 0.18, 0.08))
-	draw_circle(to_map(MapLayout.DRAGON_PIT), 7.0 * k, Color(0.4, 0.18, 0.08))
+	draw_rect(Rect2(Vector2.ZERO, size), WALL)
+	# Terrain: rock, brush, river and the two pits, painted from the map's grids.
+	var rect := MapPaint.world_rect()
+	var top_left := to_map(Vector3(rect.position.x, 0.0, rect.position.y))
+	draw_texture_rect(_terrain_texture(), Rect2(top_left, rect.size * k), false)
+	# Fountains
+	var fountain := float(GameData.rule("fountain_radius", 12)) * k
+	draw_circle(to_map(MapLayout.SARADOMIN_BASE), fountain, Unit.team_color(Combat.Team.SARADOMIN).darkened(0.55))
+	draw_circle(to_map(MapLayout.ZAMORAK_BASE), fountain, Unit.team_color(Combat.Team.ZAMORAK).darkened(0.55))
 
 	# Fog of war: darken what your team can't see.
 	if FogOfWar.current != null and FogOfWar.current.enabled:

@@ -2,7 +2,7 @@
 
 Minions, turrets, inhibitors, the nexus and jungle monsters use League of Legends **Summoner's Rift (Classic)** numbers, current as of patch 26.x (checked 2026-10-21). They live in `data/units.json`, so they can be updated without code changes.
 
-**Unit scale:** Summoner's Rift is about 14,870 units across, and our map was 200 m when this scale was set (180 m now, the walls pulled in to the side lanes), so **75 LoL units = 1 m** (`rules.lol_units_per_meter`). Ranges and minion speed are converted with that. League **armor** maps to our melee and ranged defence, and **magic resist** to magic defence (100 of either halves damage, as in League).
+**Unit scale:** Summoner's Rift is about 14,870 units across, so **75 LoL units = 1 m** (`rules.lol_units_per_meter`), and the map is about 197 m across (`data/map.json`, traced from Classic's navigation grid, so structures, camps, lanes, brush and the river sit where they do in League). Ranges and minion speed are converted with that. League **armor** maps to our melee and ranged defence, and **magic resist** to magic defence (100 of either halves damage, as in League).
 
 **Attack speed (v0.7):** units now swing at OSRS speeds (`osrs_ticks` × 0.6s: minions, turrets and most monsters 4 ticks, dark wizards and cannon carts 5, ogres and moss giants 6, TzTok-Jad 8). The League `attack_speed` is kept as the reference: each hit is scaled so the unit's damage per second is 70% of its League value (`rules.basic_attack_dps_scale`). Health, armour and damage-per-level numbers below are unchanged.
 
@@ -19,15 +19,15 @@ Minions, turrets, inhibitors, the nexus and jungle monsters use League of Legend
 | Standard guard tower | Nexus turret | |
 | Saradomin / Chaos altar | Inhibitor | |
 | Team standard | Nexus | |
-| Abyssal demon | Blue Sentinel | |
-| Fire giant | Red Brambleback | |
+| Abyssal demon + 2 Abyssal leeches | Blue Sentinel | The leeches are our addition; their stats are approximated |
+| Fire giant + 2 Imps | Red Brambleback | The imps are our addition; their stats are approximated |
 | Moss giant | Gromp | |
 | Big wolf + 2 White wolves | Greater Murk Wolf + 2 Murk Wolves | |
 | Rooster + 5 Chickens | Crimson Raptor + 5 Raptors | |
 | Ogre chieftain + Ogre | Ancient Krug + Krug | |
-| Rock crab | Rift Scuttler | |
-| 3 Baby moles | 3 Voidgrubs | |
-| Giant Mole | Rift Herald | |
+| Rock crab | Rift Scuttler | Defined, but not spawned on the Classic map (no river creeps) |
+| 3 Baby moles | 3 Voidgrubs | Defined, not spawned on the Classic map |
+| Giant Mole | Rift Herald | Defined, not spawned on the Classic map |
 | TzTok-Jad | Baron Nashor | Keeps Jad's melee/ranged/magic attack cycle |
 | Chromatic dragon | Elemental Drake | |
 
@@ -111,7 +111,8 @@ Monster level is the average champion level when the camp spawns. Stats shown as
 - Scuttle crab's speed shrine (approximated as a 20 s haste on the killer).
 - Voidgrub stacks, Eye of the Herald, the exact effects of Hand of Baron and dragon souls, and the Elder Dragon.
 - Minion movement speed growth (350 → 450 over the game).
-- League champion movement speed. Our champions keep their own speeds (about 6.5 m/s, faster than League's 335 units/s, about 4.5 m/s).
+- Per-champion movement speeds are still our own, multiplied by `rules.move_speed_scale` (0.7, so about 4.5 m/s, League's 335 units/s). Minions use League's 350 units/s (4.67 m/s) unscaled.
+- Classic timers in use: buffs 1:55 / 5:00, small camps 2:05 / 0:50, dragon 2:30 / 6:00, Baron (TzTok-Jad) 15:00 / 7:00; first minion wave at 0:30. Only the Dragon and Baron pits spawn epics, and nothing spawns in the river.
 
 ## Sources
 

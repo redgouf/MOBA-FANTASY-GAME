@@ -7,10 +7,11 @@ extends Node3D
 ## champions, minions and neutral monsters outside it disappear (their
 ## models, bars and names move to a render layer the camera skips), can't be
 ## clicked, and vanish from the minimap. Enemy structures stay visible, as in
-## League. Outside vision the ground is darkened.
+## League. Units standing in brush are hidden from the other team (BrushVision).
+## Outside vision the ground is darkened.
 
 const FOG_LAYER := 1 << 9          # render layer the main camera doesn't draw
-const GRID := 64                   # fog texture cells across the map
+const GRID := 64                  # fog texture cells across the map
 const SIGHT_LOL := {"champion": 1350.0, "super": 1350.0, "minion": 1200.0, "structure": 1350.0, "summon": 900.0}
 const FOG_ALPHA := 0.55
 
@@ -132,6 +133,8 @@ func update_vision() -> void:
 
 
 func can_see(target: Unit, sources: Array[Unit]) -> bool:
+	if not BrushVision.can_see(team, target):
+		return false          # standing in brush: only seen from inside it, or after attacking
 	for s in sources:
 		var r := sight_of(s)
 		var d := Unit.flat_distance(s.global_position, target.global_position)
