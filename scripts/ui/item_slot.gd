@@ -5,6 +5,7 @@ extends Panel
 
 ## Right-click (the HUD sells the item while the shop is open).
 signal secondary_pressed
+signal primary_pressed
 ## Another inventory slot's item was dragged onto this one: (from slot, to slot).
 signal item_dropped(from_slot: int, to_slot: int)
 
@@ -68,6 +69,8 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		secondary_pressed.emit()
 		accept_event()
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		primary_pressed.emit()      # (not accepted: a drag can still start from here)
 
 
 ## Drag an item to another slot to move it there (or swap with what's there).

@@ -563,6 +563,24 @@ func _pick_into(i: int) -> void:
 		select(id)
 
 
+## Jumps to an item: its tab (search cleared), highlighted and scrolled into
+## view, with its details, recipe tree and "builds into" row.
+func go_to(id: String) -> void:
+	if not GameData.items.has(id):
+		return
+	query = ""
+	if _search != null:
+		_search.text = ""
+	_update_search_text()
+	tab = category(GameData.item(id))
+	selected = ""
+	_fill_grid()
+	select(id)
+	if _tiles.has(id):
+		var b: Control = _tiles[id]["button"]
+		_scroll.ensure_control_visible.call_deferred(b)
+
+
 func select(id: String) -> void:
 	selected = id
 	_mark_selected()

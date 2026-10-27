@@ -296,6 +296,7 @@ func _build_bottom_left(root: Control) -> void:
 		var slot := ItemSlot.create(items, 52, Controls.key_text("item_%d" % (i + 1)))
 		slot.slot_index = i
 		slot.secondary_pressed.connect(_sell_slot.bind(i))
+		slot.primary_pressed.connect(_show_in_shop.bind(i))
 		slot.item_dropped.connect(_move_item)
 		_item_slots.append(slot)
 
@@ -485,6 +486,16 @@ func _update_key_labels() -> void:
 		_item_slots[i].set_key_text(Controls.key_text("item_%d" % (i + 1)))
 	for i in _belt_slots.size():
 		_belt_slots[i].set_key_text(Controls.key_text("consume_%d" % (i + 1)))
+
+
+## Left-click on an inventory item jumps the open shop to that item: its tab,
+## its recipe tree and what it builds into.
+func _show_in_shop(index: int) -> void:
+	if spectator or not _shop.visible or champ == null or index >= champ.inventory.size():
+		return
+	var id: String = champ.inventory[index]
+	if id != "":
+		_shop.go_to(id)
 
 
 ## Right-click on an inventory item sells it while the shop is open.

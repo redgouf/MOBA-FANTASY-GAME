@@ -2,6 +2,10 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.29.0
+
+- With the shop open, left-click an item in your inventory to jump the shop to it: its tab, its recipe tree and the items it builds into. Dragging still moves items between slots, and right-click still sells.
+
 ## 0.28.0
 
 - Timber! (Skiller): hover one of your yews and move the cursor round the trunk. The fall line follows the cursor, so the yew falls toward whichever side you point at, and a green marker shows where you'll stand. Click and he walks to the far side of the trunk, then chops it so it falls that way. With the cursor on the trunk itself it still falls away from you.

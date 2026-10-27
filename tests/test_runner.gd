@@ -730,6 +730,19 @@ func test_v09() -> void:
 	check(ge._tree.nodes[0]["id"] == "dragon_boots" and owned_nodes.size() == 1 and owned_nodes[0]["id"] == "leather_boots",
 		"the recipe tree puts the item at the top and marks the leather boots you own")
 	check(ge._into[0]["id"] == "primordial_boots", "dragon boots build into primordial boots")
+	ge.go_to("leather_boots")
+	check(ge.selected == "leather_boots" and ge.query == "" and ge.tab == GrandExchange.category(GameData.item("leather_boots")) and ge._tiles.has("leather_boots"),
+		"go_to jumps to an item's tab and selects it (search cleared)")
+	check(ge._into[0]["id"] == (GrandExchange.builds_into("leather_boots")[0] if not GrandExchange.builds_into("leather_boots").is_empty() else ""),
+		"...and shows what it builds into")
+	var slot := ItemSlot.create(ge_holder, 52, "1")
+	var clicks := [0]
+	slot.primary_pressed.connect(func() -> void: clicks[0] += 1)
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	slot._gui_input(ev)
+	check(clicks[0] == 1, "a left click on an inventory slot reports a primary press")
 	ge_holder.queue_free()
 	shopper.queue_free()
 	# Buff icons.
