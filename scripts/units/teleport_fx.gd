@@ -163,7 +163,7 @@ func _start_cast() -> void:
 		return
 	# The swirl of light rising around the caster (OSRS teleport gfx).
 	_swirl = CPUParticles3D.new()
-	_swirl.amount = 70
+	_swirl.amount = maxi(1, Settings.particle_count(70))
 	_swirl.lifetime = 1.3
 	_swirl.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
 	_swirl.emission_ring_axis = Vector3.UP
@@ -192,7 +192,7 @@ func _start_cast() -> void:
 	_swirl.color_ramp = g
 	add_child(_swirl)
 	_swirl.position = Vector3(0, 0.15, 0)
-	_swirl.emitting = true
+	_swirl.emitting = Settings.particles_on()
 	# A glowing rune circle on the ground, slowly turning.
 	var t := TorusMesh.new()
 	t.inner_radius = 0.86

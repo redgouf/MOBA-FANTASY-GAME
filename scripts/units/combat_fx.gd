@@ -98,6 +98,8 @@ static func melee(attacker: Unit, t: Unit, fx: Dictionary) -> void:
 
 ## A short-lived glowing ball (spell trails, sparks).
 static func puff(parent: Node, pos: Vector3, c: Color, size: float, life: float) -> void:
+	if not Settings.particles_on():
+		return
 	var s := SphereMesh.new()
 	s.radius = size
 	s.height = size * 2.0
@@ -125,7 +127,7 @@ static func impact(parent: Node, pos: Vector3, kind: String, c: Color) -> void:
 
 
 static func sparks(parent: Node, pos: Vector3, c: Color, count: int, life: float) -> void:
-	for i in count:
+	for i in Settings.particle_count(count):
 		var b := BoxMesh.new()
 		b.size = Vector3(0.07, 0.07, 0.07)
 		var mat := fade_material(Color(c.r, c.g, c.b, 1.0), true)
@@ -184,9 +186,11 @@ static func burst(parent: Node, pos: Vector3, radius: float, c: Color, element: 
 static func glow(unit: Node3D, c: Color, duration: float = 0.9) -> void:
 	if not is_instance_valid(unit) or not unit.is_inside_tree():
 		return
+	if not Settings.particles_on():
+		return
 	var p := CPUParticles3D.new()
 	p.one_shot = true
-	p.amount = 18
+	p.amount = Settings.particle_count(18)
 	p.lifetime = duration
 	p.explosiveness = 0.3
 	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING

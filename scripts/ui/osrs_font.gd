@@ -12,6 +12,37 @@ const DIR := "res://private_assets/osrs/ui/fonts/"
 
 static var _fonts: Dictionary = {}
 static var active := false
+static var _whole_scale := true      # the interface is at a whole-number scale: stay pixel-crisp
+static var _small_window := false
+static var _scale := 1.0
+static var _default_fallback: Font
+static var _default_theme_font: Font
+
+
+## Called with how much bigger (or smaller) than 1600x900 the window is. At 1x,
+## 2x... the fonts draw as exact pixels; at any other size (1920x1080 is 1.2x,
+## 1280x720 is 0.8x) forcing whole multiples garbles the glyphs, so they scale smoothly.
+static func set_interface_scale(s: float) -> void:
+	_scale = s
+	var whole := s >= 0.97 and absf(s - roundf(s)) < 0.03
+	# Smaller than 1600x900 a 12 px pixel font can't be shrunk and stay legible:
+	# body text falls back to Godot's own font until the window is big enough.
+	var small := s < 0.97
+	if active and small != _small_window:
+		_small_window = small
+		ThemeDB.fallback_font = _default_fallback if small else get_font("p12_full")
+		ThemeDB.get_default_theme().default_font = _default_theme_font if small else get_font("p12_full")
+	if whole == _whole_scale:
+		return
+	_whole_scale = whole
+	for k in _fonts:
+		var f: FontFile = _fonts[k]
+		if f != null and not str(k).ends_with("@any"):
+			f.fixed_size_scale_mode = _scale_mode()
+
+
+static func _scale_mode() -> int:
+	return TextServer.FIXED_SIZE_SCALE_INTEGER_ONLY if _whole_scale else TextServer.FIXED_SIZE_SCALE_ENABLED
 
 
 ## Loads a font by name ("p12_full", "b12_full", "q8_full", "p11_full"), or null.
@@ -20,7 +51,7 @@ static func get_font(font_name: String) -> FontFile:
 		var path := DIR + font_name + ".fnt"
 		var f: FontFile = load(path) if ResourceLoader.exists(path) else null
 		if f != null:
-			f.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_INTEGER_ONLY
+			f.fixed_size_scale_mode = _scale_mode()
 			f.antialiasing = TextServer.FONT_ANTIALIASING_NONE
 			f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
 		_fonts[font_name] = f
@@ -48,9 +79,12 @@ static func apply() -> bool:
 	var f := get_font("p12_full")
 	if f == null:
 		return false
+	_default_fallback = ThemeDB.fallback_font
+	_default_theme_font = ThemeDB.get_default_theme().default_font
 	ThemeDB.fallback_font = f                      # Label3D and anything without a theme
 	ThemeDB.get_default_theme().default_font = f   # every Control
 	active = true
+	set_interface_scale(_scale)     # the window may have been small before the fonts loaded
 	return true
 
 

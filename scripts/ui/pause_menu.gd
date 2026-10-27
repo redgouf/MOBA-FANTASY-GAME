@@ -39,6 +39,7 @@ var _dim: ColorRect
 var _panel: PanelContainer
 var _pages: Dictionary = {}
 var _title: Label
+var _video_opts: Dictionary = {}
 var _hotkey_rows: Dictionary = {}
 var _hotkey_note: Label
 var _reset_all: Button
@@ -71,6 +72,7 @@ func _ready() -> void:
 
 	_pages["main"] = _build_main(col)
 	_pages["settings"] = _build_settings(col)
+	_pages["video"] = _build_video(col)
 	_pages["controls"] = _build_controls(col)
 	_pages["hotkeys"] = _build_hotkeys(col)
 	_show_page("main")
@@ -105,10 +107,81 @@ func _build_settings(parent: Control) -> Control:
 	_check(page, "Pan the camera at the screen edge", Settings.edge_pan, "edge_pan")
 	_slider(page, "Edge and arrow-key pan speed", Settings.pan_speed, "pan_speed")
 	_slider(page, "Middle-mouse drag speed", Settings.drag_pan_speed, "drag_pan_speed")
-	_check(page, "Fullscreen", Settings.fullscreen, "fullscreen")
 	_check(page, "Show FPS", Settings.show_fps, "show_fps")
+	_menu_button(page, "Video settings...", _show_page.bind("video"))
 	_menu_button(page, "Back", _show_page.bind("main"))
 	return page
+
+
+## Video: window size, fullscreen, vsync and a quality preset with the pieces
+## it sets (3D resolution, anti-aliasing, shadows, foliage, particles).
+func _build_video(parent: Control) -> Control:
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 10)
+	page.custom_minimum_size = Vector2(460, 0)
+	parent.add_child(page)
+	_video_opts.clear()
+	var sizes := Settings.available_resolutions()
+	var size_names: Array = []
+	for i in sizes:
+		size_names.append("%d x %d" % [Settings.RESOLUTIONS[i].x, Settings.RESOLUTIONS[i].y])
+	_video_option(page, "Window size", size_names, "resolution", sizes)
+	_check(page, "Fullscreen", Settings.fullscreen, "fullscreen")
+	_check(page, "Vertical sync", Settings.vsync, "vsync")
+	UiStyle.label(page, "Graphics", 16, UiStyle.TITLE)
+	_video_option(page, "Quality", Settings.QUALITY_NAMES, "quality")
+	var scales: Array = []
+	for s in Settings.RENDER_SCALES:
+		scales.append("%d%%" % s)
+	_video_option(page, "3D resolution", scales, "render_scale", Settings.RENDER_SCALES)
+	_video_option(page, "Anti-aliasing", Settings.MSAA_NAMES, "msaa")
+	_video_option(page, "Shadows", Settings.SHADOW_NAMES, "shadows")
+	_video_option(page, "Foliage", Settings.FOLIAGE_NAMES, "foliage")
+	_video_option(page, "Particles", Settings.PARTICLE_NAMES, "particles")
+	var note := UiStyle.label(page, "Quality sets the options below it; change any of them and it reads Custom. Window size applies in windowed mode. Lower the 3D resolution for more frames; the interface stays sharp.", 12, UiStyle.MUTED)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.custom_minimum_size = Vector2(440, 0)
+	_menu_button(page, "Back", _show_page.bind("settings"))
+	if not Settings.changed.is_connected(_refresh_video):
+		Settings.changed.connect(_refresh_video)
+	return page
+
+
+## A dropdown for a Settings value. `values` maps list positions to stored
+## values (default: the position itself).
+func _video_option(parent: Control, text: String, names: Array, key: String, values: Array = []) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	parent.add_child(row)
+	var l := UiStyle.label(row, text, 15)
+	l.custom_minimum_size = Vector2(150, 0)
+	var o := OptionButton.new()
+	for n in names:
+		o.add_item(str(n))
+	o.add_theme_font_size_override("font_size", 15)
+	o.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	o.item_selected.connect(func(i: int) -> void:
+		if key == "quality" and i >= Settings.PRESETS.size():
+			return                     # "Custom" is only a label for a mix
+		Settings.set_value(key, values[i] if not values.is_empty() else i))
+	row.add_child(o)
+	_video_opts[key] = {"button": o, "values": values}
+	_select_video(key)
+
+
+func _select_video(key: String) -> void:
+	var d: Dictionary = _video_opts[key]
+	var o: OptionButton = d["button"]
+	var values: Array = d["values"]
+	var v: int = int(Settings.get(key))
+	var at := values.find(v) if not values.is_empty() else v
+	o.select(at if at >= 0 else o.item_count - 1)
+
+
+func _refresh_video() -> void:
+	for k in _video_opts:
+		if is_instance_valid((_video_opts[k]["button"] as OptionButton)):
+			_select_video(k)
 
 
 func _build_controls(parent: Control) -> Control:
@@ -285,7 +358,7 @@ func _slider(parent: Control, text: String, value: float, key: String) -> void:
 func _show_page(page_name: String) -> void:
 	for k in _pages:
 		_pages[k].visible = k == page_name
-	_title.text = {"main": "Paused", "settings": "Settings", "controls": "Controls", "hotkeys": "Inventory hotkeys"}[page_name]
+	_title.text = {"main": "Paused", "settings": "Settings", "video": "Video settings", "controls": "Controls", "hotkeys": "Inventory hotkeys"}[page_name]
 	_stop_listening()
 	_disarm_reset_all()
 	_refresh_hotkeys()

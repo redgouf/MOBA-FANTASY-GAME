@@ -77,6 +77,21 @@ func _build_osrs_dressing() -> void:
 	osrs_dressed = true
 	for n in _whitebox_visuals:
 		n.visible = false
+	if not Settings.changed.is_connected(apply_foliage):
+		Settings.changed.connect(apply_foliage)
+	apply_foliage()
+
+
+## The foliage setting: Low hides the (heavy) ground clutter, Medium keeps it
+## but stops it casting shadows, High is everything.
+func apply_foliage() -> void:
+	var rift := get_node_or_null("OsrsRift")
+	if rift == null:
+		return
+	for n in rift.find_children("clutter*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		mi.visible = Settings.foliage > 0
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if Settings.foliage >= 2 else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 func _build_environment() -> void:
@@ -99,7 +114,9 @@ func _build_environment() -> void:
 	# they shadow themselves in stripes ("shadow acne").
 	sun.shadow_bias = 0.35
 	sun.shadow_normal_bias = 2.6
+	sun.add_to_group("sun")
 	add_child(sun)
+	Settings.apply_shadows()
 
 
 func _build_ground() -> void:

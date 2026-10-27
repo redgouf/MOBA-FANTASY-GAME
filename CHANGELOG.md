@@ -2,6 +2,15 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.32.0
+
+- **Video settings** (ESC > Settings > Video settings...):
+  - Window size (1280x720 up to 3840x2160, only sizes that fit your screen), Fullscreen and Vertical sync.
+  - A Quality preset (Low, Medium, High, Ultra, or Custom when you mix options) that sets: 3D resolution (50-100%, the interface stays sharp), Anti-aliasing (Off, 2x, 4x, 8x), Shadows (Off, Low, Medium, High), Foliage (Low hides the ground clutter, Medium keeps it without shadows) and Particles (Off, Low, Medium, High). High is how the game looked before.
+  - Saved in user://settings.cfg.
+- Fixed garbled interface text at window sizes other than 1600x900. The OSRS pixel font was being forced onto whole multiples, which mangled it at 1920x1080, 2560x1440 and so on; it now scales smoothly there and stays pixel-exact at 1x and 2x. Below 1600x900 body text uses the standard font instead, since a 12 px pixel font can't shrink and stay readable.
+- Fullscreen moved from Settings to Video settings.
+
 ## 0.31.0
 
 - Timber!: the area that counts as "on a yew" is much bigger (4 m round the trunk, and a wider pick on screen), so Q chops the yew you mean instead of planting another beside it. While aiming, each yew shows a faint ring marking its chop zone. Plant at least that far from your other yews.

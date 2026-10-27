@@ -54,6 +54,7 @@ func _ready() -> void:
 	test_inventory_layout_and_hotkeys()
 	test_skill_icons_and_panel()
 	await test_timber_aimed_fall_and_far_placement()
+	test_video_settings()
 	test_potions()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
@@ -2288,3 +2289,34 @@ func test_timber_aimed_fall_and_far_placement() -> void:
 	for n in [c, east, west, mage, target, zerker, ind]:
 		n.queue_free()
 	await get_tree().create_timer(0.3).timeout
+
+
+func test_video_settings() -> void:
+	print("-- video settings --")
+	var keep := {}
+	for k in Settings.GRAPHICS_KEYS:
+		keep[k] = Settings.get(k)
+	for i in Settings.PRESETS.size():
+		for k in Settings.GRAPHICS_KEYS:
+			Settings.set(k, Settings.PRESETS[i][k])
+		check(Settings.detect_quality() == i, "the %s preset reads back as %s" % [Settings.QUALITY_NAMES[i], Settings.QUALITY_NAMES[i]])
+	Settings.set("particles", 0 if Settings.particles != 0 else 1)
+	check(Settings.detect_quality() == Settings.QUALITY_NAMES.size() - 1, "changing one option reads Custom")
+	Settings.particles = 0
+	check(Settings.particle_count(18) == 0 and not Settings.particles_on(), "particles Off spawns none")
+	Settings.particles = 1
+	check(Settings.particle_count(70) == 25 and Settings.particle_count(1) == 1, "particles Low spawns about a third (and never zero)")
+	Settings.particles = 3
+	check(Settings.particle_count(18) == 18, "particles High is everything")
+	check(Settings.available_resolutions().size() == Settings.RESOLUTIONS.size() and Settings.RESOLUTIONS[2] == Vector2i(1600, 900), "every window size is offered when the screen is big enough")
+	check(Settings.PRESETS[2]["msaa"] == 1 and Settings.PRESETS[2]["foliage"] == 2, "High matches how the game looked before the options")
+	OsrsFont.set_interface_scale(1.0)
+	check(OsrsFont._whole_scale, "1600x900 keeps the pixel font on whole multiples")
+	OsrsFont.set_interface_scale(1.2)
+	check(not OsrsFont._whole_scale, "1920x1080 scales it smoothly instead of garbling it")
+	OsrsFont.set_interface_scale(2.0)
+	check(OsrsFont._whole_scale, "3200x1800 is a whole multiple again")
+	OsrsFont.set_interface_scale(1.0)
+	for k in keep:
+		Settings.set(k, keep[k])
+	Settings.quality = Settings.detect_quality()
