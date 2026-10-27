@@ -55,6 +55,7 @@ func _ready() -> void:
 	test_skill_icons_and_panel()
 	await test_timber_aimed_fall_and_far_placement()
 	test_video_settings()
+	await test_kill_credit()
 	test_potions()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
@@ -2335,15 +2336,56 @@ func test_video_settings() -> void:
 	check(Settings.particle_count(70) == 25 and Settings.particle_count(1) == 1, "particles Low spawns about a third (and never zero)")
 	Settings.particles = 3
 	check(Settings.particle_count(18) == 18, "particles High is everything")
-	check(Settings.available_resolutions().size() == Settings.RESOLUTIONS.size() and Settings.RESOLUTIONS[2] == Vector2i(1600, 900), "every window size is offered when the screen is big enough")
+	check(Settings.available_resolutions().size() == Settings.RESOLUTIONS.size() + 1 and Settings.available_resolutions()[-1] == Settings.NATIVE and Settings.RESOLUTIONS[2] == Vector2i(1600, 900),
+		"every window size is offered when the screen is big enough, then Native")
 	check(Settings.PRESETS[2]["msaa"] == 1 and Settings.PRESETS[2]["foliage"] == 2, "High matches how the game looked before the options")
 	OsrsFont.set_interface_scale(1.0)
 	check(OsrsFont._whole_scale, "1600x900 keeps the pixel font on whole multiples")
-	OsrsFont.set_interface_scale(1.2)
-	check(not OsrsFont._whole_scale, "1920x1080 scales it smoothly instead of garbling it")
+	OsrsFont.set_interface_scale(1.6)
+	check(not OsrsFont._whole_scale and OsrsFont.using_vector() == OsrsFont.active, "2560x1440 switches body text to the clean font instead of garbling the pixel font")
 	OsrsFont.set_interface_scale(2.0)
 	check(OsrsFont._whole_scale, "3200x1800 is a whole multiple again")
 	OsrsFont.set_interface_scale(1.0)
 	for k in keep:
 		Settings.set(k, keep[k])
 	Settings.quality = Settings.detect_quality()
+
+
+func test_kill_credit() -> void:
+	print("-- kill credit --")
+	var a := _make("dharok", Combat.Team.SARADOMIN, Vector3(60, 0, 60))
+	var b := _make("pure", Combat.Team.SARADOMIN, Vector3(62, 0, 60))
+	var victim := _make("slayer", Combat.Team.ZAMORAK, Vector3(64, 0, 60))
+	var minion := Minion.new()
+	minion.team = Combat.Team.ZAMORAK
+	var now := 100.0
+	var hit := func(who: Unit, ago: float) -> void:
+		victim.recent_attackers[who.get_instance_id()] = {"unit": who, "time": now - ago}
+	hit.call(a, 6.0)
+	hit.call(b, 2.0)
+	var r := KillCredit.resolve(victim, minion, now)
+	check(r["killer"] == b and r["assists"] == [a] and not r["executed"], "a minion's final blow: the last champion to hit them (within 15s) gets the kill, the other an assist")
+	r = KillCredit.resolve(victim, a, now)
+	check(r["killer"] == a and r["assists"] == [b], "a champion's own final blow is theirs")
+	victim.recent_attackers.clear()
+	hit.call(a, 20.0)
+	r = KillCredit.resolve(victim, minion, now)
+	check(r["killer"] == null and r["executed"] and r["assists"].is_empty(), "no champion hit in the last 15s: executed, no kill or assist")
+	hit.call(a, 14.9)
+	check(KillCredit.resolve(victim, minion, now)["killer"] == a, "14.9s ago still counts")
+	hit.call(a, 15.1)
+	check(KillCredit.resolve(victim, minion, now)["executed"], "15.1s ago is too late")
+	hit.call(b, 1.0)
+	hit.call(a, 0.5)    # a hits again: a's timer refreshes
+	check(KillCredit.resolve(victim, minion, now)["killer"] == a, "each new hit refreshes the credit")
+	var friend := _make("lunar", Combat.Team.ZAMORAK, Vector3(66, 0, 60))
+	victim.recent_attackers.clear()
+	hit.call(friend, 1.0)
+	check(KillCredit.resolve(victim, minion, now)["executed"], "a teammate's hit doesn't count")
+	check(GoldPopup.spawn(self, Vector3.ZERO, 0.0) == null, "no popup for 0 gold")
+	var pop := GoldPopup.spawn(self, Vector3(60, 0, 60), 22.0)
+	check(pop != null and pop.amount == 22, "a +22 gp popup appears")
+	await get_tree().create_timer(GoldPopup.LIFETIME + 0.3).timeout
+	check(not is_instance_valid(pop) or pop.is_queued_for_deletion(), "and floats away")
+	for n in [a, b, victim, friend, minion]:
+		n.queue_free()

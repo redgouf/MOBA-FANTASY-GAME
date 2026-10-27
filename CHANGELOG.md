@@ -2,6 +2,13 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.34.0
+
+- **Who gets the kill (League rules):** if you hit an enemy champion and then they die to a minion, tower or jungle monster, you still get the kill - as long as you were the last champion to hit them within 15 seconds (each new hit restarts the timer). Anyone else who hit them in that window gets an assist (the window used to be 10 seconds). If no champion touched them in 15 seconds they're 'executed': no kill, no assist and no gold.
+- **"+gp" pop-ups:** gold floats up from the spot whenever you get paid for a minion, tower, jungle monster or champion kill (champion kills get a bigger one).
+- **Readable text at any resolution:** the OSRS pixel font only looks right at exact multiples of 1600x900, so at sizes like 2560x1440 or 1920x1080 text came out garbled. In those sizes the interface now switches to a clean font (sized to fit the same layouts) and switches back to the pixel font at 1600x900 and 3200x1800.
+- **Fullscreen respects the Resolution setting:** in fullscreen the Resolution option now sets how sharp the 3D view is (the interface stays crisp at native size). New 'Native' entry, now the default.
+
 ## 0.33.0
 
 - **Move the shop:** drag its title bar to put the window anywhere. It always stays fully on screen (also when the game window is resized), so it can't get lost. Double-click the title bar to centre it again.

@@ -14,6 +14,8 @@ var show_fps := true
 ## Video. The window sizes offered for windowed play (only those that fit the screen).
 const RESOLUTIONS: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1366, 768), Vector2i(1600, 900),
 	Vector2i(1920, 1080), Vector2i(2560, 1440), Vector2i(3840, 2160)]
+## The dropdown's last entry is the screen's own size: RESOLUTIONS.size() in `resolution`.
+const NATIVE := 6
 const QUALITY_NAMES := ["Low", "Medium", "High", "Ultra", "Custom"]
 const MSAA_NAMES := ["Off", "2x", "4x", "8x"]
 const SHADOW_NAMES := ["Off", "Low", "Medium", "High"]
@@ -30,7 +32,7 @@ const PRESETS := [
 const GRAPHICS_KEYS := ["render_scale", "msaa", "shadows", "foliage", "particles"]
 const PARTICLE_FRACTION := [0.0, 0.35, 0.65, 1.0]
 const SHADOW_ATLAS := [0, 2048, 4096, 8192]
-var resolution := 2            # index into RESOLUTIONS (windowed size)
+var resolution := NATIVE       # index into RESOLUTIONS, or NATIVE (the screen's size)
 var vsync := true
 var quality := 2               # QUALITY_NAMES index (4 = custom mix)
 var render_scale := 100        # 3D resolution, percent (the interface is always sharp)
@@ -73,7 +75,9 @@ func load_settings() -> void:
 	drag_pan_speed = float(cfg.get_value("camera", "drag_pan_speed", drag_pan_speed))
 	fullscreen = bool(cfg.get_value("video", "fullscreen", fullscreen))
 	show_fps = bool(cfg.get_value("video", "show_fps", show_fps))
-	resolution = clampi(int(cfg.get_value("video", "resolution", resolution)), 0, RESOLUTIONS.size() - 1)
+	# (resolution_v2: v0.32 saved a plain window size under "resolution", which in
+	# fullscreen would have rendered everything at 1600x900)
+	resolution = clampi(int(cfg.get_value("video", "resolution_v2", resolution)), 0, NATIVE)
 	vsync = bool(cfg.get_value("video", "vsync", vsync))
 	render_scale = int(cfg.get_value("video", "render_scale", render_scale))
 	msaa = clampi(int(cfg.get_value("video", "msaa", msaa)), 0, MSAA_NAMES.size() - 1)
@@ -93,7 +97,7 @@ func save_settings() -> void:
 	cfg.set_value("camera", "drag_pan_speed", drag_pan_speed)
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("video", "show_fps", show_fps)
-	cfg.set_value("video", "resolution", resolution)
+	cfg.set_value("video", "resolution_v2", resolution)
 	cfg.set_value("video", "vsync", vsync)
 	for k in GRAPHICS_KEYS:
 		cfg.set_value("video", k, get(k))
@@ -115,7 +119,7 @@ func apply() -> void:
 	if is_inside_tree():
 		var root := get_tree().root
 		root.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X, Viewport.MSAA_8X][clampi(msaa, 0, 3)]
-		root.scaling_3d_scale = clampf(float(render_scale) / 100.0, 0.5, 1.0)
+		root.scaling_3d_scale = clampf(float(render_scale) / 100.0 * fullscreen_scale(), 0.25, 1.0)
 		if not root.size_changed.is_connected(_on_window_resized):
 			root.size_changed.connect(_on_window_resized)
 		_on_window_resized()
@@ -131,8 +135,14 @@ func _on_window_resized() -> void:
 
 
 func _apply_window_size() -> void:
-	var want := RESOLUTIONS[clampi(resolution, 0, RESOLUTIONS.size() - 1)]
 	var screen := DisplayServer.screen_get_size()
+	if resolution >= NATIVE:
+		# The screen's own size: a maximised window.
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED)
+		return
+	if DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_WINDOWED:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	var want := RESOLUTIONS[clampi(resolution, 0, RESOLUTIONS.size() - 1)]
 	if want.x > screen.x or want.y > screen.y:
 		want = Vector2i(mini(want.x, screen.x), mini(want.y, screen.y))
 	DisplayServer.window_set_size(want)
@@ -140,14 +150,35 @@ func _apply_window_size() -> void:
 	DisplayServer.window_set_position(origin + (screen - want) / 2)
 
 
-## Resolutions that fit this screen (always at least the smallest).
+## Fullscreen always fills the monitor, so the chosen resolution sets how
+## sharp the 3D view is: it renders at that size and is stretched to fit (the
+## interface stays pixel-sharp at the monitor's own size). 1.0 when windowed or native.
+func fullscreen_scale() -> float:
+	if not fullscreen or resolution >= NATIVE or DisplayServer.get_name() == "headless":
+		return 1.0
+	var screen := DisplayServer.screen_get_size()
+	if screen.y <= 0:
+		return 1.0
+	return minf(1.0, float(RESOLUTIONS[resolution].y) / float(screen.y))
+
+
+## Resolutions that fit this screen (the smallest always), then the screen's own (NATIVE).
 func available_resolutions() -> Array[int]:
 	var out: Array[int] = []
 	var screen := DisplayServer.screen_get_size() if DisplayServer.get_name() != "headless" else Vector2i(99999, 99999)
 	for i in RESOLUTIONS.size():
-		if i == 0 or (RESOLUTIONS[i].x <= screen.x and RESOLUTIONS[i].y <= screen.y):
+		if i == 0 or (RESOLUTIONS[i].x < screen.x and RESOLUTIONS[i].y < screen.y):
 			out.append(i)
+	out.append(NATIVE)
 	return out
+
+
+## "1920 x 1080", or "Native (2560 x 1440)".
+func resolution_name(i: int) -> String:
+	if i >= NATIVE:
+		var s := DisplayServer.screen_get_size() if DisplayServer.get_name() != "headless" else Vector2i(0, 0)
+		return "Native (%d x %d)" % [s.x, s.y] if s.x > 0 else "Native"
+	return "%d x %d" % [RESOLUTIONS[i].x, RESOLUTIONS[i].y]
 
 
 ## Sun shadows: size and softness of the shadow map, or none (called again by

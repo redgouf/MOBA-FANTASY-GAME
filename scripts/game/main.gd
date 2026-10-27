@@ -17,7 +17,6 @@ extends Node3D
 ##   --shot-tab / --shot-item / --shot-search=TEXT / --shot-own=a,b   shop screenshots (tab, selected item, search, items owned)
 ##   --demo-level=N      raise the viewed champion to level N with items (for screenshots)
 
-const ASSIST_WINDOW_SEC := 10.0
 const BOT_LANES: Array[String] = ["top", "mid", "bot", "bot", "top"]
 
 var map: MapBuilder
@@ -467,11 +466,17 @@ func _reload() -> void:
 # --- Rewards -----------------------------------------------------------------
 
 func _credit(killer: Unit) -> Champion:
-	if killer is Champion:
-		return killer
-	if killer is Structure and is_instance_valid((killer as Structure).owner_champion):
-		return (killer as Structure).owner_champion
-	return null
+	return KillCredit.champion_of(killer)
+
+
+## Gives gold to a champion and, if it is the one on screen, floats "+N gp"
+## up from `at` (where the kill happened).
+func _award(c: Champion, amount: float, at: Vector3, big: bool = false) -> void:
+	if c == null or amount <= 0.0:
+		return
+	c.gold += amount
+	if c == Hitsplat.viewer:
+		GoldPopup.spawn(self, at, amount, big)
 
 
 func _on_unit_died(unit: Unit, killer: Unit) -> void:
@@ -485,7 +490,7 @@ func _on_unit_died(unit: Unit, killer: Unit) -> void:
 	elif unit is Minion:
 		_stats["minions_killed"] += 1
 		if killer_champ != null:
-			killer_champ.gold += unit.gold_value * (1.0 + killer_champ.gold_bonus())
+			_award(killer_champ, unit.gold_value * (1.0 + killer_champ.gold_bonus()), unit.global_position)
 			killer_champ.creep_score += 1
 	elif unit is Monster:
 		if killer_champ != null:
@@ -504,43 +509,46 @@ func _on_unit_died(unit: Unit, killer: Unit) -> void:
 func _on_structure_destroyed(s: Structure, killer: Champion) -> void:
 	_stats["structures_destroyed"] += 1
 	var enemy := 1 - s.team
+	var paid := {}          # champion -> gold from this one structure (a single popup each)
 	if s.global_gold > 0:
 		for c in champions:
 			if c.team == enemy:
-				c.gold += s.global_gold
+				paid[c] = float(paid.get(c, 0.0)) + s.global_gold
 	if killer != null and s.last_hit_gold > 0:
-		killer.gold += s.last_hit_gold
+		paid[killer] = float(paid.get(killer, 0.0)) + s.last_hit_gold
 	if s.is_tower() and not _first_turret_taken:
 		_first_turret_taken = true
 		var bonus := float(GameData.units.get("turret_rules", {}).get("first_turret_bonus_gold", 300))
 		if killer != null:
-			killer.gold += bonus
+			paid[killer] = float(paid.get(killer, 0.0)) + bonus
 		_announce("First turret! %s destroyed a %s" % [killer.display_name if killer != null else Combat.TEAM_NAMES[enemy], s.display_name], true)
 	elif s.kind == "altar":
 		_announce("%s destroyed the %s — Knights march for %d:00" % [Combat.TEAM_NAMES[enemy], s.display_name, int(s.respawn_sec / 60)], true)
 	else:
 		_announce("%s destroyed a %s" % [Combat.TEAM_NAMES[enemy], s.display_name])
+	for c in paid:
+		_award(c, paid[c], s.global_position, true)
 	if s.kind == "flag":
 		_end_game(enemy)
 
 
-func _on_champion_killed(victim: Champion, killer: Champion, killer_unit: Unit) -> void:
-	_stats["champion_kills"] += 1
-	if killer != null and killer.team != victim.team:
+func _on_champion_killed(victim: Champion, _killer: Champion, killer_unit: Unit) -> void:
+	# League's rule: the last champion to hit the victim in the last 15 s gets
+	# the kill even if a minion or tower landed the final blow; others who hit
+	# them get assists. With no enemy champion involved they are executed.
+	var credit := KillCredit.resolve(victim, killer_unit, Combat.clock)
+	var killer: Champion = credit["killer"]
+	var at := victim.global_position
+	if killer != null:
+		_stats["champion_kills"] += 1
 		killer.kills += 1
 		# Protect Item (prayer): the killer gets less gold.
 		var kept := float(victim.prayer_special("protect_item").get("amount", 0.0))
-		killer.gold += float(GameData.rule("champion_kill_gold", 300)) * (1.0 - kept)
+		_award(killer, float(GameData.rule("champion_kill_gold", 300)) * (1.0 - kept), at, true)
 		team_kills[killer.team] += 1
-	elif victim.team <= 1:
-		team_kills[1 - victim.team] += 1
-	var now := Combat.clock
-	for entry in victim.recent_attackers.values():
-		var u: Variant = entry["unit"]
-		if is_instance_valid(u) and u is Champion and u != killer and u.team != victim.team \
-				and now - float(entry["time"]) <= ASSIST_WINDOW_SEC:
-			u.assists += 1
-			u.gold += float(GameData.rule("assist_gold", 150))
+		for a in credit["assists"]:
+			(a as Champion).assists += 1
+			_award(a, float(GameData.rule("assist_gold", 150)), at, true)
 	victim.recent_attackers.clear()
 	var killer_name := "the Wilderness"
 	if killer != null:
@@ -548,20 +556,21 @@ func _on_champion_killed(victim: Champion, killer: Champion, killer_unit: Unit) 
 	elif is_instance_valid(killer_unit):
 		killer_name = "a " + killer_unit.display_name
 	victim.last_killer_name = killer_name
+	var verb := "defeated" if killer != null else "executed"
 	if victim == player:
-		_announce("You were killed by %s" % killer_name)
+		_announce("You were %s by %s" % ["killed" if killer != null else "executed", killer_name])
 	else:
-		_announce("%s defeated %s" % [killer_name, victim.display_name])
+		_announce("%s %s %s" % [killer_name, verb, victim.display_name])
 
 
 func _on_monster_killed(m: Monster, killer: Champion) -> void:
 	_stats["monsters_killed"] += 1
 	if killer != null:
-		killer.gold += m.gold_value * (1.0 + killer.gold_bonus())
+		_award(killer, m.gold_value * (1.0 + killer.gold_bonus()), m.global_position)
 		if m.team_gold > 0:
 			for c in champions:
 				if c.team == killer.team and c != killer:
-					c.gold += m.team_gold
+					_award(c, m.team_gold, m.global_position)
 		if not m.buff.is_empty():
 			killer.add_status("buff:" + m.unit_id, str(m.buff["kind"]), float(m.buff["amount"]), float(m.buff["duration"]), killer)
 		if not m.team_buff.is_empty():

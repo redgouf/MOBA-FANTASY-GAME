@@ -124,8 +124,8 @@ func _build_video(parent: Control) -> Control:
 	var sizes := Settings.available_resolutions()
 	var size_names: Array = []
 	for i in sizes:
-		size_names.append("%d x %d" % [Settings.RESOLUTIONS[i].x, Settings.RESOLUTIONS[i].y])
-	_video_option(page, "Window size", size_names, "resolution", sizes)
+		size_names.append(Settings.resolution_name(i))
+	_video_option(page, "Resolution", size_names, "resolution", sizes)
 	_check(page, "Fullscreen", Settings.fullscreen, "fullscreen")
 	_check(page, "Vertical sync", Settings.vsync, "vsync")
 	UiStyle.label(page, "Graphics", 16, UiStyle.TITLE)
@@ -138,7 +138,7 @@ func _build_video(parent: Control) -> Control:
 	_video_option(page, "Shadows", Settings.SHADOW_NAMES, "shadows")
 	_video_option(page, "Foliage", Settings.FOLIAGE_NAMES, "foliage")
 	_video_option(page, "Particles", Settings.PARTICLE_NAMES, "particles")
-	var note := UiStyle.label(page, "Quality sets the options below it; change any of them and it reads Custom. Window size applies in windowed mode. Lower the 3D resolution for more frames; the interface stays sharp.", 12, UiStyle.MUTED)
+	var note := UiStyle.label(page, "Resolution is the window's size; in fullscreen it sets how sharp the 3D view is (it renders at that size and fills the screen). Quality sets the options below it; change any of them and it reads Custom. Lower the 3D resolution for more frames; the interface stays sharp.", 12, UiStyle.MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.custom_minimum_size = Vector2(440, 0)
 	_menu_button(page, "Back", _show_page.bind("settings"))
