@@ -746,6 +746,44 @@ func test_v09() -> void:
 	ev.pressed = true
 	slot._gui_input(ev)
 	check(clicks[0] == 1, "a left click on an inventory slot reports a primary press")
+	# Sorting and the Spec Weapons section.
+	var weapons: Array = GameData.item_order.filter(func(id: String) -> bool: return GrandExchange.category(GameData.item(id)) == "Weapons")
+	var by_price := GrandExchange.sections(weapons, "price")
+	check(by_price.size() == 2 and by_price[1][0] == GrandExchange.SPEC_SECTION, "the Weapons tab ends with a Spec Weapons section")
+	var plain: Array = by_price[0][1]
+	var specs: Array = by_price[1][1]
+	check(plain.all(func(id: String) -> bool: return not GameData.item(id).has("spec_active"))
+		and specs.all(func(id: String) -> bool: return GameData.item(id).has("spec_active"))
+		and specs.has("dragon_claws") and specs.has("armadyl_godsword") and specs.has("chinchompa")
+		and plain.size() + specs.size() == weapons.size(), "every weapon with a special attack is in Spec Weapons, and only those")
+	var cost := func(id: String) -> int: return int(GameData.item(id).get("cost", 0))
+	var ascending := func(ids: Array, key: Callable) -> bool:
+		for i in range(1, ids.size()):
+			if key.call(ids[i - 1]) > key.call(ids[i]):
+				return false
+		return true
+	var lvl := func(id: String) -> int: return GrandExchange.top_level(GameData.item(id))
+	check(ascending.call(plain, cost) and ascending.call(specs, cost), "sorted by price, cheapest first, in both sections")
+	var by_level := GrandExchange.sections(weapons, "level")
+	check(ascending.call(by_level[0][1], lvl) and ascending.call(by_level[1][1], lvl), "sorted by level requirement, lowest first, in both sections")
+	check(GrandExchange.top_level(GameData.item("scythe_of_vitur")) == 90 and GrandExchange.top_level(GameData.item("wizard_robe")) == 0,
+		"an item's level is its highest requirement")
+	check(GrandExchange.sections(["dragon_axe", "rune_axe"], "price").size() == 1, "a skilling tool with a special attack stays with the tools")
+	var old_sort := Settings.shop_sort
+	ge.go_to("dragon_claws")
+	ge.set_sort("price")
+	var heads := ge._list.get_children().filter(func(c: Node) -> bool: return c is GridContainer)
+	var last_grid: GridContainer = heads[heads.size() - 1]
+	check(heads.size() == 2 and ge.selected == "dragon_claws" and (ge._tiles["dragon_claws"]["button"] as Control).get_parent() == last_grid,
+		"the shop shows spec weapons in their own grid under the rest, and re-sorting keeps the selection")
+	ge.set_sort("level")
+	var shown: Array = (ge._list.get_child(0) as GridContainer).get_children().map(func(b: Node) -> String:
+		for id in ge._tiles:
+			if ge._tiles[id]["button"] == b:
+				return id
+		return "")
+	check(ascending.call(shown, lvl) and ge._sort.text == "Sort: Level", "the Sort button switches the grid to level order")
+	ge.set_sort(old_sort)
 	# Moving the shop: it always stays on screen, and it owns the mouse.
 	var screen := ge.get_viewport_rect()
 	ge.move_to(Vector2(9000, 9000))

@@ -2,6 +2,11 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.35.0
+
+- **The shop is sorted.** Every tab lists its items cheapest first. The new **Sort** button (bottom right of the item list) switches to sorting by level requirement, lowest first, and back; the game remembers your choice. Ties go to the other order, then the name. Prices are full list prices, so the order doesn't shift as you buy parts. An item's level is its highest requirement (Scythe of vitur: 90 Strength).
+- **Spec Weapons section:** every weapon with a special attack (Dragon dagger, Granite maul, Dragon claws, the godswords, Voidwaker, Armadyl crossbow, Toxic staff of the dead, Volatile nightmare staff, Magic shortbow (i) and Chinchompas) is now listed under its own "Spec Weapons" heading at the bottom of the Weapons tab, sorted the same way. Search results are split the same way. The Dragon axe keeps its place with the skilling tools.
+
 ## 0.34.0
 
 - **Who gets the kill (League rules):** if you hit an enemy champion and then they die to a minion, tower or jungle monster, you still get the kill - as long as you were the last champion to hit them within 15 seconds (each new hit restarts the timer). Anyone else who hit them in that window gets an assist (the window used to be 10 seconds). If no champion touched them in 15 seconds they're 'executed': no kill, no assist and no gold.

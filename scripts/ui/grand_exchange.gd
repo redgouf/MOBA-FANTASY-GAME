@@ -13,6 +13,10 @@ extends Panel
 ## sell_back_pct of the price back (all of it in the first few seconds), from
 ## the Sell button or by right-clicking the item in your inventory.
 ##
+## Each tab lists its items sorted by price or by level requirement (the Sort
+## button, saved in your settings); weapons with a special attack come last,
+## in their own "Spec Weapons" section, sorted the same way.
+##
 ## Drag the title bar to move the window (it always stays fully on screen);
 ## double-click the title bar to centre it again. The window owns the mouse:
 ## clicks and the scroll wheel over it never reach the camera or the map.
@@ -33,6 +37,8 @@ const TAB_ICONS := {
 	"Boots": "boots", "Skilling": "skilling", "Materials": "materials",
 }
 const PROMPT := "What would you like to buy?"
+const SPEC_SECTION := "Spec Weapons"
+const SORTS := {"price": "Price", "level": "Level"}
 const INTO_SLOTS := 7
 const RIGHT := Rect2(612, 52, 372, 632)
 
@@ -53,7 +59,8 @@ var _tabs: Dictionary = {}          # name -> Button
 var _tab_name: Label
 var _search: LineEdit
 var _search_text: HBoxContainer
-var _grid: GridContainer
+var _list: VBoxContainer           # the sections: [header] + item grid each
+var _sort: Button
 var _scroll: ScrollContainer
 var _empty: Label
 var _tiles: Dictionary = {}         # item id -> {"button", "price", "icon", "name"}
@@ -110,6 +117,55 @@ static func matches(it: Dictionary, q: String) -> bool:
 		if not item_name.contains(word):
 			return false
 	return true
+
+
+## A weapon with a special attack (listed in its own section, under the rest).
+static func is_spec_weapon(it: Dictionary) -> bool:
+	return it.has("spec_active") and category(it) == "Weapons"
+
+
+## The highest level an item asks for (0 with no requirements).
+static func top_level(it: Dictionary) -> int:
+	var best := 0
+	for s in it.get("requirements", {}):
+		best = maxi(best, int(it["requirements"][s]))
+	return best
+
+
+## Items in shop order: by price (then level) or by level (then price), then name.
+## Prices are the full list price, so the order doesn't shift as you buy parts.
+static func sorted_ids(ids: Array, by: String) -> Array[String]:
+	var out: Array[String] = []
+	for id in ids:
+		out.append(str(id))
+	out.sort_custom(func(a: String, b: String) -> bool:
+		var ia := GameData.item(a)
+		var ib := GameData.item(b)
+		var pa := int(ia.get("cost", 0))
+		var pb := int(ib.get("cost", 0))
+		var la := top_level(ia)
+		var lb := top_level(ib)
+		var ka := [pa, la] if by != "level" else [la, pa]
+		var kb := [pb, lb] if by != "level" else [lb, pb]
+		if ka != kb:
+			return ka < kb
+		return str(ia.get("name", a)) < str(ib.get("name", b)))
+	return out
+
+
+## The grid's sections, in order: [[title, ids], ...]. The plain items come
+## first (no title), then the spec weapons under "Spec Weapons".
+static func sections(ids: Array, by: String) -> Array:
+	var plain: Array = []
+	var spec: Array = []
+	for id in ids:
+		(spec if is_spec_weapon(GameData.item(str(id))) else plain).append(id)
+	var out: Array = []
+	if not plain.is_empty():
+		out.append(["", sorted_ids(plain, by)])
+	if not spec.is_empty():
+		out.append([SPEC_SECTION, sorted_ids(spec, by)])
+	return out
 
 
 ## The items that use this one in their recipe.
@@ -465,11 +521,23 @@ func _build_grid() -> void:
 	_scroll.size = Vector2(568, 474)
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	well.add_child(_scroll)
-	_grid = GridContainer.new()
-	_grid.columns = 4
-	_grid.add_theme_constant_override("h_separation", 6)
-	_grid.add_theme_constant_override("v_separation", 6)
-	_scroll.add_child(_grid)
+	_list = VBoxContainer.new()
+	_list.add_theme_constant_override("separation", 6)
+	_scroll.add_child(_list)
+	# Sort: price or level requirement (bottom-right of the item list).
+	_sort = Button.new()
+	_sort.position = Vector2(440, 655)
+	_sort.size = Vector2(160, 32)
+	_sort.focus_mode = Control.FOCUS_NONE
+	_sort.tooltip_text = "Sort the items by price or by level requirement"
+	OsrsUi.style_button(_sort, 18, OsrsUi.ORANGE)
+	big_font(_sort, true)
+	_sort.add_theme_stylebox_override("normal", skin("ge_button", OsrsUi.button_box("normal")))
+	_sort.add_theme_stylebox_override("hover", skin("ge_button_hover", OsrsUi.button_box("hover")))
+	_sort.add_theme_stylebox_override("pressed", skin("ge_button_hover", OsrsUi.button_box("pressed")))
+	_sort.pressed.connect(func() -> void: set_sort("level" if Settings.shop_sort == "price" else "price"))
+	add_child(_sort)
+	_update_sort_text()
 	_empty = OsrsUi.text(well, "No items match your search.", 15, OsrsUi.MUTED, Rect2(0, 40, 584, 24))
 	_empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_empty.visible = false
@@ -481,7 +549,7 @@ func _build_grid() -> void:
 	coin.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(coin)
-	_coins = OsrsUi.text(self, "", 18, OsrsUi.YELLOW, Rect2(46 if coin.texture != null else 18, 659, 554, 24))
+	_coins = OsrsUi.text(self, "", 18, OsrsUi.YELLOW, Rect2(46 if coin.texture != null else 18, 659, 380, 24))
 	big_font(_coins)
 
 
@@ -591,20 +659,31 @@ func _fill_grid() -> void:
 	for k in _tabs:
 		(_tabs[k] as Button).set_pressed_no_signal(query == "" and k == tab)
 	_tab_name.text = tab if query == "" else "Search results"
-	for c in _grid.get_children():
-		_grid.remove_child(c)
+	for c in _list.get_children():
+		_list.remove_child(c)
 		c.queue_free()
 	_tiles.clear()
-	var first := ""
+	var ids: Array = []
 	for id in GameData.item_order:
 		var it := GameData.item(id)
 		if query != "" and not matches(it, query):
 			continue
 		if query == "" and category(it) != tab:
 			continue
-		_add_tile(id)
-		if first == "":
-			first = id
+		ids.append(id)
+	var first := ""
+	for sec in sections(ids, Settings.shop_sort):
+		if str(sec[0]) != "":
+			_add_section_header(str(sec[0]), _list.get_child_count() > 0)
+		var grid := GridContainer.new()
+		grid.columns = 4
+		grid.add_theme_constant_override("h_separation", 6)
+		grid.add_theme_constant_override("v_separation", 6)
+		_list.add_child(grid)
+		for id in sec[1]:
+			_add_tile(id, grid)
+			if first == "":
+				first = id
 	_empty.visible = _tiles.is_empty()
 	_scroll.scroll_vertical = 0
 	if query == "" and (selected == "" or not _tiles.has(selected)):
@@ -614,7 +693,36 @@ func _fill_grid() -> void:
 	refresh()
 
 
-func _add_tile(id: String) -> void:
+## A section title across the grid ("Spec Weapons"), with a divider above it
+## when items come before it.
+func _add_section_header(title: String, divided: bool) -> void:
+	var head := Control.new()
+	head.custom_minimum_size = Vector2(0, 38 if divided else 26)
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_list.add_child(head)
+	if divided:
+		divider(head, 5, 0, 552)
+	var l := OsrsUi.text(head, title, 18, OsrsUi.ORANGE, Rect2(4, 12 if divided else 0, 400, 24))
+	big_font(l, true)
+
+
+## Sorts the shop by "price" or "level" (saved in your settings).
+func set_sort(by: String) -> void:
+	Settings.shop_sort = "level" if by == "level" else "price"
+	Settings.save_settings()
+	_update_sort_text()
+	var keep := selected
+	_fill_grid()
+	if keep != "" and _tiles.has(keep):
+		select(keep)
+		_scroll.ensure_control_visible.call_deferred(_tiles[keep]["button"])
+
+
+func _update_sort_text() -> void:
+	_sort.text = "Sort: %s" % SORTS.get(Settings.shop_sort, "Price")
+
+
+func _add_tile(id: String, grid: GridContainer) -> void:
 	var it := GameData.item(id)
 	var b := TipButton.new()
 	b.custom_minimum_size = TILE
@@ -638,7 +746,7 @@ func _add_tile(id: String) -> void:
 			buy(id))
 	b.gui_input.connect(_right_click_buy.bind(func() -> String: return id))
 	b.pressed.connect(select.bind(id))
-	_grid.add_child(b)
+	grid.add_child(b)
 	_tiles[id] = {"button": b, "price": price, "icon": icon, "name": n}
 
 
