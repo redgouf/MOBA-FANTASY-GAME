@@ -8,7 +8,7 @@ filtering to 128x128 like the item icons:
   defence      Rune kiteshield
   consumables  Lobster with a Prayer potion(4) overlapping it
   boots        Leather boots
-  skilling     Rune pickaxe crossed with a Rune axe
+  skilling     Rune pickaxe (mirrored) crossed with a Rune axe
   materials    Logs with Iron ore overlapping them
 
   python tools/make_shop_icons.py PATH_TO_OSRS_ICONS_CHECKOUT
@@ -67,7 +67,8 @@ def main():
     save("defence", centred(i["runeKiteshield"]))
     save("consumables", canvas([(i["prayerPotion4"], 1, 4), (i["lobster"], 10, 8)], 40))
     save("boots", centred(i["leatherBoots"]))
-    save("skilling", canvas([(i["runePickaxe"], 0, 3), (i["runeAxe"].transpose(Image.FLIP_LEFT_RIGHT), 10, 3)]))
+    # The pickaxe mirrored, the axe as it is: their handles cross in an X.
+    save("skilling", canvas([(i["runePickaxe"].transpose(Image.FLIP_LEFT_RIGHT), 0, 8), (i["runeAxe"], 15, 3)], 40))
     save("materials", canvas([(i["logs"], 0, 4), (i["ironOre"], 14, 12)], 40))
 
 

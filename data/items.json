@@ -1852,6 +1852,7 @@
       "id": "coif",
       "name": "Coif",
       "tier": "component",
+      "shop": "Defence",
       "cost": 350,
       "builds_from": [
         "cowhide"
@@ -1882,6 +1883,7 @@
       "id": "wizard_robe",
       "name": "Wizard robe",
       "tier": "component",
+      "shop": "Defence",
       "cost": 350,
       "builds_from": [
         "ball_of_wool"
@@ -1895,6 +1897,7 @@
       "id": "priest_gown",
       "name": "Priest gown",
       "tier": "component",
+      "shop": "Defence",
       "cost": 350,
       "builds_from": [
         "ball_of_wool"

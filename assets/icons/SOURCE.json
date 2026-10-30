@@ -374,7 +374,7 @@
     "defence": "runeKiteshield",
     "consumables": "prayerPotion4 + lobster",
     "boots": "leatherBoots",
-    "skilling": "runePickaxe + runeAxe",
+    "skilling": "runePickaxe (mirrored) + runeAxe",
     "materials": "logs + ironOre",
     "built_by": "tools/make_shop_icons.py"
   }

@@ -736,8 +736,22 @@ func test_v09() -> void:
 	ge.go_to("leather_boots")
 	check(ge.selected == "leather_boots" and ge.query == "" and ge.tab == GrandExchange.category(GameData.item("leather_boots")) and ge._tiles.has("leather_boots"),
 		"go_to jumps to an item's tab and selects it (search cleared)")
-	check(ge._into[0]["id"] == (GrandExchange.builds_into("leather_boots")[0] if not GrandExchange.builds_into("leather_boots").is_empty() else ""),
-		"...and shows what it builds into")
+	check(ge._into[0]["id"] == GrandExchange.upgrades("leather_boots", Settings.shop_sort)[0], "...and shows what it builds into")
+	# "Builds into" lists every upgrade, at any depth, nearest first.
+	var ups := GrandExchange.upgrades("leather_boots")
+	check(ups.has("bronze_boots") and ups.has("rune_boots") and ups.has("dragon_boots") and ups.has("primordial_boots")
+		and ups.find("bronze_boots") < ups.find("rune_boots") and ups.find("rune_boots") < ups.find("dragon_boots")
+		and ups.find("dragon_boots") < ups.find("primordial_boots"), "leather boots lead to bronze, rune, dragon and primordial boots, nearest first")
+	var shown_ups := ge._into.filter(func(d: Dictionary) -> bool: return d["id"] != "").map(func(d: Dictionary) -> String: return d["id"])
+	check(shown_ups == Array(GrandExchange.upgrades("leather_boots", Settings.shop_sort)) and shown_ups.size() >= 12,
+		"the shop's Builds into shows all %d of them" % shown_ups.size())
+	check(GrandExchange.upgrade_path("leather_boots", "dragon_boots") == ["leather_boots", "bronze_boots", "rune_boots", "dragon_boots"],
+		"the path up to an upgrade is its chain of recipes")
+	var cow_ups := GrandExchange.upgrades("cowhide")
+	ge.go_to("cowhide")
+	check(ge._into.filter(func(d: Dictionary) -> bool: return d["id"] != "").size() == cow_ups.size() and cow_ups.size() > GrandExchange.INTO_COLUMNS * GrandExchange.INTO_ROWS,
+		"long upgrade lists (cowhide: %d) are all there, scrolling past two rows" % cow_ups.size())
+	check(GrandExchange.upgrades("primordial_boots").is_empty() and ge._into.size() % GrandExchange.INTO_COLUMNS == 0, "a finished item has no upgrades; empty boxes fill the row")
 	var slot := ItemSlot.create(ge_holder, 52, "1")
 	var clicks := [0]
 	slot.primary_pressed.connect(func() -> void: clicks[0] += 1)
@@ -746,6 +760,18 @@ func test_v09() -> void:
 	ev.pressed = true
 	slot._gui_input(ev)
 	check(clicks[0] == 1, "a left click on an inventory slot reports a primary press")
+	# Food and Potions.
+	var consumables: Array = GameData.item_order.filter(func(id: String) -> bool: return GrandExchange.category(GameData.item(id)) == "Consumables")
+	var cons_secs := GrandExchange.sections(consumables, "price")
+	check(cons_secs.size() == 2 and cons_secs[0][0] == GrandExchange.FOOD_SECTION and cons_secs[1][0] == GrandExchange.POTION_SECTION
+		and cons_secs[0][1].size() + cons_secs[1][1].size() == consumables.size(), "Consumables splits into Food and Potions")
+	for id in ["shark", "shrimps", "trout", "cooked_karambwan", "anglerfish", "manta_ray"]:
+		check(id in cons_secs[0][1], "%s is food" % id)
+	for id in ["prayer_potion", "saradomin_brew", "super_restore", "antipoison", "attack_potion", "strength_potion", "stamina_potion"]:
+		check(id in cons_secs[1][1], "%s is a potion" % id)
+	# Armour that isn't a weapon.
+	for id in ["coif", "wizard_robe", "priest_gown"]:
+		check(GrandExchange.category(GameData.item(id)) == "Defence", "%s is in the Defence tab" % id)
 	# Sorting and the Spec Weapons section.
 	var weapons: Array = GameData.item_order.filter(func(id: String) -> bool: return GrandExchange.category(GameData.item(id)) == "Weapons")
 	var by_price := GrandExchange.sections(weapons, "price")
@@ -784,6 +810,23 @@ func test_v09() -> void:
 		return "")
 	check(ascending.call(shown, lvl) and ge._sort.text == "Sort: Level", "the Sort button switches the grid to level order")
 	ge.set_sort(old_sort)
+	# Right-click buys without changing what's shown; left-click selects.
+	ge.go_to("dragon_boots")
+	shopper.global_position = shopper.spawn_point
+	shopper.gold = 99999.0
+	var rc := InputEventMouseButton.new()
+	rc.button_index = MOUSE_BUTTON_RIGHT
+	rc.pressed = true
+	var ge_tile: TipButton = ge._tiles["rune_boots"]["button"]
+
+	ge_tile.gui_input.emit(rc)
+	check(ge.selected == "dragon_boots" and shopper.inventory.has("rune_boots") and ge._note.begins_with("Bought Rune boots"),
+		"right-clicking an item buys it and keeps the shown recipe (selected %s, note '%s')" % [ge.selected, ge._note])
+	shopper.gold = 0.0
+	(ge._tiles["bronze_boots"]["button"] as TipButton).gui_input.emit(rc)
+	check(ge.selected == "dragon_boots" and ge._note.contains("more gp"), "a right-click you can't afford says why (%s)" % ge._note)
+	(ge._tiles["bronze_boots"]["button"] as TipButton).pressed.emit()
+	check(ge.selected == "bronze_boots", "a left-click shows the item and its recipe")
 	# Moving the shop: it always stays on screen, and it owns the mouse.
 	var screen := ge.get_viewport_rect()
 	ge.move_to(Vector2(9000, 9000))

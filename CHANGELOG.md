@@ -2,6 +2,14 @@
 
 The game's **Check for updates** button reads the newest [GitHub release](https://github.com/redgouf/MOBA-FANTASY-GAME/releases); each release's notes are the matching section below.
 
+## 0.36.0
+
+- **Right-click buys, left-click shows.** Right-clicking an item anywhere in the shop (the grid, "Builds into", the recipe tree) now only buys it: the shop keeps showing the item you were looking at. A short message by your coins says what you bought, or why you couldn't (not enough gp, levels too low, inventory full). Left-click still opens an item and its recipe.
+- **"Builds into" shows every upgrade**, not just the next step: Leather boots now lists Bronze, Rune, Dragon and Primordial boots, the Pegasian, Eternal and Spiked lines and the rest (12 in all), nearest upgrades first. Two rows show; longer lists (Cowhide leads to 21 items) scroll. Hover an upgrade more than one step away to see its path, like "Leather boots → Bronze boots → Rune boots".
+- **Consumables are split into Food and Potions**, each sorted like the rest of the shop.
+- **The Coif, Wizard robe and Priest gown moved to the Defence tab** (they were listed with the weapons).
+- The Skilling tab's icon: the rune axe now faces its proper way and the rune pickaxe is mirrored, so their handles cross in an X.
+
 ## 0.35.0
 
 - **The shop is sorted.** Every tab lists its items cheapest first. The new **Sort** button (bottom right of the item list) switches to sorting by level requirement, lowest first, and back; the game remembers your choice. Ties go to the other order, then the name. Prices are full list prices, so the order doesn't shift as you buy parts. An item's level is its highest requirement (Scythe of vitur: 90 Strength).

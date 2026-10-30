@@ -15,7 +15,11 @@ extends Panel
 ##
 ## Each tab lists its items sorted by price or by level requirement (the Sort
 ## button, saved in your settings); weapons with a special attack come last,
-## in their own "Spec Weapons" section, sorted the same way.
+## in their own "Spec Weapons" section, and Consumables splits into "Food"
+## and "Potions", all sorted the same way. Left-click an item to see it and
+## its recipe; right-click buys it without changing what's shown. "Builds
+## into" lists everything the item leads to, at any depth (leather boots:
+## bronze, rune, dragon and primordial boots...), nearest upgrades first.
 ##
 ## Drag the title bar to move the window (it always stays fully on screen);
 ## double-click the title bar to centre it again. The window owns the mouse:
@@ -38,8 +42,15 @@ const TAB_ICONS := {
 }
 const PROMPT := "What would you like to buy?"
 const SPEC_SECTION := "Spec Weapons"
+const FOOD_SECTION := "Food"
+const POTION_SECTION := "Potions"
 const SORTS := {"price": "Price", "level": "Level"}
-const INTO_SLOTS := 7
+## "Builds into" grid: columns, cell size, and how many rows show before it scrolls.
+const INTO_COLUMNS := 8
+const INTO_CELL := Vector2(38, 36)
+const INTO_ROWS := 2
+## How long a right-click purchase's message stays by your coins.
+const NOTE_SECONDS := 3.0
 const RIGHT := Rect2(612, 52, 372, 632)
 
 # 9-slice margins of the GE sprites (the composed ones match ui.py's ge_slices).
@@ -65,7 +76,12 @@ var _scroll: ScrollContainer
 var _empty: Label
 var _tiles: Dictionary = {}         # item id -> {"button", "price", "icon", "name"}
 var _coins: Label
-var _into: Array = []               # [{"button", "icon", "id"}]
+var _into: Array = []               # [{"button", "icon", "id"}], one per "Builds into" item
+var _into_grid: GridContainer
+var _into_scroll: ScrollContainer
+var _note := ""                     # "Bought Rune boots" / why it couldn't, after a right-click
+var _note_color := Color.WHITE
+var _note_until := 0.0
 var _tree: RecipeTree
 var _tree_scroll: ScrollContainer
 var _d_icon: TextureRect
@@ -119,6 +135,22 @@ static func matches(it: Dictionary, q: String) -> bool:
 	return true
 
 
+## "Food" or "Potions": what a consumable is. Cooking makes food and
+## Herblore makes potions; with neither, anything that only heals is food.
+## An item's "kind" key overrides.
+static func consumable_kind(it: Dictionary) -> String:
+	if it.has("kind"):
+		return FOOD_SECTION if str(it["kind"]) == "food" else POTION_SECTION
+	var pot: Dictionary = it.get("potency", {})
+	if pot.has("cooking"):
+		return FOOD_SECTION
+	if pot.has("herblore"):
+		return POTION_SECTION
+	var use: Dictionary = it.get("use", {})
+	var heals := use.has("heal") or use.has("heal_over_time") or use.has("heal_pct_max")
+	return FOOD_SECTION if heals and not use.has("statuses") and not use.has("prayer") else POTION_SECTION
+
+
 ## A weapon with a special attack (listed in its own section, under the rest).
 static func is_spec_weapon(it: Dictionary) -> bool:
 	return it.has("spec_active") and category(it) == "Weapons"
@@ -154,18 +186,61 @@ static func sorted_ids(ids: Array, by: String) -> Array[String]:
 
 
 ## The grid's sections, in order: [[title, ids], ...]. The plain items come
-## first (no title), then the spec weapons under "Spec Weapons".
+## first (no title), then "Food" and "Potions", then the weapons with a special
+## attack under "Spec Weapons". Empty sections are left out.
 static func sections(ids: Array, by: String) -> Array:
-	var plain: Array = []
-	var spec: Array = []
+	var groups := {"": [], FOOD_SECTION: [], POTION_SECTION: [], SPEC_SECTION: []}
 	for id in ids:
-		(spec if is_spec_weapon(GameData.item(str(id))) else plain).append(id)
+		var it := GameData.item(str(id))
+		var key := ""
+		if is_spec_weapon(it):
+			key = SPEC_SECTION
+		elif it.get("consumable", false):
+			key = consumable_kind(it)
+		groups[key].append(id)
 	var out: Array = []
-	if not plain.is_empty():
-		out.append(["", sorted_ids(plain, by)])
-	if not spec.is_empty():
-		out.append([SPEC_SECTION, sorted_ids(spec, by)])
+	for key in ["", FOOD_SECTION, POTION_SECTION, SPEC_SECTION]:
+		if not groups[key].is_empty():
+			out.append([key, sorted_ids(groups[key], by)])
 	return out
+
+
+## Everything an item leads to, at any depth: the items it builds into, what
+## those build into, and so on. Nearest first (one step away, then two...),
+## each step in shop order.
+static func upgrades(id: String, by: String = "price") -> Array[String]:
+	var out: Array[String] = []
+	var step: Array[String] = builds_into(id)
+	while not step.is_empty():
+		var next: Array[String] = []
+		for u in sorted_ids(step, by):
+			if u != id and not out.has(u):
+				out.append(u)
+				for v in builds_into(u):
+					if not out.has(v) and not next.has(v):
+						next.append(v)
+		step = next
+	return out
+
+
+## The shortest chain of recipes from `from` up to `to`, both included
+## (["leather_boots", "bronze_boots", "rune_boots"]), or [] when there's none.
+static func upgrade_path(from: String, to: String) -> Array[String]:
+	var came: Dictionary = {from: ""}
+	var queue: Array[String] = [from]
+	while not queue.is_empty():
+		var cur: String = queue.pop_front()
+		if cur == to:
+			var path: Array[String] = []
+			while cur != "":
+				path.push_front(cur)
+				cur = came[cur]
+			return path
+		for nxt in builds_into(cur):
+			if not came.has(nxt):
+				came[nxt] = cur
+				queue.append(nxt)
+	return []
 
 
 ## The items that use this one in their recipe.
@@ -558,26 +633,26 @@ func _build_detail() -> void:
 	var w := RIGHT.size.x
 	# Builds into: the items this one is part of.
 	big_font(OsrsUi.text(d, "Builds into", 18, OsrsUi.ORANGE, Rect2(16, 10, 200, 22)), true)
-	var step := 48.0
-	var x0 := (w - (INTO_SLOTS * step - 6)) * 0.5
-	for i in INTO_SLOTS:
-		var b := TipButton.new()
-		b.position = Vector2(x0 + i * step, 36)
-		b.size = Vector2(42, 38)
-		style_item_box(b)
-		var icon := Icons.rect(b, null, Vector2(30, 30))
-		icon.position = Vector2(6, 4)
-		icon.size = Vector2(30, 30)
-		b.pressed.connect(_pick_into.bind(i))
-		b.gui_input.connect(_right_click_buy.bind(func() -> String: return str(_into[i]["id"])))
-		d.add_child(b)
-		_into.append({"button": b, "icon": icon, "id": ""})
-	divider(d, 86, 8, w - 16)
+	# Every upgrade, nearest first: two rows show, more scroll.
+	var sep := 5
+	var grid_w := INTO_COLUMNS * INTO_CELL.x + (INTO_COLUMNS - 1) * sep
+	_into_scroll = ScrollContainer.new()
+	_into_scroll.position = Vector2((w - grid_w - 12) * 0.5, 36)
+	_into_scroll.size = Vector2(grid_w + 12, INTO_ROWS * INTO_CELL.y + (INTO_ROWS - 1) * sep)
+	_into_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	d.add_child(_into_scroll)
+	_into_grid = GridContainer.new()
+	_into_grid.columns = INTO_COLUMNS
+	_into_grid.add_theme_constant_override("h_separation", sep)
+	_into_grid.add_theme_constant_override("v_separation", sep)
+	_into_scroll.add_child(_into_grid)
+	var into_bottom := _into_scroll.position.y + _into_scroll.size.y
+	divider(d, into_bottom + 8, 8, w - 16)
 	# The recipe, the selected item at the top.
-	big_font(OsrsUi.text(d, "Recipe", 18, OsrsUi.ORANGE, Rect2(16, 92, 200, 22)), true)
+	big_font(OsrsUi.text(d, "Recipe", 18, OsrsUi.ORANGE, Rect2(16, into_bottom + 14, 200, 22)), true)
 	_tree_scroll = ScrollContainer.new()
-	_tree_scroll.position = Vector2(14, 116)
-	_tree_scroll.size = Vector2(w - 28, 252)
+	_tree_scroll.position = Vector2(14, into_bottom + 38)
+	_tree_scroll.size = Vector2(w - 28, 368 - (into_bottom + 38))
 	_tree_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	d.add_child(_tree_scroll)
 	_tree = RecipeTree.new()
@@ -713,9 +788,10 @@ func set_sort(by: String) -> void:
 	_update_sort_text()
 	var keep := selected
 	_fill_grid()
-	if keep != "" and _tiles.has(keep):
-		select(keep)
-		_scroll.ensure_control_visible.call_deferred(_tiles[keep]["button"])
+	if keep != "":
+		select(keep)          # (also re-orders its "Builds into")
+		if _tiles.has(keep):
+			_scroll.ensure_control_visible.call_deferred(_tiles[keep]["button"])
 
 
 func _update_sort_text() -> void:
@@ -755,10 +831,44 @@ func _mark_selected() -> void:
 		(_tiles[k]["button"] as Button).set_pressed_no_signal(k == selected)
 
 
-func _pick_into(i: int) -> void:
-	var id := str(_into[i]["id"])
+func _pick_into(id: String) -> void:
 	if id != "":
 		select(id)
+
+
+## Fills "Builds into" with every upgrade of `id` (empty boxes pad the
+## last row, and a finished item shows one empty row).
+func _show_upgrades(id: String) -> void:
+	for c in _into_grid.get_children():
+		_into_grid.remove_child(c)
+		c.queue_free()
+	_into.clear()
+	var ups: Array[String] = []
+	if id != "":
+		ups = upgrades(id, Settings.shop_sort)
+	var slots := maxi(INTO_COLUMNS, ceili(ups.size() / float(INTO_COLUMNS)) * INTO_COLUMNS)
+	for i in slots:
+		var other: String = ups[i] if i < ups.size() else ""
+		var b := TipButton.new()
+		b.custom_minimum_size = INTO_CELL
+		style_item_box(b)
+		var icon := Icons.rect(b, Icons.item(other) if other != "" else null, INTO_CELL - Vector2(10, 8))
+		icon.position = Vector2(5, 4)
+		icon.size = INTO_CELL - Vector2(10, 8)
+		b.disabled = other == ""
+		if other != "":
+			b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			var path := upgrade_path(id, other)
+			var names: Array[String] = []
+			for p in path:
+				names.append(str(GameData.item(p).get("name", p)))
+			b.show_item(other, champ, "Price: %s gp. Click to view, right-click to buy.%s" % [
+				_commas(_price_for(other)), "\n%s" % " → ".join(names) if path.size() > 2 else ""])
+			b.pressed.connect(_pick_into.bind(other))
+			b.gui_input.connect(_right_click_buy.bind(func() -> String: return other))
+		_into_grid.add_child(b)
+		_into.append({"button": b, "icon": icon, "id": other})
+	_into_scroll.scroll_vertical = 0
 
 
 ## Jumps to an item: its tab (search cleared), highlighted and scrolled into
@@ -782,22 +892,7 @@ func go_to(id: String) -> void:
 func select(id: String) -> void:
 	selected = id
 	_mark_selected()
-	var into: Array[String] = []
-	if id != "":
-		into = builds_into(id)
-	for i in INTO_SLOTS:
-		var slot: Dictionary = _into[i]
-		var other: String = into[i] if i < into.size() else ""
-		slot["id"] = other
-		(slot["icon"] as TextureRect).texture = Icons.item(other) if other != "" else null
-		var b := slot["button"] as Button
-		b.disabled = other == ""
-		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if other != "" else Control.CURSOR_ARROW
-		var more := ""
-		if i == INTO_SLOTS - 1 and into.size() > INTO_SLOTS:
-			more = "\n…and %d more" % (into.size() - INTO_SLOTS)
-		(b as TipButton).show_item(other, champ, "" if other == "" else
-			"Price: %s gp. Click to view, right-click to buy.%s" % [_commas(_price_for(other)), more])
+	_show_upgrades(id)
 	_inv_key = ""
 	if id == "":
 		_d_name.text = ""
@@ -857,7 +952,9 @@ func buy(id: String) -> void:
 		refresh()
 
 
-## Right-click on an item anywhere in the shop buys it (like League).
+## Right-click on an item anywhere in the shop buys it (like League). It
+## doesn't change what's selected (only a left-click does that); a short
+## message by your coins says what was bought, or why it couldn't be.
 ##
 ## The click is marked handled first: buying rebuilds the recipe tree, which
 ## frees the very button being clicked, and Godot then lets the click carry on
@@ -867,9 +964,45 @@ func _right_click_buy(e: InputEvent, id_of: Callable) -> void:
 		get_viewport().set_input_as_handled()
 		var id: String = id_of.call()
 		if id != "":
-			if id != selected:
-				select(id)
-			buy(id)
+			_quick_buy(id)
+
+
+func _quick_buy(id: String) -> void:
+	if champ == null:
+		return
+	var item_name := str(GameData.item(id).get("name", id))
+	var problem := buy_problem(id)
+	if problem == "" and champ.buy_item(id):
+		_set_note("Bought %s" % item_name, OsrsUi.GREEN)
+	else:
+		_set_note("%s: %s" % [item_name, SkillIcons.plain(problem) if problem != "" else "can't buy it"], OsrsUi.RED)
+	refresh()
+
+
+func _set_note(text: String, color: Color) -> void:
+	_note = text
+	_note_color = color
+	_note_until = Time.get_ticks_msec() / 1000.0 + NOTE_SECONDS
+
+
+## Why `id` can't be bought right now ("" when it can). Skill names are
+## {skill} markers (SkillIcons draws them as icons).
+func buy_problem(id: String) -> String:
+	if champ == null or id == "":
+		return "nothing to buy"
+	var cost := champ.item_cost(id)
+	if not champ.in_shop_range():
+		return "Return to your base to buy."
+	if not champ.meets_requirements(id):
+		var need: Array[String] = []
+		for r in champ.missing_requirement_levels(id):
+			need.append("%d {%s}" % [int(r[1]), str(r[0])])
+		return "Your levels are too low: %s." % ", ".join(need)
+	if champ.gold < cost:
+		return "You need %s more gp." % _commas(cost - int(champ.gold))
+	if not champ.can_buy(id):
+		return "Your inventory is full."
+	return ""
 
 
 ## Sells your copy of an item (the Sell button).
@@ -895,7 +1028,14 @@ func _process(delta: float) -> void:
 func refresh() -> void:
 	if champ == null:
 		return
-	_coins.text = "%s gp%s" % [_commas(int(champ.gold)), "" if champ.in_shop_range() else "   ·   return to base to buy"]
+	var coins := "%s gp%s" % [_commas(int(champ.gold)), "" if champ.in_shop_range() else "   ·   return to base to buy"]
+	if _note != "" and Time.get_ticks_msec() / 1000.0 < _note_until:
+		_coins.text = "%s   ·   %s" % [_commas(int(champ.gold)) + " gp", _note]
+		_coins.add_theme_color_override("font_color", _note_color)
+	else:
+		_note = ""
+		_coins.text = coins
+		_coins.add_theme_color_override("font_color", OsrsUi.YELLOW)
 	for id in _tiles:
 		var t: Dictionary = _tiles[id]
 		var cost := champ.item_cost(id)
@@ -920,18 +1060,7 @@ func refresh() -> void:
 	var full := int(GameData.item(selected).get("cost", 0))
 	_d_price.text = "Price: %s gp%s" % [_commas(cost), "" if cost == full else "  (full price %s gp)" % _commas(full)]
 	_d_price.add_theme_color_override("font_color", OsrsUi.YELLOW if champ.gold >= cost else OsrsUi.RED)
-	var status := ""
-	if not champ.in_shop_range():
-		status = "Return to your base to buy."
-	elif not champ.meets_requirements(selected):
-		var need: Array[String] = []
-		for r in champ.missing_requirement_levels(selected):
-			need.append("%d {%s}" % [int(r[1]), str(r[0])])
-		status = "Your levels are too low: %s." % ", ".join(need)
-	elif champ.gold < cost:
-		status = "You need %s more gp." % _commas(cost - int(champ.gold))
-	elif not champ.can_buy(selected):
-		status = "Your inventory is full."
+	var status := buy_problem(selected)
 	var shown := "[center]%s[/center]" % SkillIcons.markup(status) if status != "" else ""
 	if _d_status.text != shown:
 		_d_status.text = shown
